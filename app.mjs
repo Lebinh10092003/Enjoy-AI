@@ -1,3 +1,4 @@
+import {MODEL_META} from "./placement.mjs";
 import {teamUi,readTeamFields} from "./teams-ui.mjs";
 import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs";
 import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs";
