@@ -14,7 +14,7 @@ Website chấm điểm và tạo đề luyện tập **Inventions Trail** + **Ba
 - **Battle**: 2 đội Đỏ / Xanh, Meteorite Tower (+100), Energy Defense (+10/khối, tối đa 8), Full Firepower (+15/bóng, tối đa 8), Final Fortress thắng ngay khi đủ ba điều kiện và rời khung; điểm thưởng retry và phạt lỗi 7.4.
 - **Battle vòng bảng**: 3–1–0; so điểm trong trận, sau đó hoàn thành Tower khi hòa. Thống kê thắng thua, tính thắng đối đầu, điểm nhiệm vụ, số lần Tower, tổng retry. Nút tạo lịch vòng tròn tránh trùng cặp.
 - **Battle loại trực tiếp**: trận có thắng ngay được xử lý ưu tiên; nếu chưa có thắng ngay sẽ phân định lần lượt điểm trận → điểm Full Firepower → Tower → retry; nếu vẫn hòa yêu cầu trận phân định.
-- **Random Invention**: cấp độ luyện tập 1–3 / 4–6 / 7–9 / 10–12, điều chỉnh số mô hình và chướng ngại vật; gán vị trí A–J không trùng nhau; quay 0°/90°/180°/270°; seed tái lập kết quả; lưu đề / sao chép / xuất JSON / in.
+- **Random Invention**: mỗi đề luôn có 7 mô hình nhiệm vụ chính và 3 vật cản; tùy chọn Bonus chỉ khi BTC công bố. Mô hình đặt tại khung A–J không trùng nhau; vật cản đặt riêng tại 3/9 ô chữ nhật nhỏ O1–O9, theo dấu trên ảnh sa bàn do người dùng cung cấp. Mũi tên chỉ hướng tiếp cận theo đường dẫn; seed tái lập kết quả; lưu đề / sao chép / xuất JSON / in.
 - Tự động lưu trên localStorage; nhập/xuất JSON; xuất danh sách và bảng xếp hạng CSV (UTF-8 BOM hỗ trợ Excel); giao diện responsive laptop/điện thoại; không cần server.
 
 ## Quy tắc quan trọng
@@ -88,3 +88,10 @@ GitHub Actions tự kiểm thử với Node.js 22 khi push vào main.
 - Công cụ không còn chọn ngẫu nhiên 0°/90°/180°/270° cho mọi nhiệm vụ. **Hướng tiếp cận** là kết quả lọc theo vị trí, đường dẫn và loại khung: các khung chéo được hạn chế với mô hình nhỏ; khung thường chọn hướng tiếp cận theo đường dẫn. Bộ sinh có backtracking để tránh dùng một khung hai lần.
 - **Cảnh báo về tính khả thi:** hướng tiếp cận về hình học chưa chứng minh cơ cấu nhiệm vụ thật ở từng vị trí có thể thao tác thành công. Cần thử nghiệm với robot, mô hình và sa bàn thật, rồi hiệu chỉnh `APPROACH_RULES` trong `placement.mjs` trước khi coi là đề đã xác thực.
 - Với dữ liệu được sử dụng tại một sự kiện thi đấu, BTC và trọng tài vẫn quyết định hiệu lực đề, điểm số và các ngoại lệ theo điều lệ hiện hành.
+
+## Chốt số lượng sa bàn (11/10/2026)
+
+- **7 nhiệm vụ Invention chính** xuất hiện trong **mọi đề**: La bàn, Làm giấy, Thuốc súng, In chữ rời, Máy đo địa chấn, Kim tự tháp, Vạn Lý Trường Thành. Nhiệm vụ In chữ rời có hai đối tượng chấm điểm ENJ/YAI nhưng chỉ là **một mô hình cần đặt**.
+- **3 vật cản** được chọn ngẫu nhiên trong **9 vị trí hình chữ nhật nhỏ O1–O9** đánh dấu trên ảnh đã cung cấp, **không** dùng các khung mô hình nhiệm vụ A–J.
+- Các cấp độ luyện tập hiện **không thay đổi số lượng** nhiệm vụ/vật cản. Những điều kiện khác theo cấp độ phải căn cứ điều chỉnh BTC; không tự đặt tiêu chí ngoài tài liệu.
+- Các đề đã tạo ở phiên bản cũ được bảo tồn và được cảnh báo khi mở, không tính là đề theo chuẩn mới. Bấm **Tạo đề mới** để có đủ 7+3.
