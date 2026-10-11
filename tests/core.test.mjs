@@ -1,3 +1,4 @@
+import {OBSTACLE_SLOTS,SLOTS,NORMAL_MODELS,LEVELS,validPlacement,OBSTACLE_COUNT,MAIN_TASK_COUNT} from "../placement.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {TASKS,initialData,invScore,invRank,scoreRetry,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout} from "../core.mjs";
@@ -45,13 +46,41 @@ test("Battle standings score 3-1-0 in group",()=>{
  const rank=battleRanking(teams,games);
  assert.equal(rank[0].id,"a");assert.equal(rank[0].points,3);assert.equal(rank[1].points,0);
 });
-test("Seeded random generation is reproducible and has no overlapping tasks/obstacles",()=>{
- const x=generateLayout({seed:"FLL-2026",level:"expert",includeBonus:true,obstaclesCount:2});
- const y=generateLayout({seed:"FLL-2026",level:"expert",includeBonus:true,obstaclesCount:2});
+test("Seven mandatory models, three small-rectangle obstacles at every practice level",()=>{
+ const taskIds=new Set(NORMAL_MODELS);
+ const allowedObstacles=new Set(OBSTACLE_SLOTS.map(x=>x.id));
+ assert.equal(taskIds.size,7);
+ assert.equal(allowedObstacles.size,9);
+ assert.equal(MAIN_TASK_COUNT,7);
+ assert.equal(OBSTACLE_COUNT,3);
+ for(const level of LEVELS){
+  assert.equal(level.tasks,7);
+  assert.equal(level.obstacles,3);
+  for(const seed of ["VPLUS-001","VPLUS-2026","FLL-2026","123456"]){
+   const x=generateLayout({seed,level:level.id});
+   const y=generateLayout({seed,level:level.id});
+   assert.equal(x.version,2);
+   assert.deepEqual(x.tasks,y.tasks);
+   assert.deepEqual(x.obstacles,y.obstacles);
+   assert.equal(x.tasks.length,7);
+   assert.deepEqual(new Set(x.tasks.map(x=>x.id)),taskIds);
+   assert.equal(new Set(x.tasks.map(x=>x.slot)).size,7);
+   assert.ok(x.tasks.every(x=>SLOTS.some(slot=>slot.id===x.slot)&&validPlacement(x.id,x.slot,x.angle)));
+   assert.equal(x.obstacles.length,3);
+   assert.equal(new Set(x.obstacles).size,3);
+   assert.ok(x.obstacles.every(id=>allowedObstacles.has(id)));
+   assert.ok(x.obstacles.every(id=>id.startsWith("O")));
+  }
+ }
+});
+test("Optional bonus does not reduce seven core tasks or three obstacles",()=>{
+ const x=generateLayout({seed:"FLL-2026",level:"expert",includeBonus:true});
+ const y=generateLayout({seed:"FLL-2026",level:"expert",includeBonus:true});
  assert.deepEqual(x.tasks,y.tasks);
  assert.deepEqual(x.obstacles,y.obstacles);
- const all=[...x.tasks.map(a=>a.slot),...x.obstacles];
- assert.equal(new Set(all).size,all.length);
  assert.equal(x.tasks.length,8);
+ assert.equal(x.tasks.filter(t=>t.id!=="bonus").length,7);
+ assert.equal(x.obstacles.length,3);
+ assert.equal(new Set(x.tasks.map(t=>t.slot)).size,8);
 });
 test("Initial settings are safe",()=>{const x=initialData();assert.equal(x.rounds,2);assert.equal(x.bonusEnabled,false);});
