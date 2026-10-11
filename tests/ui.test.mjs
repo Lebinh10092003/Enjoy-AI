@@ -9,7 +9,8 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  globalThis.document=dom.window.document;
  globalThis.localStorage=dom.window.localStorage;
  globalThis.FileReader=dom.window.FileReader;
- dom.window.scrollTo=()=>{};
+ let scrollCalls=0;
+ dom.window.scrollTo=()=>{scrollCalls++;};
  await import("../app.mjs");
  const q=s=>dom.window.document.querySelector(s);
  const click=s=>{const el=q(s);assert.ok(el,"Missing click target "+s);el.click();};
@@ -54,7 +55,13 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.match(q("#content").textContent,/3 vật cản/);
  assert.equal(q("#layout-task-count"),null);
  assert.equal(q("#layout-obstacles"),null);
+ const actionButton=q("[data-generate]");
+ const arenaBackground=q(".arena-background");
+ const scrollBeforeGenerate=scrollCalls;
  click("[data-generate]");
+ assert.equal(scrollCalls,scrollBeforeGenerate,"Random must not scroll the window to the top");
+ assert.equal(q("[data-generate]"),actionButton,"Random controls must retain their DOM nodes");
+ assert.equal(q(".arena-background"),arenaBackground,"Arena image must not be reloaded");
  assert.ok(q(".slot-marker"));
  assert.equal(dom.window.document.querySelectorAll(".mission-marker").length,7);
  assert.equal(dom.window.document.querySelectorAll(".obstacle-rect").length,3);
@@ -68,6 +75,9 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(q("#layout-seed").value,"","New random should leave seed input empty");
  // Regression: the original button reused the previous seed after rendering.
  click("[data-generate]");
+ assert.equal(scrollCalls,scrollBeforeGenerate,"Repeated random must not move scroll position");
+ assert.equal(q("[data-generate]"),actionButton,"Repeated random must not rerender toolbar");
+ assert.equal(q(".arena-background"),arenaBackground,"Repeated random must preserve field image");
  layouts=loadLayouts();
  assert.equal(layouts.length,2);
  assert.notEqual(layouts[0].seed,first.seed,"Each new random must use a fresh seed");
@@ -79,6 +89,10 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(dom.window.document.querySelectorAll(".mission-marker").length,7);
  assert.equal(dom.window.document.querySelectorAll(".obstacle-rect").length,3);
  assert.equal(q("#layout-seed").value,"");
+ change("#selected-layout",first.id);
+ assert.equal(scrollCalls,scrollBeforeGenerate,"Selecting a saved random layout must not scroll to the top");
+ assert.equal(q(".arena-background"),arenaBackground,"Saved layout selection must preserve arena image");
+ assert.equal(q("[data-generate]"),actionButton);
  // The explicit replay action remains deterministic.
  q("#layout-seed").value=first.seed;
  click("[data-generate-seed]");
