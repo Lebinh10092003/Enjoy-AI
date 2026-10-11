@@ -47,7 +47,7 @@ test("Battle standings score 3-1-0 in group",()=>{
 });
 test("Seeded random generation is reproducible and has no overlapping tasks/obstacles",()=>{
  const x=generateLayout({seed:"FLL-2026",level:"expert",includeBonus:true,obstaclesCount:2});
- const y=generateLayout({seed:"FLL-2026",level:"expert",includeBonus:true});
+ const y=generateLayout({seed:"FLL-2026",level:"expert",includeBonus:true,obstaclesCount:2});
  assert.deepEqual(x.tasks,y.tasks);
  assert.deepEqual(x.obstacles,y.obstacles);
  const all=[...x.tasks.map(a=>a.slot),...x.obstacles];
