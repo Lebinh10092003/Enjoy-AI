@@ -76,32 +76,7 @@ function renderRanking(){
   return title("Bảng xếp hạng Invention","Ưu tiên: tổng điểm ↓, tổng thời gian ↑, tổng số lần chạy lại ↑, điểm cao nhất một lượt ↓. Đội 0 điểm không xếp hạng.",'<button class="btn btn-outline" data-export-ranking>↓ CSV</button>')+
     '<div class="panel"><div class="form-grid two">'+selectField("inv-division","Lọc bảng thi",[{id:"all",label:"Tất cả bảng"},...INV_DIVISIONS],ui.invDivision)+'<div class="field"><label>Số lượt đang áp dụng</label><strong style="padding:11px">'+data.rounds+' lượt / đội</strong></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Hạng</th><th>Đội</th><th>Bảng thi</th>'+Array.from({length:data.rounds},(_,i)=>'<th class="num">L'+(i+1)+'</th>').join("")+'<th class="num">Tổng</th><th class="num">Giây</th><th class="num">Retry</th><th class="num">Lượt tốt nhất</th><th>Đã chấm</th></tr></thead><tbody>'+rows+'</tbody></table>'+(rows?"":'<div class="empty">Chưa có dữ liệu đội thi.</div>')+'</div></div>';
 }
-function arenaSvg(){
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1664 923" preserveAspectRatio="xMidYMid meet" aria-label="Sa bàn Invention sơ đồ 2D">'+
-    '<defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#e9cee5"/><stop offset="1" stop-color="#caa9d7"/></linearGradient><pattern id="hex" width="51" height="44" patternUnits="userSpaceOnUse"><path d="M13 1H38L51 22L38 43H13L0 22Z" stroke="#9f86b6" stroke-width="1" fill="none" opacity=".25"/></pattern></defs>'+
-    '<rect width="1664" height="923" fill="url(#g)"/><rect width="1664" height="923" fill="url(#hex)"/>'+
-    '<rect x="8" y="8" width="1648" height="907" fill="none" stroke="#9a67b4" stroke-width="15"/>'+
-    '<circle cx="640" cy="415" r="218" fill="none" stroke="#ad83b5" stroke-width="25" opacity=".45"/>'+
-    '<path d="M123 699V119H938V806H235 M327 0V461H1610 M529 119V806 M733 0V806 M123 461H1599 M938 309H1198 M938 616H1198" stroke="#0b0811" stroke-width="19" fill="none" stroke-linejoin="round"/>'+
-    '<path d="M1129 90L1261 209 M1577 86L1436 211 M1131 839L1263 714 M1570 837L1431 706" stroke="#0b0811" stroke-width="19" fill="none"/>'+
-    '<rect x="1198" y="193" width="305" height="534" rx="153" fill="none" stroke="#0b0811" stroke-width="20"/>'+
-    '<path d="M1260 452L1350 335L1443 452L1350 570Z" fill="#b5d183" opacity=".66" stroke="#a2c770" stroke-width="11"/>'+
-    '<rect x="8" y="690" width="230" height="222" fill="#7955b1" stroke="#eee5ff" stroke-width="5"/>'+
-    '<text x="123" y="815" fill="#f6eeff" font-weight="800" font-size="25" text-anchor="middle">BASE</text>'+
-    '<text x="640" y="720" fill="#ac7bb8" font-weight="800" font-size="65" text-anchor="middle" opacity=".5">WHALESBOT</text>'+
-    '<text x="1030" y="42" fill="#7d59aa" font-weight="800" font-size="25">ENJOY AI 2026 · LAYOUT</text>'+
-    '</svg>';
-}
-function renderMap(layout){
-  const assigned=new Map((layout?.tasks||[]).map(t=>[t.slot,t]));
-  const obstacles=new Set(layout?.obstacles||[]);
-  return '<div class="arena-board">'+(data.mapImage?'<img src="'+V(data.mapImage)+'" alt="Ảnh nền sa bàn Invention đã tải lên" style="display:block;width:100%;height:100%;object-fit:fill">':arenaSvg())+SLOTS.map(slot=>{
-    const p=assigned.get(slot.id);
-    const label=p?slot.id+' · '+LAYOUT_NAMES[p.id]:'';
-    const kind=p?'':obstacles.has(slot.id)?'obstacle':'unused';
-    return '<span class="slot-marker '+kind+'" style="left:'+slot.x+'%;top:'+slot.y+'%" title="'+V(label||slot.id)+'">'+(p?V(label)+'<small>↻ '+p.angle+'°</small>':obstacles.has(slot.id)?slot.id+' · Cản':slot.id)+'</span>';
-  }).join("")+'</div><div class="arena-legend"><span><i></i>Mô hình nhiệm vụ</span><span><i class="orange"></i>Chướng ngại vật</span><span><i class="gray"></i>Vị trí trống</span></div>';
-}
+function renderMap(layout){return renderArena(layout,data.mapImage||"./assets/arena/invention-board.webp");}
 function renderRandom(){
   const layout=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   if(layout)ui.layoutId=layout.id;
@@ -111,8 +86,8 @@ function renderRandom(){
     '<div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề mới</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div></div>';
   if(!layout)return s+'<div class="panel"><div class="empty"><strong>Chưa có đề</strong>Chọn cấp độ, bấm “Tạo đề mới” để sinh nhiệm vụ.</div>'+renderMap(null)+'</div>';
   s+='<div class="panel"><div class="panel-top"><h3>Sa bàn ngẫu nhiên · '+V(LEVELS.find(x=>x.id===layout.level)?.name||layout.level)+'</h3>'+badge("Seed: "+layout.seed)+'</div>'+renderMap(layout)+
-     '<div class="panel-note warning">Vị trí A–J và hướng quay là mô phỏng trên sa bàn 2D, phải đối chiếu với khung gắn mô hình thật. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
-  s+='<div class="grid-2"><div class="panel"><h3>Phân bố mô hình</h3><div class="layout-list">'+layout.tasks.map(t=>'<div><b>'+t.slot+'</b> · '+V(LAYOUT_NAMES[t.id])+'<br>Hướng đặt <b>'+t.angle+'°</b></div>').join("")+'</div><p class="muted" style="margin-top:15px">Chướng ngại vật: '+V(layout.obstacles.join(", ")||"Không có")+'</p></div>'+
+     '<div class="panel-note warning">Vị trí A–J lấy từ 10 dấu trên ảnh sa bàn thực tế. Mũi tên thể hiện hướng robot tiếp cận nhiệm vụ theo đường dẫn. Đây là phương án hình học bảo thủ; cần thử mô hình thật để xác nhận hướng tay gạt, vùng thao tác và khoảng trống. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
+  s+='<div class="grid-2"><div class="panel"><h3>Phân bố mô hình</h3><div class="layout-list">'+layout.tasks.map(t=>'<div class="layout-model-item">'+modelPicture(t.id)+'<span><b>'+t.slot+' · '+V(LAYOUT_NAMES[t.id])+'</b><br>Hướng tiếp cận: <b>'+t.angle+'° · '+V(angleName(t.angle))+'</b><br><small>'+V(MODEL_META[t.id]?.guide||"")+'</small></span></div>').join("")+'</div><p class="muted" style="margin-top:15px">Chướng ngại vật: '+V(layout.obstacles.join(", ")||"Không có")+'</p></div>'+
     '<div class="panel"><h3>Đề đã tạo</h3><div class="field"><label for="selected-layout">Chọn lại đề đã lưu</label><select id="selected-layout">'+data.layouts.map((l,i)=>'<option value="'+V(l.id)+'"'+(l.id===layout.id?' selected':'')+'>#'+(data.layouts.length-i)+' · '+V(l.seed)+' · '+V(LEVELS.find(x=>x.id===l.level)?.name||l.level)+'</option>').join("")+'</select></div><p class="muted">Đề được lưu tự động trong trình duyệt và trong bản sao lưu JSON.</p><button class="btn btn-danger btn-small" data-delete-layout="'+V(layout.id)+'">Xóa đề này</button></div></div>';
   return s;
 }
@@ -298,6 +273,13 @@ el.addEventListener("click",e=>{
    return finish();
  }
  if(t.hasAttribute("data-clear-map")){delete data.mapImage;persist();render();return;}
+ if(t.dataset.mapSlot){
+  const layout=data.layouts.find(x=>x.id===ui.layoutId)||data.layouts[0],p=layout?.tasks.find(x=>x.slot===t.dataset.mapSlot);
+  if(!p)return;
+  const modal=$('#modal');modal.classList.remove("hidden");modal.innerHTML=modelPopup(p);
+  $('#close-model-popup').onclick=()=>{modal.classList.add("hidden");modal.innerHTML="";};
+  return;
+ }
  if(t.hasAttribute("data-generate"))return makeLayout();
  if(t.hasAttribute("data-copy-layout"))return copyLayout();
  if(t.hasAttribute("data-export-layout"))return exportLayout();
