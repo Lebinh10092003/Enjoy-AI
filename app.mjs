@@ -91,7 +91,7 @@ function renderRandomResults(layout){
   let s='';
   if(!layout)return '<div class="panel"><div class="empty"><strong>Chưa có đề</strong>Chọn cấp độ, bấm “Tạo đề ngẫu nhiên mới” để sinh đủ 7 nhiệm vụ và 3 vật cản.</div>'+renderMap(null)+'</div>';
   if(layout.version!==2)s+='<div class="panel-note warning">Đề cũ được lưu theo quy tắc trước đây, có thể chỉ có 5 nhiệm vụ và sử dụng sai vị trí vật cản. Hãy chọn “Tạo đề mới” để áp dụng chuẩn 7 nhiệm vụ + 3 vật cản tại O1–O9. Dữ liệu đề cũ không bị xóa.</div>';
-  s+='<div class="panel"><div class="panel-top"><h3>Sa bàn ngẫu nhiên · '+V(LEVELS.find(x=>x.id===layout.level)?.name||layout.level)+'</h3>'+badge("Seed: "+layout.seed)+'</div>'+renderMap(layout)+
+  s+='<div class="panel"><div class="panel-top"><h3>Sa bàn ngẫu nhiên · '+V(LEVELS.find(x=>x.id===layout.level)?.name||layout.level)+'</h3><div class="action-row">'+badge("Seed: "+layout.seed)+'<button class="btn btn-soft btn-small no-print" data-generate-board type="button" title="Random lại và giữ nguyên vị trí xem sa bàn">⟳ Random lại</button></div></div>'+renderMap(layout)+
      '<div class="panel-note warning">7 nhiệm vụ chính được đặt tại các khung nhiệm vụ A–J; 3 vật cản chỉ xuất hiện trong 9 ô chữ nhật nhỏ O1–O9 mà bạn đã đánh dấu. Mũi tên thể hiện hướng robot tiếp cận. Đây là phương án hình học bảo thủ; cần thử mô hình thật để xác nhận hướng tay gạt, vùng thao tác và khoảng trống. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
   s+='<div class="grid-2"><div class="panel"><h3>Phân bố mô hình</h3><div class="layout-list">'+layout.tasks.map(t=>'<div class="layout-model-item">'+modelPicture(t.id)+'<span><b>'+t.slot+' · '+V(LAYOUT_NAMES[t.id])+'</b><br>Hướng tiếp cận: <b>'+t.angle+'° · '+V(angleName(t.angle))+'</b><br><small>'+V(MODEL_META[t.id]?.guide||"")+'</small></span></div>').join("")+'</div><p class="muted" style="margin-top:15px">3 vị trí vật cản nhỏ: '+V(layout.obstacles.join(", ")||"Chưa có")+'</p></div>'+
     '<div class="panel"><h3>Đề đã tạo</h3><div class="field"><label for="selected-layout">Chọn lại đề đã lưu</label><select id="selected-layout">'+data.layouts.map((l,i)=>'<option value="'+V(l.id)+'"'+(l.id===layout.id?' selected':'')+'>#'+(data.layouts.length-i)+' · '+V(l.seed)+' · '+V(LEVELS.find(x=>x.id===l.level)?.name||l.level)+'</option>').join("")+'</select></div><p class="muted">Đề được lưu tự động trong trình duyệt và trong bản sao lưu JSON.</p><button class="btn btn-danger btn-small" data-delete-layout="'+V(layout.id)+'">Xóa đề này</button></div></div>';
@@ -341,7 +341,7 @@ el.addEventListener("click",e=>{
   $('#close-model-popup').onclick=()=>{modal.classList.add("hidden");modal.innerHTML="";};
   return;
  }
- if(t.hasAttribute("data-generate"))return makeLayout("random");
+ if(t.hasAttribute("data-generate")||t.hasAttribute("data-generate-board"))return makeLayout("random");
  if(t.hasAttribute("data-generate-seed"))return makeLayout("seed");
  if(t.hasAttribute("data-copy-layout"))return copyLayout();
  if(t.hasAttribute("data-export-layout"))return exportLayout();
