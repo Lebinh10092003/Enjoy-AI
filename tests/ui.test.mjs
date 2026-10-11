@@ -25,7 +25,7 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
    if(type==="battle")change("#team-division","primary");
    q("#add-team").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
  };
- assert.match(q("#content").textContent,/Tổng quan/);
+ assert.match(q("#content").textContent,/Tổng đội thi/);
  addTeam("Invention One","invention");
  assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).teams.length,1);
  click('[data-page="invention"]');
