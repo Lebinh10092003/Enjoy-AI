@@ -19,10 +19,11 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
   input.dispatchEvent(new dom.window.Event("change",{bubbles:true}));
  };
  const addTeam=(name,type)=>{
-   click('[data-page="teams"]');
-   change("#team-type",type);
+   click('[data-page="'+(type==="battle"?"teams-battle":"teams-invention")+'"]');
    q("#team-name").value=name;
-   if(type==="battle")change("#team-division","primary");
+   q("#team-member1").value=name+" Student 1";
+   q("#team-member2").value=name+" Student 2";
+   q("#team-coach").value="Coach "+name;
    q("#add-team").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
  };
  assert.match(q("#content").textContent,/Tổng đội thi/);
