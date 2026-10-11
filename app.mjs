@@ -98,7 +98,7 @@ function arenaSvg(){
 function renderMap(layout){
   const assigned=new Map((layout?.tasks||[]).map(t=>[t.slot,t]));
   const obstacles=new Set(layout?.obstacles||[]);
-  return '<div class="arena-board">'+arenaSvg()+SLOTS.map(slot=>{
+  return '<div class="arena-board">'+(data.mapImage?'<img src="'+V(data.mapImage)+'" alt="Ảnh nền sa bàn Invention đã tải lên" style="display:block;width:100%;height:100%;object-fit:fill">':arenaSvg())+SLOTS.map(slot=>{
     const p=assigned.get(slot.id);
     const label=p?slot.id+' · '+LAYOUT_NAMES[p.id]:'';
     const kind=p?'':obstacles.has(slot.id)?'obstacle':'unused';
@@ -111,7 +111,7 @@ function renderRandom(){
   const preset=LEVELS.find(l=>l.id===ui.layoutLevel)||LEVELS[1];
   let s=title("Tạo đề Invention ngẫu nhiên","Các cấp độ là mẫu luyện tập do hệ thống đề xuất, không phải số lượng nhiệm vụ bắt buộc của BTC.",'<button class="btn btn-outline" data-print>In sơ đồ</button>');
   s+='<div class="panel"><div class="form-grid">'+selectField("layout-level","Cấp độ luyện tập",LEVELS.map(l=>({id:l.id,label:l.name+' · '+l.division})),ui.layoutLevel)+field("layout-seed","Seed (cùng seed = cùng đề)",ui.layoutSeed,"text","placeholder='Để trống để tạo seed mới'")+field("layout-task-count","Số mô hình chính (1–7)",ui.layoutTasks,"number","min=1 max=7")+field("layout-obstacles","Số chướng ngại vật",ui.layoutObstacles,"number","min=0 max=9")+'</div><label class="check-pill" style="max-width:430px;min-height:47px"><input type="checkbox" id="layout-bonus" '+(ui.layoutBonus?"checked":"")+(!data.bonusEnabled?" disabled":"")+'><span><strong>Thêm nhiệm vụ Bonus</strong><small>'+(data.bonusEnabled?"Đã được bật trong phần Dữ liệu & hướng dẫn":"BTC chưa xác nhận nhiệm vụ thưởng")+'</small></span></label>'+
-    '<div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề mới</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button></div></div>';
+    '<div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề mới</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div></div>';
   if(!layout)return s+'<div class="panel"><div class="empty"><strong>Chưa có đề</strong>Chọn cấp độ, bấm “Tạo đề mới” để sinh nhiệm vụ.</div>'+renderMap(null)+'</div>';
   s+='<div class="panel"><div class="panel-top"><h3>Sa bàn ngẫu nhiên · '+V(LEVELS.find(x=>x.id===layout.level)?.name||layout.level)+'</h3>'+badge("Seed: "+layout.seed)+'</div>'+renderMap(layout)+
      '<div class="panel-note warning">Vị trí A–J và hướng quay là mô phỏng trên sa bàn 2D, phải đối chiếu với khung gắn mô hình thật. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
@@ -280,6 +280,7 @@ el.addEventListener("change",e=>{
  if(t.dataset.battleField||["battle-time","battle-note"].includes(t.id)){updateBattleFromControl(t);return;}
  if(t.id==="bonus-enabled"){data.bonusEnabled=t.checked;persist();render();notify("Đã cập nhật trạng thái nhiệm vụ thưởng.");return;}
  if(t.id==="bonus-description"){data.bonusDescription=t.value;persist();return;}
+ if(t.id==="upload-map"){const file=t.files?.[0];if(!file)return;if(file.size>2*1024*1024)return notify("Ảnh tối đa 2 MB để không vượt giới hạn bộ nhớ trình duyệt.",true);const reader=new FileReader();reader.onload=()=>{data.mapImage=reader.result;persist();render();notify("Đã lưu ảnh sa bàn tại thiết bị này.");};reader.onerror=()=>notify("Không đọc được ảnh.",true);reader.readAsDataURL(file);return;}
  if(t.id==="import-json"){
    const file=t.files?.[0];if(!file)return;
    file.text().then(raw=>{const imported=normalizeData(JSON.parse(raw));showConfirm("Nhập dữ liệu sẽ GHI ĐÈ toàn bộ đội thi, điểm số, đề và các trận đang lưu trên thiết bị. Bạn đã sao lưu dữ liệu hiện tại?",()=>{data=imported;ui.invTeam="";ui.battleId="";ui.layoutId="";persist();go("overview");notify("Khôi phục dữ liệu JSON thành công.");});}).catch(err=>notify(err.message,true));
@@ -307,6 +308,7 @@ el.addEventListener("click",e=>{
    if(["invalid","withdrawn"].includes(t.dataset.finalInv))return showConfirm("Hủy kết quả hoặc bỏ cuộc sẽ không tính điểm lượt này. Tiếp tục?",finish);
    return finish();
  }
+ if(t.hasAttribute("data-clear-map")){delete data.mapImage;persist();render();return;}
  if(t.hasAttribute("data-generate"))return makeLayout();
  if(t.hasAttribute("data-copy-layout"))return copyLayout();
  if(t.hasAttribute("data-export-layout"))return exportLayout();
