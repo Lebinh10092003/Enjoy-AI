@@ -79,3 +79,12 @@ node --check core.mjs
 \`\`\`
 
 GitHub Actions tự kiểm thử với Node.js 22 khi push vào main.
+## V+ STEAM LAB · Bản nâng cấp
+
+- Đây là **hệ thống luyện tập random đề và chấm điểm ENJOY AI 2026 của V+ STEAM LAB**, không phải sản phẩm chính thức do ENJOY AI phát hành. Logo V+ sử dụng trực tiếp từ website chính thức `https://stemrobotics.io.vn/static/frontend/brand-logo.png`.
+- Menu **Đội Invention** và **Đội Battle** được tách riêng; có mã đội, trường, bảng thi, nhóm Battle, hai học sinh, huấn luyện viên và ghi chú. Dữ liệu cũ vẫn đọc được và có thể bổ sung trường thiếu khi sửa.
+- Phần Random dùng **ảnh sa bàn 2026 người dùng cung cấp**, với 10 khung được đánh dấu A–J, vị trí tương đối theo ảnh 2048×1137. Ảnh mặc định được tải từ bản sao trực tuyến, có thể thay bằng ảnh do người quản lý tải lên.
+- Ảnh minh họa từng mô hình từ [ENJOY AI Greece – Inventions Trail 2026](https://www.enjoyaigreece.gr/en/enjoy-ai-2026-inventions-trail/) là chính các hình mô hình trong bộ luật, được crop bằng CSS để dễ quan sát. Nếu ảnh nguồn thay đổi, cần đưa asset về máy chủ riêng để bảo đảm ổn định.
+- Công cụ không còn chọn ngẫu nhiên 0°/90°/180°/270° cho mọi nhiệm vụ. **Hướng tiếp cận** là kết quả lọc theo vị trí, đường dẫn và loại khung: các khung chéo được hạn chế với mô hình nhỏ; khung thường chọn hướng tiếp cận theo đường dẫn. Bộ sinh có backtracking để tránh dùng một khung hai lần.
+- **Cảnh báo về tính khả thi:** hướng tiếp cận về hình học chưa chứng minh cơ cấu nhiệm vụ thật ở từng vị trí có thể thao tác thành công. Cần thử nghiệm với robot, mô hình và sa bàn thật, rồi hiệu chỉnh `APPROACH_RULES` trong `placement.mjs` trước khi coi là đề đã xác thực.
+- Với dữ liệu được sử dụng tại một sự kiện thi đấu, BTC và trọng tài vẫn quyết định hiệu lực đề, điểm số và các ngoại lệ theo điều lệ hiện hành.
