@@ -42,3 +42,11 @@
 @media(max-width:1200px){.mission-marker .model-thumb{display:none}.mission-marker{padding:3px;max-width:85px}.mission-marker .marker-info{max-width:75px}.team-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.team-form{grid-template-columns:repeat(2,minmax(0,1fr))}.mission-marker{min-width:19px;max-width:54px;padding:1px 2px;border-width:1px;border-radius:4px;gap:1px}.mission-marker .marker-info{max-width:47px}.mission-marker .marker-info strong{font-size:7px}.mission-marker .marker-info small{display:none}.marker-arrow{font-size:14px}.real-arena .slot-marker{font-size:7px;min-width:14px}.real-arena .slot-marker.obstacle{font-size:7px;min-width:25px;padding:2px 1px}.layout-model-item{min-height:83px}.layout-model-item .model-thumb{width:95px;height:66px}}
 @media print{.mission-marker{print-color-adjust:exact}.vplus-logo{display:none}.model-thumb{print-color-adjust:exact}.real-arena .arena-background{print-color-adjust:exact}}
+
+
+/* Separate obstacle markers: measured from nine small rectangles in user-annotated arena. */
+.fixed-layout-count{display:flex;align-items:center;height:41px;padding:10px 12px;border:1px solid #e4def0;border-radius:9px;background:#f5f1ff;color:#5f45ae;font-size:14px;white-space:nowrap}
+.obstacle-rect{position:absolute;transform:translate(-50%,-50%);display:block;z-index:4;border:2px solid #ef443d;border-radius:2px;background:rgba(250,69,62,.14);box-sizing:border-box;box-shadow:0 0 0 1px rgba(255,255,255,.65);pointer-events:none}
+.obstacle-label{position:absolute;left:50%;top:0;transform:translate(-50%,-125%);font-size:10px;font-weight:800;line-height:1;color:#b62b25;padding:2px 3px;background:#fff7f4;border-radius:2px;box-shadow:0 1px 3px #3c244133}
+@media(max-width:760px){.obstacle-rect{border-width:1.5px}.obstacle-label{font-size:7px;padding:1px 2px}.fixed-layout-count{font-size:12px}}
+@media print{.obstacle-rect,.obstacle-label{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
