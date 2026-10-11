@@ -11,3 +11,34 @@
 @media(max-width:1150px){.main{padding:0 22px}.sidebar{width:235px}.kpi-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
 @media(max-width:760px){.shell{display:block}.sidebar{width:auto;height:auto;position:static;padding:13px 12px 8px;border-right:0;border-bottom:1px solid #e8e5f3}.brand{padding:0 2px 11px}.sidebar nav{display:flex;gap:5px;overflow-x:auto;padding-bottom:5px}.sidebar nav .nav-button{white-space:nowrap;width:auto;padding:10px;font-size:11px;flex-shrink:0}.sidebar nav .nav-caption,.sidebar-bottom{display:none}.main{padding:0 14px}.topbar{height:auto;min-height:100px;padding:15px 0}.topbar h1{font-size:21px}.topbar small{font-size:9px}.top-actions{flex-direction:column;align-items:end;gap:7px}.top-actions .btn{font-size:10px;padding:8px}.edition{font-size:9px}.grid-equal,.battle-grid,.task-grid,.layout-list{grid-template-columns:1fr}.form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.kpi-grid{gap:9px}.kpi{min-height:103px;padding:14px}.kpi strong{font-size:26px}.panel{padding:15px}.section-heading{flex-wrap:wrap}.slot-marker{font-size:8px;max-width:69px;min-width:18px;padding:2px}.slot-marker small{font-size:7px}.score-summary strong{font-size:23px}}
 .print-signatures{display:none}.signature-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:22px}.signature-grid div{padding:12px;border:1px solid #b8b8b8;font-size:12px;min-height:90px}@media print{.print-signatures{display:block;break-inside:avoid;margin-top:22px;padding:15px 0;border-top:1px solid #333}.print-signatures h3{text-align:center}.print-signatures p{font-size:12px}.sidebar,.topbar,.footer,.top-actions,.action-row,.btn,.no-print,#alert{display:none!important}.main{padding:0}#content{min-height:0}.panel{break-inside:avoid;box-shadow:none}.print-header{display:block;margin:0 0 18px;font-size:21px}.arena-board{print-color-adjust:exact}.table-wrap{overflow:visible}}
+
+/* V+ STEAM LAB identity: official logo is loaded from stemrobotics.io.vn. */
+.vplus-logo{width:48px;height:48px;object-fit:contain;flex-shrink:0;border-radius:10px;background:white}
+.brand strong{font-size:14px;color:#205593;letter-spacing:.2px}
+.brand small{font-size:10px;color:#6982a0}
+.brand-mark{display:none}
+.team-form{grid-template-columns:repeat(3,minmax(0,1fr))}
+.team-form .field label{font-size:11px}
+.model-thumb{display:block;position:relative;overflow:hidden;width:130px;height:81px;border:1px solid #ddd7e8;border-radius:9px;background:#f7f4ff;flex-shrink:0}
+.model-thumb img{position:absolute;max-width:none!important;height:auto!important;top:0;pointer-events:none;display:block}
+.model-thumb.compact{width:53px;height:38px;border-radius:5px;border-color:#d4cce3}
+.model-thumb.large{width:130px;height:83px}
+.model-thumb-empty{display:flex;align-items:center;justify-content:center;background:#eee8fa;color:#8461c7;font-size:21px}
+.popup-model{margin:14px auto;display:flex;justify-content:center}
+.popup-model .model-thumb.large{width:195px;height:130px}
+.layout-model-item{display:flex;align-items:center;gap:10px;padding:9px;border:1px solid #f0edf6;border-radius:9px;background:#fbfaff;min-height:99px}
+.layout-model-item b{color:#514081}
+.layout-model-item small{display:block;color:#7e7696;margin-top:5px;font-size:10px}
+.arena-board.real-arena{background:#d4badc;aspect-ratio:2048/1137;border:1px solid #8266a6;overflow:hidden}
+.arena-background{display:block;position:absolute;inset:0;height:100%;width:100%;object-fit:fill}
+.mission-marker{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;align-items:center;gap:4px;max-width:125px;width:max-content;background:#fffffff2;border:2px solid #6f4bb3;border-radius:7px;padding:3px;box-shadow:0 4px 13px #26143c80;color:#33264c;cursor:pointer;text-align:left}
+.mission-marker:hover,.mission-marker:focus-visible{z-index:10;border-color:#0f81b4;box-shadow:0 5px 18px #1f143bcc}
+.mission-marker .marker-info{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;max-width:61px;font-size:9px;line-height:1.15}
+.mission-marker .marker-info strong{font-size:9px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mission-marker .marker-info small{color:#7f648e;font-size:7px}
+.marker-arrow{font-size:21px;color:#e15458;line-height:1;display:inline-block;transform-origin:center center}
+.real-arena .slot-marker.empty-slot{background:#e8ddf5d9;color:#453168;border:1px dashed #a18dc8;box-shadow:0 1px 5px #1c153c44;font-size:9px;min-width:16px}
+.real-arena .slot-marker.obstacle{font-size:10px;background:#fff0e4;color:#bd5839;border:2px solid #cf6644}
+@media(max-width:1200px){.mission-marker .model-thumb{display:none}.mission-marker{padding:3px;max-width:85px}.mission-marker .marker-info{max-width:75px}.team-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.team-form{grid-template-columns:repeat(2,minmax(0,1fr))}.mission-marker{min-width:19px;max-width:54px;padding:1px 2px;border-width:1px;border-radius:4px;gap:1px}.mission-marker .marker-info{max-width:47px}.mission-marker .marker-info strong{font-size:7px}.mission-marker .marker-info small{display:none}.marker-arrow{font-size:14px}.real-arena .slot-marker{font-size:7px;min-width:14px}.real-arena .slot-marker.obstacle{font-size:7px;min-width:25px;padding:2px 1px}.layout-model-item{min-height:83px}.layout-model-item .model-thumb{width:95px;height:66px}}
+@media print{.mission-marker{print-color-adjust:exact}.vplus-logo{display:none}.model-thumb{print-color-adjust:exact}.real-arena .arena-background{print-color-adjust:exact}}
