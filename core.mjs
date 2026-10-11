@@ -57,8 +57,9 @@ export function invRank(teams,entries,rounds,bonusEnabled){
     return {...t,points,time,retries,best,finished:attempts.length,byRound:Array.from({length:rounds},(_,i)=>{const e=attempts.find(a=>a.round===i+1);return e?invScore(e,bonusEnabled):null;})};
   });
   values.sort((a,b)=>a.division.localeCompare(b.division)||b.points-a.points||a.time-b.time||a.retries-b.retries||b.best-a.best||a.name.localeCompare(b.name,"vi"));
-  let previous=null; let rank=0;let position=0;
+  let previous=null; let rank=0;let position=0;let currentDivision=null;
   for(const t of values){
+    if(t.division!==currentDivision){currentDivision=t.division;previous=null;rank=0;position=0;}
     if(t.points<=0||t.finished===0){t.rank=null;continue;}
     position++;
     const key=[t.division,t.points,t.time,t.retries,t.best].join("/");
