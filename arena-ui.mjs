@@ -1,4 +1,4 @@
-import {MODEL_META,SLOTS} from "./placement.mjs";
+import {MODEL_META,SLOTS,OBSTACLE_SLOTS} from "./placement.mjs";
 import {escapeHtml as E} from "./core.mjs";
 const FOCUS={compass:[490,158],paper:[510,170],gun:[308,128],printing:[530,205],seismo:[334,145],pyramid:[495,176],wall:[622,200]};
 export function modelPicture(id,compact=false){
@@ -17,11 +17,14 @@ export function renderArena(layout,image="https://d2ol7oe51mr4n9.cloudfront.net/
  '<img class="arena-background" src="'+E(image)+'" alt="Ảnh sa bàn Enjoy AI 2026 người dùng cung cấp có 10 vị trí mô hình">'+
  SLOTS.map(slot=>{
   const p=assigned.get(slot.id);
-  if(!p&&!obstacles.has(slot.id))return '<span class="slot-marker empty-slot" style="left:'+slot.x+'%;top:'+slot.y+'%" title="Khung '+slot.id+'">'+slot.id+'</span>';
-  if(!p)return '<span class="slot-marker obstacle" style="left:'+slot.x+'%;top:'+slot.y+'%" title="Vật cản '+slot.id+'">'+slot.id+' · Cản</span>';
+  if(!p)return '<span class="slot-marker empty-slot" style="left:'+slot.x+'%;top:'+slot.y+'%" title="Khung nhiệm vụ '+slot.id+'">'+slot.id+'</span>';
   return '<button class="mission-marker" data-map-slot="'+E(slot.id)+'" type="button" style="left:'+slot.x+'%;top:'+slot.y+'%" title="'+E(MODEL_META[p.id]?.name||p.id)+' / ô '+slot.id+' / hướng '+p.angle+'°">'+
    modelPicture(p.id,true)+'<span class="marker-info"><strong>'+E(slot.id)+' · '+E(MODEL_META[p.id]?.name||p.id)+'</strong><span class="marker-arrow" style="transform:rotate('+p.angle+'deg)">➜</span><small>'+E(angleName(p.angle))+' · '+p.angle+'°</small></span></button>';
- }).join("")+'</div><div class="arena-legend"><span><i></i>Mô hình: chọn để xem</span><span><i class="orange"></i>Vật cản</span><span><i class="gray"></i>Khung trống</span></div>';
+ }).join("")+
+ OBSTACLE_SLOTS.filter(slot=>obstacles.has(slot.id)).map(slot=>
+  '<span class="obstacle-rect" style="left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+'%" title="Vật cản '+slot.id+'" aria-label="Vật cản '+slot.id+'"><span class="obstacle-label">'+slot.id+'</span></span>'
+ ).join("")+
+ '</div><div class="arena-legend"><span><i></i>Mô hình: chọn để xem</span><span><i class="orange"></i>Vật cản (3 ô chữ nhật nhỏ)</span><span><i class="gray"></i>Khung nhiệm vụ trống</span></div>';
 }
 export function modelPopup(p){
  const meta=MODEL_META[p.id]||MODEL_META.bonus;
