@@ -35,11 +35,27 @@ export const APPROACH_RULES=Object.fromEntries(Object.entries(MODEL_META).map(([
   slot.edge!=="diagonal" || DIAGONAL_ONLY.has(key)
  ).map(slot=>[slot.id,[slot.approach]]))
 ]));
+// Nine small red rectangular locations measured from the user's annotated field image.
+// x/y are centers (% of field); w/h are actual marked rectangle dimensions (%).
+// Obstacle positions are NOT model task slots. Do not share placement pools.
+export const OBSTACLE_SLOTS=[
+ {id:"O1",x:7.84,y:31.08,w:3.79,h:3.18,type:"horizontal"},
+ {id:"O2",x:19.75,y:31.40,w:3.72,h:3.57,type:"horizontal"},
+ {id:"O3",x:32.12,y:31.34,w:3.72,h:2.93,type:"horizontal"},
+ {id:"O4",x:44.06,y:31.46,w:3.44,h:3.18,type:"horizontal"},
+ {id:"O5",x:13.95,y:49.81,w:2.25,h:5.99,type:"vertical"},
+ {id:"O6",x:26.04,y:50.13,w:1.69,h:6.88,type:"vertical"},
+ {id:"O7",x:38.40,y:50.00,w:1.69,h:6.11,type:"vertical"},
+ {id:"O8",x:32.19,y:68.54,w:3.30,h:3.95,type:"horizontal"},
+ {id:"O9",x:44.31,y:68.73,w:4.50,h:4.33,type:"horizontal"}
+];
+export const MAIN_TASK_COUNT=7;
+export const OBSTACLE_COUNT=3;
 export const LEVELS=[
- {id:"easy",name:"Cơ bản",division:"Lớp 1–3",tasks:4,obstacles:0},
- {id:"medium",name:"Trung bình",division:"Lớp 4–6",tasks:5,obstacles:1},
- {id:"hard",name:"Khó",division:"Lớp 7–9",tasks:7,obstacles:2},
- {id:"expert",name:"Nâng cao",division:"Lớp 10–12",tasks:7,obstacles:3}
+ {id:"easy",name:"Cơ bản",division:"Lớp 1–3",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT},
+ {id:"medium",name:"Trung bình",division:"Lớp 4–6",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT},
+ {id:"hard",name:"Khó",division:"Lớp 7–9",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT},
+ {id:"expert",name:"Nâng cao",division:"Lớp 10–12",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT}
 ];
 export const NORMAL_MODELS=["compass","paper","gun","printing","seismo","pyramid","wall"];
 export function hashSeed(seed){let h=2166136261;for(const ch of String(seed)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
@@ -48,25 +64,22 @@ function shuffled(arr,rng){const a=[...arr];for(let i=a.length-1;i>0;i--){const 
 export function validPlacement(taskId,slotId,angle,approved={}){
  const angles=APPROACH_RULES[taskId]?.[slotId]||[];
  if(!angles.includes(angle))return false;
- // The host may restrict (but must not broaden) the geometrically safe matrix.
  const key=taskId+":"+slotId+":"+angle;
  return approved[key]!==false;
 }
-export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,taskCount,obstaclesCount,approved={}}={}){
+export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,approved={}}={}){
  const preset=LEVELS.find(x=>x.id===level)||LEVELS[1],rng=seeded(seed);
- const requested=Math.max(1,Math.min(7,Math.floor(Number(taskCount??preset.tasks))));
- const selected=shuffled(NORMAL_MODELS,rng).slice(0,requested);
+ // Exactly seven mandatory tasks in every generated layout, independent of practice level.
+ const selected=shuffled(NORMAL_MODELS,rng);
  if(includeBonus)selected.push("bonus");
- const obstacleQty=Math.max(0,Math.floor(Number(obstaclesCount??preset.obstacles)));
- if(selected.length+obstacleQty>SLOTS.length)throw Error("Không đủ khung cho nhiệm vụ và vật cản.");
- // Constraint satisfaction: most-constrained task first, randomized candidates; backtrack if needed.
+ // Each model has a constrained task-frame/approach set; solve without reusing a task frame.
  const options=selected.map(id=>({
   id,choices:shuffled(SLOTS.flatMap(slot=>(APPROACH_RULES[id]?.[slot.id]||[])
-    .filter(angle=>validPlacement(id,slot.id,angle,approved))
-    .map(angle=>({slot:slot.id,angle}))),rng)
+   .filter(angle=>validPlacement(id,slot.id,angle,approved))
+   .map(angle=>({slot:slot.id,angle}))),rng)
  })).sort((a,b)=>a.choices.length-b.choices.length);
  const used=new Set(),assignment=new Map();
- const search=(i)=>{
+ const search=i=>{
   if(i>=options.length)return true;
   for(const choice of options[i].choices){
    if(used.has(choice.slot))continue;
@@ -76,8 +89,11 @@ export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false
   }
   return false;
  };
- if(!search(0))throw Error("Không tìm được bố trí thỏa mãn các giới hạn. Hãy giảm số nhiệm vụ hoặc mở lại vị trí đã khóa.");
+ if(!search(0))throw Error("Không tìm được bố trí thỏa mãn các giới hạn khung/hướng nhiệm vụ.");
  const tasks=selected.map(id=>({id,...assignment.get(id)}));
- const obstacles=shuffled(SLOTS.filter(s=>!used.has(s.id)),rng).slice(0,obstacleQty).map(x=>x.id);
- return {id:"layout-"+Date.now().toString(36),level:preset.id,seed:String(seed),tasks,obstacles,created:new Date().toISOString(),official:false,placementStatus:"simulation",note:"Hướng tiếp cận an toàn theo sơ đồ; cần xác nhận mặt thao tác và kích thước mô hình khi lắp thực tế."};
+ // Obstacles are selected exclusively from their own nine small rectangles, never from task frames.
+ const obstacles=shuffled(OBSTACLE_SLOTS,rng).slice(0,OBSTACLE_COUNT).map(x=>x.id);
+ return {id:"layout-"+Date.now().toString(36),version:2,level:preset.id,seed:String(seed),
+  tasks,obstacles,created:new Date().toISOString(),official:false,placementStatus:"simulation",
+  note:"7 nhiệm vụ chính và 3 vật cản tại các ô chữ nhật nhỏ. Hướng tiếp cận phải được kiểm tra trên mô hình thực tế."};
 }
