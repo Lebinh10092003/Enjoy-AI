@@ -77,7 +77,7 @@ function renderRanking(){
   return title("Bảng xếp hạng Invention","Ưu tiên: tổng điểm ↓, tổng thời gian ↑, tổng số lần chạy lại ↑, điểm cao nhất một lượt ↓. Đội 0 điểm không xếp hạng.",'<button class="btn btn-outline" data-export-ranking>↓ CSV</button>')+
     '<div class="panel"><div class="form-grid two">'+selectField("inv-division","Lọc bảng thi",[{id:"all",label:"Tất cả bảng"},...INV_DIVISIONS],ui.invDivision)+'<div class="field"><label>Số lượt đang áp dụng</label><strong style="padding:11px">'+data.rounds+' lượt / đội</strong></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Hạng</th><th>Đội</th><th>Bảng thi</th>'+Array.from({length:data.rounds},(_,i)=>'<th class="num">L'+(i+1)+'</th>').join("")+'<th class="num">Tổng</th><th class="num">Giây</th><th class="num">Retry</th><th class="num">Lượt tốt nhất</th><th>Đã chấm</th></tr></thead><tbody>'+rows+'</tbody></table>'+(rows?"":'<div class="empty">Chưa có dữ liệu đội thi.</div>')+'</div></div>';
 }
-function renderMap(layout){return renderArena(layout,data.mapImage||"./assets/arena/invention-board.webp");}
+function renderMap(layout){return renderArena(layout,data.mapImage||"https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg");}
 function renderRandom(){
   const layout=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   if(layout)ui.layoutId=layout.id;
