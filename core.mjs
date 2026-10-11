@@ -1,3 +1,4 @@
+import {SLOTS as PHYSICAL_SLOTS,LEVELS as PRACTICE_LEVELS,buildRandomLayout} from "./placement.mjs";
 // ENJOY AI 2026 — quy tắc tính điểm và lưu trữ độc lập với giao diện.
 export const VERSION = 1;
 export const INV_DIVISIONS = [
@@ -23,18 +24,8 @@ export const TASKS = [
 export const LAYOUT_MODELS = ["compass","paper","gun","printing","seismo","pyramid","wall","bonus"];
 export const LAYOUT_NAMES = {compass:"La bàn",paper:"Làm giấy",gun:"Thuốc súng",printing:"In chữ rời",seismo:"Địa chấn",pyramid:"Kim tự tháp",wall:"Vạn lý trường thành",bonus:"Nhiệm vụ thưởng"};
 // Các mốc minh họa trên sa bàn, không phải tọa độ lắp đặt do BTC chứng nhận.
-export const SLOTS = [
-  {id:"A",x:11,y:12},{id:"B",x:32,y:12},{id:"C",x:57,y:12},
-  {id:"D",x:68,y:9},{id:"E",x:95,y:11},{id:"F",x:81,y:50},
-  {id:"G",x:95,y:87},{id:"H",x:67,y:88},{id:"I",x:56,y:88},
-  {id:"J",x:32,y:88}
-];
-export const LEVELS = [
-  {id:"easy",name:"Cơ bản",division:"Lớp 1–3",tasks:4,obstacles:0},
-  {id:"medium",name:"Trung bình",division:"Lớp 4–6",tasks:5,obstacles:1},
-  {id:"hard",name:"Khó",division:"Lớp 7–9",tasks:7,obstacles:2},
-  {id:"expert",name:"Nâng cao",division:"Lớp 10–12",tasks:7,obstacles:3}
-];
+export const SLOTS=PHYSICAL_SLOTS;
+export const LEVELS=PRACTICE_LEVELS;
 export function initialData(){return {version:VERSION,rounds:2,teams:[],invention:[],battles:[],layouts:[],bonusEnabled:false,bonusDescription:""};}
 export function normInt(value,min=0,max=99999){const v=Number(value);return Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;}
 export function scoreRetry(retries,smooth=true){
@@ -141,18 +132,7 @@ export function battleRanking(teams,matches){
 export function seedToNumber(seed){let h=2166136261;for(const ch of String(seed)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 export function randomFactory(seed){let state=seedToNumber(seed);return ()=>{state=(state+0x6D2B79F5)>>>0;let t=state;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 export function shuffled(items,rng){let arr=[...items];for(let i=arr.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
-export function generateLayout({level="medium",seed,includeBonus=false,taskCount,obstaclesCount}={}){
-  const preset=LEVELS.find(x=>x.id===level)||LEVELS[1];
-  const rng=randomFactory(seed||"DEMO");
-  const models=shuffled(LAYOUT_MODELS.filter(id=>id!=="bonus"),rng).slice(0,normInt(taskCount??preset.tasks,1,7));
-  if(includeBonus)models.push("bonus");
-  const slots=shuffled(SLOTS,rng);
-  if(models.length>SLOTS.length)throw Error("Không đủ vị trí cho các mô hình.");
-  const tasks=models.map((id,i)=>({id,slot:slots[i].id,angle:[0,90,180,270][Math.floor(rng()*4)]}));
-  const used=new Set(tasks.map(t=>t.slot));
-  const obstacles=slots.filter(s=>!used.has(s.id)).slice(0,normInt(obstaclesCount??preset.obstacles,0,SLOTS.length-models.length)).map(s=>s.id);
-  return {id:"layout-"+Date.now().toString(36),level:preset.id,seed:String(seed||"DEMO"),tasks,obstacles,created:new Date().toISOString(),official:false};
-}
+export function generateLayout(options={}){return buildRandomLayout(options);}
 export function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 export function normalizeData(data){
   if(!data||typeof data!=="object"||data.version!==VERSION||!Array.isArray(data.teams)||!Array.isArray(data.invention)||!Array.isArray(data.battles)||!Array.isArray(data.layouts))throw Error("File JSON không đúng định dạng dữ liệu ENJOY AI v1.");
