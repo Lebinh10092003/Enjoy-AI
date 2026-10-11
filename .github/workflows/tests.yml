@@ -15,5 +15,7 @@ jobs:
         run: |
           node --check core.mjs
           node --check app.mjs
-      - name: Test scoring and layouts
+      - name: Install DOM test dependency
+        run: npm install --no-save jsdom@26
+      - name: Test scoring and browser flows
         run: node --test tests/*.test.mjs
