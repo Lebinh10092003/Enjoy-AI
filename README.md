@@ -102,3 +102,11 @@ GitHub Actions tự kiểm thử với Node.js 22 khi push vào main.
 - **Tạo lại theo seed** là thao tác riêng. Chỉ khi người dùng nhập seed, hệ thống mới phát lại cùng bố trí.
 - Nếu đề vừa random trùng với bố trí đang xem, công cụ thử seed mới trước khi lưu.
 - Kiểm thử giao diện xác minh nút random bấm liên tiếp đổi bố trí và seed cố định tái lập được cả 7 nhiệm vụ và 3 vật cản.
+
+## Trải nghiệm random không nhảy trang
+
+- Trước đây hàm thông báo sau random tự cuộn về đầu trang và `render()` xây dựng lại toàn bộ màn hình.
+- Nay nút **Tạo đề ngẫu nhiên mới** chỉ cập nhật vùng kết quả; trạng thái thành công/lỗi hiển thị ngay dưới các nút thay vì chuyển người xem lên đầu trang.
+- Giữ nguyên các phần tử điều khiển và ảnh nền sa bàn; thay marker nhiệm vụ/vật cản mà không tải lại ảnh nền.
+- Bổ sung nút **Random lại** ở đầu khung sa bàn để tạo một bố trí mới ngay khi đang xem kết quả.
+- Chọn đề đã lưu và xóa đề cũng cập nhật vùng kết quả tại chỗ. Kiểm thử tự động bảo đảm không gọi cuộn lên đầu trang và không phá hủy phần tử ảnh nền.
