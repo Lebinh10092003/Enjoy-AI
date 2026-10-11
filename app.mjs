@@ -84,14 +84,47 @@ function renderRandom(){
   if(layout)ui.layoutId=layout.id;
   let s=title("Tạo đề Invention ngẫu nhiên","Các cấp độ là mẫu luyện tập do hệ thống đề xuất, không phải số lượng nhiệm vụ bắt buộc của BTC.",'<button class="btn btn-outline" data-print>In sơ đồ</button>');
   s+='<div class="panel"><div class="form-grid">'+selectField("layout-level","Cấp độ luyện tập",LEVELS.map(l=>({id:l.id,label:l.name+' · '+l.division})),ui.layoutLevel)+field("layout-seed","Seed cố định (tùy chọn)",ui.layoutSeed,"text","placeholder='Dùng nút Tạo lại theo seed'")+'<div class="field"><label>Nhiệm vụ chính</label><strong class="fixed-layout-count">7 nhiệm vụ</strong></div><div class="field"><label>Vật cản</label><strong class="fixed-layout-count">3 vật cản</strong></div>'+'</div><label class="check-pill" style="max-width:430px;min-height:47px"><input type="checkbox" id="layout-bonus" '+(ui.layoutBonus?"checked":"")+(!data.bonusEnabled?" disabled":"")+'><span><strong>Thêm nhiệm vụ Bonus</strong><small>'+(data.bonusEnabled?"Đã được bật trong phần Dữ liệu & hướng dẫn":"BTC chưa xác nhận nhiệm vụ thưởng")+'</small></span></label>'+
-    '<p class="muted">Nút “Tạo đề ngẫu nhiên mới” luôn tạo một mã seed mới. Để tái tạo bố trí, hãy nhập seed rồi chọn “Tạo lại theo seed”.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div></div>';
-  if(!layout)return s+'<div class="panel"><div class="empty"><strong>Chưa có đề</strong>Chọn cấp độ, bấm “Tạo đề mới” để sinh đủ 7 nhiệm vụ và 3 vật cản.</div>'+renderMap(null)+'</div>';
+    '<p class="muted">Nút “Tạo đề ngẫu nhiên mới” luôn tạo một mã seed mới. Để tái tạo bố trí, hãy nhập seed rồi chọn “Tạo lại theo seed”.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div><div id="random-status" class="random-inline-status" role="status" aria-live="polite"></div></div>';
+  return s+'<div id="random-results">'+renderRandomResults(layout)+'</div>';
+}
+function renderRandomResults(layout){
+  let s='';
+  if(!layout)return '<div class="panel"><div class="empty"><strong>Chưa có đề</strong>Chọn cấp độ, bấm “Tạo đề ngẫu nhiên mới” để sinh đủ 7 nhiệm vụ và 3 vật cản.</div>'+renderMap(null)+'</div>';
   if(layout.version!==2)s+='<div class="panel-note warning">Đề cũ được lưu theo quy tắc trước đây, có thể chỉ có 5 nhiệm vụ và sử dụng sai vị trí vật cản. Hãy chọn “Tạo đề mới” để áp dụng chuẩn 7 nhiệm vụ + 3 vật cản tại O1–O9. Dữ liệu đề cũ không bị xóa.</div>';
   s+='<div class="panel"><div class="panel-top"><h3>Sa bàn ngẫu nhiên · '+V(LEVELS.find(x=>x.id===layout.level)?.name||layout.level)+'</h3>'+badge("Seed: "+layout.seed)+'</div>'+renderMap(layout)+
      '<div class="panel-note warning">7 nhiệm vụ chính được đặt tại các khung nhiệm vụ A–J; 3 vật cản chỉ xuất hiện trong 9 ô chữ nhật nhỏ O1–O9 mà bạn đã đánh dấu. Mũi tên thể hiện hướng robot tiếp cận. Đây là phương án hình học bảo thủ; cần thử mô hình thật để xác nhận hướng tay gạt, vùng thao tác và khoảng trống. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
   s+='<div class="grid-2"><div class="panel"><h3>Phân bố mô hình</h3><div class="layout-list">'+layout.tasks.map(t=>'<div class="layout-model-item">'+modelPicture(t.id)+'<span><b>'+t.slot+' · '+V(LAYOUT_NAMES[t.id])+'</b><br>Hướng tiếp cận: <b>'+t.angle+'° · '+V(angleName(t.angle))+'</b><br><small>'+V(MODEL_META[t.id]?.guide||"")+'</small></span></div>').join("")+'</div><p class="muted" style="margin-top:15px">3 vị trí vật cản nhỏ: '+V(layout.obstacles.join(", ")||"Chưa có")+'</p></div>'+
     '<div class="panel"><h3>Đề đã tạo</h3><div class="field"><label for="selected-layout">Chọn lại đề đã lưu</label><select id="selected-layout">'+data.layouts.map((l,i)=>'<option value="'+V(l.id)+'"'+(l.id===layout.id?' selected':'')+'>#'+(data.layouts.length-i)+' · '+V(l.seed)+' · '+V(LEVELS.find(x=>x.id===l.level)?.name||l.level)+'</option>').join("")+'</select></div><p class="muted">Đề được lưu tự động trong trình duyệt và trong bản sao lưu JSON.</p><button class="btn btn-danger btn-small" data-delete-layout="'+V(layout.id)+'">Xóa đề này</button></div></div>';
   return s;
+}
+// Change the sa bàn and generated model list without rebuilding the controls or scrolling.
+function refreshRandomResults(message="",error=false){
+  const region=$('#random-results');
+  if(!region){render();return;}
+  const layout=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0]||null;
+  const fragment=document.createElement("div");
+  fragment.innerHTML=renderRandomResults(layout);
+  const oldArena=region.querySelector(".arena-board");
+  const newArena=fragment.querySelector(".arena-board");
+  if(oldArena&&newArena){
+    const oldBackground=oldArena.querySelector(".arena-background");
+    const newBackground=newArena.querySelector(".arena-background");
+    if(oldBackground&&newBackground){
+      if(oldBackground.getAttribute("src")!==newBackground.getAttribute("src"))oldBackground.setAttribute("src",newBackground.getAttribute("src"));
+      for(const child of [...oldArena.children])if(child!==oldBackground)child.remove();
+      for(const child of [...newArena.children])if(child!==newBackground)oldArena.appendChild(child);
+      newArena.replaceWith(oldArena);
+    }
+  }
+  region.replaceChildren(...fragment.childNodes);
+  for(const selector of ["[data-copy-layout]","[data-export-layout]"]){
+    const control=$(selector);
+    if(control)control.disabled=!layout;
+  }
+  const seedInput=$('#layout-seed');
+  if(seedInput)seedInput.value=ui.layoutSeed;
+  const status=$('#random-status');
+  if(status){status.textContent=message;status.classList.toggle("error",error);}
 }
 function defaultSide(){return {tower:false,blocks:0,bins:[0,0,0,0],retries:0,fouls:0,smooth:false,instant:false,status:"draft"};}
 function getBattle(id){return data.battles.find(m=>m.id===id);}
@@ -230,7 +263,7 @@ function makeLayout(mode="random"){
   const level=$('#layout-level')?.value||ui.layoutLevel;
   const typedSeed=$('#layout-seed')?.value.trim()||"";
   const bonus=Boolean($('#layout-bonus')?.checked)&&data.bonusEnabled;
-  if(mode==="seed"&&!typedSeed)return notify("Nhập mã seed trước khi bấm “Tạo lại theo seed”.",true);
+  if(mode==="seed"&&!typedSeed){refreshRandomResults("Nhập mã seed trước khi bấm “Tạo lại theo seed”.",true);return;}
   const previous=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   try{
     let seed=mode==="seed"?typedSeed:nextRandomSeed();
@@ -251,9 +284,8 @@ function makeLayout(mode="random"){
     ui.layoutSeed=mode==="seed"?typedSeed:"";
     data.layouts.unshift(layout);
     persist();
-    render();
-    notify((mode==="seed"?"Đã tái tạo đề":"Đã random đề mới")+" với 7 nhiệm vụ, 3 vật cản. Seed: "+seed+".");
-  }catch(error){notify(error?.message||"Không thể tạo đề hợp lệ.",true);}
+    refreshRandomResults((mode==="seed"?"Đã tái tạo đề":"Đã random đề mới")+" với 7 nhiệm vụ, 3 vật cản. Seed: "+seed+".");
+  }catch(error){refreshRandomResults(error?.message||"Không thể tạo đề hợp lệ.",true);}
 }
 function exportLayout(){const l=data.layouts.find(x=>x.id===ui.layoutId);if(l)download("invention-layout-"+l.seed+".json",JSON.stringify(l,null,2),"application/json");}
 function copyLayout(){const l=data.layouts.find(x=>x.id===ui.layoutId);if(!l)return;const content="INVENTIONS TRAIL 2026\nSeed: "+l.seed+"\nCấp độ: "+l.level+"\n"+l.tasks.map(t=>t.slot+": "+LAYOUT_NAMES[t.id]+" — "+t.angle+"°").join("\n")+"\nVật cản: "+(l.obstacles.join(", ")||"Không");navigator.clipboard?.writeText(content).then(()=>notify("Đã sao chép đề."),()=>notify("Trình duyệt không cho phép sao chép; hãy xuất JSON.",true));}
@@ -270,15 +302,15 @@ el.addEventListener("change",e=>{
  }
  if(t.dataset.invTask||["inv-retries","inv-time","inv-smooth","inv-note"].includes(t.id)){updateInvFromControl(t);return;}
  if(t.id==="inv-division"){ui.invDivision=t.value;render();return;}
- if(t.id==="layout-level"){ui.layoutLevel=t.value;render();return;}
+ if(t.id==="layout-level"){ui.layoutLevel=t.value;return;}
  if(t.id==="layout-seed"){ui.layoutSeed=t.value;return;}
  if(t.id==="layout-bonus"){ui.layoutBonus=t.checked;return;}
- if(t.id==="selected-layout"){ui.layoutId=t.value;render();return;}
+ if(t.id==="selected-layout"){ui.layoutId=t.value;refreshRandomResults();return;}
  if(t.id==="selected-match"){ui.battleId=t.value;render();return;}
  if(t.dataset.battleField||["battle-time","battle-note"].includes(t.id)){updateBattleFromControl(t);return;}
  if(t.id==="bonus-enabled"){data.bonusEnabled=t.checked;persist();render();notify("Đã cập nhật trạng thái nhiệm vụ thưởng.");return;}
  if(t.id==="bonus-description"){data.bonusDescription=t.value;persist();return;}
- if(t.id==="upload-map"){const file=t.files?.[0];if(!file)return;if(file.size>2*1024*1024)return notify("Ảnh tối đa 2 MB để không vượt giới hạn bộ nhớ trình duyệt.",true);const reader=new FileReader();reader.onload=()=>{data.mapImage=reader.result;persist();render();notify("Đã lưu ảnh sa bàn tại thiết bị này.");};reader.onerror=()=>notify("Không đọc được ảnh.",true);reader.readAsDataURL(file);return;}
+ if(t.id==="upload-map"){const file=t.files?.[0];if(!file)return;if(file.size>2*1024*1024)return notify("Ảnh tối đa 2 MB để không vượt giới hạn bộ nhớ trình duyệt.",true);const reader=new FileReader();reader.onload=()=>{data.mapImage=reader.result;persist();refreshRandomResults("Đã cập nhật ảnh sa bàn.");};reader.onerror=()=>notify("Không đọc được ảnh.",true);reader.readAsDataURL(file);return;}
  if(t.id==="import-json"){
    const file=t.files?.[0];if(!file)return;
    file.text().then(raw=>{const imported=normalizeData(JSON.parse(raw));showConfirm("Nhập dữ liệu sẽ GHI ĐÈ toàn bộ đội thi, điểm số, đề và các trận đang lưu trên thiết bị. Bạn đã sao lưu dữ liệu hiện tại?",()=>{data=imported;ui.invTeam="";ui.battleId="";ui.layoutId="";persist();go("overview");notify("Khôi phục dữ liệu JSON thành công.");});}).catch(err=>notify(err.message,true));
@@ -301,7 +333,7 @@ el.addEventListener("click",e=>{
    if(["invalid","withdrawn"].includes(t.dataset.finalInv))return showConfirm("Hủy kết quả hoặc bỏ cuộc sẽ không tính điểm lượt này. Tiếp tục?",finish);
    return finish();
  }
- if(t.hasAttribute("data-clear-map")){delete data.mapImage;persist();render();return;}
+ if(t.hasAttribute("data-clear-map")){delete data.mapImage;persist();refreshRandomResults("Đã quay về ảnh sa bàn mặc định.");return;}
  if(t.dataset.mapSlot){
   const layout=data.layouts.find(x=>x.id===ui.layoutId)||data.layouts[0],p=layout?.tasks.find(x=>x.slot===t.dataset.mapSlot);
   if(!p)return;
@@ -313,7 +345,7 @@ el.addEventListener("click",e=>{
  if(t.hasAttribute("data-generate-seed"))return makeLayout("seed");
  if(t.hasAttribute("data-copy-layout"))return copyLayout();
  if(t.hasAttribute("data-export-layout"))return exportLayout();
- if(t.dataset.deleteLayout)return showConfirm("Xóa đề Invention đã lưu?",()=>{data.layouts=data.layouts.filter(l=>l.id!==t.dataset.deleteLayout);ui.layoutId=data.layouts[0]?.id||"";persist();render();});
+ if(t.dataset.deleteLayout)return showConfirm("Xóa đề Invention đã lưu?",()=>{data.layouts=data.layouts.filter(l=>l.id!==t.dataset.deleteLayout);ui.layoutId=data.layouts[0]?.id||"";persist();refreshRandomResults("Đã xóa đề.");});
  if(t.hasAttribute("data-create-match")){
    try{const m=addMatch($('#match-red').value,$('#match-blue').value,$('#match-stage').value,$('#match-division').value);ui.battleId=m.id;persist();render();notify("Đã tạo trận đấu.");}catch(err){notify(err.message,true);}return;
  }
