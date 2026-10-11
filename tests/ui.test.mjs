@@ -108,5 +108,13 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(layouts.length,4);
  assert.notEqual(layouts[0].seed,first.seed);
  assert.equal(q("#layout-seed").value,"");
+ const arenaImageBeforeAgain=q(".arena-background");
+ click("[data-generate-board]");
+ layouts=loadLayouts();
+ assert.equal(layouts.length,5,"Arena header Random lại must create another layout");
+ assert.equal(layouts[0].tasks.length,7);
+ assert.equal(layouts[0].obstacles.length,3);
+ assert.equal(q(".arena-background"),arenaImageBeforeAgain,"Board random button must not recreate the image");
+ assert.equal(scrollCalls,scrollBeforeGenerate,"Board random button must not scroll to page top");
  dom.window.close();
 });
