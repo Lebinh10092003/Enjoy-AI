@@ -58,10 +58,41 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.ok(q(".slot-marker"));
  assert.equal(dom.window.document.querySelectorAll(".mission-marker").length,7);
  assert.equal(dom.window.document.querySelectorAll(".obstacle-rect").length,3);
- const layouts=JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).layouts;
+ const loadLayouts=()=>JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).layouts;
+ let layouts=loadLayouts();
  assert.equal(layouts.length,1);
  assert.equal(layouts[0].tasks.length,7);
  assert.equal(layouts[0].obstacles.length,3);
  assert.ok(layouts[0].obstacles.every(id=>/^O[1-9]$/.test(id)));
+ const first=layouts[0];
+ assert.equal(q("#layout-seed").value,"","New random should leave seed input empty");
+ // Regression: the original button reused the previous seed after rendering.
+ click("[data-generate]");
+ layouts=loadLayouts();
+ assert.equal(layouts.length,2);
+ assert.notEqual(layouts[0].seed,first.seed,"Each new random must use a fresh seed");
+ assert.notDeepEqual(
+  {tasks:layouts[0].tasks,obstacles:layouts[0].obstacles},
+  {tasks:first.tasks,obstacles:first.obstacles},
+  "The next random must change the actual task/obstacle arrangement"
+ );
+ assert.equal(dom.window.document.querySelectorAll(".mission-marker").length,7);
+ assert.equal(dom.window.document.querySelectorAll(".obstacle-rect").length,3);
+ assert.equal(q("#layout-seed").value,"");
+ // The explicit replay action remains deterministic.
+ q("#layout-seed").value=first.seed;
+ click("[data-generate-seed]");
+ layouts=loadLayouts();
+ assert.equal(layouts.length,3);
+ assert.equal(layouts[0].seed,first.seed);
+ assert.deepEqual(layouts[0].tasks,first.tasks);
+ assert.deepEqual(layouts[0].obstacles,first.obstacles);
+ assert.equal(q("#layout-seed").value,first.seed);
+ // The normal random action ignores seed text and uses a new one.
+ click("[data-generate]");
+ layouts=loadLayouts();
+ assert.equal(layouts.length,4);
+ assert.notEqual(layouts[0].seed,first.seed);
+ assert.equal(q("#layout-seed").value,"");
  dom.window.close();
 });
