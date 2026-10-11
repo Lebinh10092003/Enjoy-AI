@@ -50,3 +50,9 @@
 .obstacle-label{position:absolute;left:50%;top:0;transform:translate(-50%,-125%);font-size:10px;font-weight:800;line-height:1;color:#b62b25;padding:2px 3px;background:#fff7f4;border-radius:2px;box-shadow:0 1px 3px #3c244133}
 @media(max-width:760px){.obstacle-rect{border-width:1.5px}.obstacle-label{font-size:7px;padding:1px 2px}.fixed-layout-count{font-size:12px}}
 @media print{.obstacle-rect,.obstacle-label{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+
+/* Random results are updated in place. Keep status height fixed to avoid layout shifts. */
+.random-inline-status{min-height:23px;margin-top:8px;padding:3px 0;font-size:12px;font-weight:650;color:#23795e;line-height:17px;}
+.random-inline-status.error{color:#b3454e;}
+#random-results .arena-board{contain:layout;}
