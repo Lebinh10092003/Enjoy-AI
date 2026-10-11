@@ -56,7 +56,7 @@ export function invRank(teams,entries,rounds,bonusEnabled){
     const best=Math.max(0,...attempts.map(e=>invScore(e,bonusEnabled)));
     return {...t,points,time,retries,best,finished:attempts.length,byRound:Array.from({length:rounds},(_,i)=>{const e=attempts.find(a=>a.round===i+1);return e?invScore(e,bonusEnabled):null;})};
   });
-  values.sort((a,b)=>a.division.localeCompare(b.division)||b.points-a.points||a.time-b.time||a.retries-b.retries||b.best-a.best||a.name.localeCompare(b.name,"vi"));
+  values.sort((a,b)=>INV_DIVISIONS.findIndex(d=>d.id===a.division)-INV_DIVISIONS.findIndex(d=>d.id===b.division)||b.points-a.points||a.time-b.time||a.retries-b.retries||b.best-a.best||a.name.localeCompare(b.name,"vi"));
   let previous=null; let rank=0;let position=0;let currentDivision=null;
   for(const t of values){
     if(t.division!==currentDivision){currentDivision=t.division;previous=null;rank=0;position=0;}
@@ -126,7 +126,7 @@ export function battleRanking(teams,matches){
     const ids=new Set(tied.map(x=>x.id));
     t.directWins=matches.filter(m=>m.status==="done"&&m.stage==="group"&&ids.has(m.redId)&&ids.has(m.blueId)&&battleOutcome(m).winner===t.id).length;
   }
-  ranks.sort((a,b)=>a.division.localeCompare(b.division)||a.group.localeCompare(b.group)||b.points-a.points||b.directWins-a.directWins||b.total-a.total||b.towers-a.towers||a.retries-b.retries||a.name.localeCompare(b.name,"vi"));
+  ranks.sort((a,b)=>BATTLE_DIVISIONS.findIndex(d=>d.id===a.division)-BATTLE_DIVISIONS.findIndex(d=>d.id===b.division)||a.group.localeCompare(b.group)||b.points-a.points||b.directWins-a.directWins||b.total-a.total||b.towers-a.towers||a.retries-b.retries||a.name.localeCompare(b.name,"vi"));
   let key=null,place=0,index=0;
   for(const t of ranks){
     const groupKey=t.division+"/"+t.group;
