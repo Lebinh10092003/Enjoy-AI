@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#6d51c4">
+<meta name="description" content="ENJOY AI 2026: Chấm điểm Inventions Trail, Battle of Stars và tạo đề luyện tập.">
+<title>ENJOY AI 2026 • Competition Desk</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">E</span><div><strong>ENJOY AI</strong><small>Competition Desk · 2026</small></div></div>
+    <nav id="navigation" aria-label="Điều hướng">
+      <button data-page="overview" class="nav-button selected"><span>▦</span> Tổng quan</button>
+      <button data-page="teams" class="nav-button"><span>♙</span> Quản lý đội thi</button>
+      <span class="nav-caption">INVENTIONS TRAIL</span>
+      <button data-page="invention" class="nav-button"><span>✎</span> Chấm điểm Invention</button>
+      <button data-page="ranking" class="nav-button"><span>▥</span> Xếp hạng Invention</button>
+      <button data-page="random" class="nav-button"><span>⬡</span> Random sa bàn</button>
+      <span class="nav-caption">BATTLE OF STARS</span>
+      <button data-page="battle" class="nav-button"><span>⚔</span> Chấm điểm Battle</button>
+      <button data-page="battle-ranking" class="nav-button"><span>▤</span> Bảng xếp hạng Battle</button>
+      <span class="nav-caption">HỆ THỐNG</span>
+      <button data-page="settings" class="nav-button"><span>⚙</span> Dữ liệu &amp; hướng dẫn</button>
+    </nav>
+    <div class="sidebar-bottom"><span class="save-dot"></span> Lưu tự động trên thiết bị <small>GitHub Pages · không cần máy chủ</small></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><small>ROBOTICS COMPETITION MANAGEMENT</small><h1 id="page-title">Tổng quan giải đấu</h1></div><div class="top-actions"><span class="edition">SEASON 2026</span><button id="export-top" class="btn btn-outline" type="button">↓ Sao lưu JSON</button></div></header>
+    <div id="alert" role="status" aria-live="polite"></div>
+    <section id="content" aria-label="Nội dung"></section>
+    <footer class="footer">Công cụ hỗ trợ huấn luyện / chấm điểm · Không phải cổng chấm chính thức của Ban tổ chức. <a href="https://www.enjoyaiglobal.org/resources" target="_blank" rel="noopener">ENJOY AI 2026</a></footer>
+  </main>
+</div>
+<div id="modal" class="modal-backdrop hidden"></div>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>
