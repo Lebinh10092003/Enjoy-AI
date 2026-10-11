@@ -10,7 +10,7 @@ export function modelPicture(id,compact=false){
 export function angleName(value){
  return ({0:"Đông →",45:"Đông Nam ↘",90:"Nam ↓",135:"Tây Nam ↙",180:"Tây ←",225:"Tây Bắc ↖",270:"Bắc ↑",315:"Đông Bắc ↗"})[value]||String(value)+"°";
 }
-export function renderArena(layout,image="./assets/arena/invention-board.webp"){
+export function renderArena(layout,image="https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg"){
  const assigned=new Map((layout?.tasks||[]).map(t=>[t.slot,t]));
  const obstacles=new Set(layout?.obstacles||[]);
  return '<div class="arena-board real-arena">'+
