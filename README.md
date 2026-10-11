@@ -95,3 +95,10 @@ GitHub Actions tự kiểm thử với Node.js 22 khi push vào main.
 - **3 vật cản** được chọn ngẫu nhiên trong **9 vị trí hình chữ nhật nhỏ O1–O9** đánh dấu trên ảnh đã cung cấp, **không** dùng các khung mô hình nhiệm vụ A–J.
 - Các cấp độ luyện tập hiện **không thay đổi số lượng** nhiệm vụ/vật cản. Những điều kiện khác theo cấp độ phải căn cứ điều chỉnh BTC; không tự đặt tiêu chí ngoài tài liệu.
 - Các đề đã tạo ở phiên bản cũ được bảo tồn và được cảnh báo khi mở, không tính là đề theo chuẩn mới. Bấm **Tạo đề mới** để có đủ 7+3.
+
+## Sửa lỗi nút Random (11/10/2026)
+
+- **Tạo đề ngẫu nhiên mới** luôn dùng một seed mới; không tự điền seed vừa tạo vào ô nhập như trước (đây là nguyên nhân hai lần bấm trước đây cho cùng một bố trí).
+- **Tạo lại theo seed** là thao tác riêng. Chỉ khi người dùng nhập seed, hệ thống mới phát lại cùng bố trí.
+- Nếu đề vừa random trùng với bố trí đang xem, công cụ thử seed mới trước khi lưu.
+- Kiểm thử giao diện xác minh nút random bấm liên tiếp đổi bố trí và seed cố định tái lập được cả 7 nhiệm vụ và 3 vật cản.
