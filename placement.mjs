@@ -76,21 +76,26 @@ export function resolveWallReversed(mode="normal",seed="DEMO"){
 export function hashSeed(seed){let h=2166136261;for(const ch of String(seed)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 export function seeded(seed){let state=hashSeed(seed);return()=>{state=(state+0x6D2B79F5)>>>0;let t=state;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 function shuffled(arr,rng){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+export function placementKey(taskId,slotId,approachAngle,reversed=false){
+ return [taskId,slotId,approachAngle,taskId==="wall"&&reversed?"reversed":"normal"].join("|");
+}
 export function validPlacement(taskId,slotId,angle,approved={}){
  const angles=APPROACH_RULES[taskId]?.[slotId]||[];
  if(!angles.includes(angle))return false;
  const key=taskId+":"+slotId+":"+angle;
  return approved[key]!==false;
 }
-export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,wallMode="normal",approved={}}={}){
+export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,wallMode="normal",approved={},verifiedOnly=false,approvals={}}={}){
  const preset=LEVELS.find(x=>x.id===level)||LEVELS[1],rng=seeded(seed);
  // Exactly seven mandatory tasks in every generated layout, independent of practice level.
  const selected=shuffled(NORMAL_MODELS,rng);
  if(includeBonus)selected.push("bonus");
+ const wallReversed=resolveWallReversed(wallMode,seed);
  // Each model has a constrained task-frame/approach set; solve without reusing a task frame.
  const options=selected.map(id=>({
   id,choices:shuffled(SLOTS.flatMap(slot=>(APPROACH_RULES[id]?.[slot.id]||[])
-   .filter(angle=>validPlacement(id,slot.id,angle,approved))
+   .filter(angle=>validPlacement(id,slot.id,angle,approved)&&
+     (!verifiedOnly||approvals[placementKey(id,slot.id,angle,id==="wall"&&wallReversed)]===true))
    .map(angle=>({slot:slot.id,angle}))),rng)
  })).sort((a,b)=>a.choices.length-b.choices.length);
  const used=new Set(),assignment=new Map();
@@ -104,8 +109,9 @@ export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false
   }
   return false;
  };
- if(!search(0))throw Error("Không tìm được bố trí thỏa mãn các giới hạn khung/hướng nhiệm vụ.");
- const wallReversed=resolveWallReversed(wallMode,seed);
+ if(!search(0))throw Error(verifiedOnly?
+  "Chưa có đủ cấu hình được xác nhận thực tế cho 7 nhiệm vụ. Hãy tắt chế độ chỉ dùng hướng đã xác nhận hoặc thử thêm các vị trí/hướng trên sa bàn.":
+  "Không tìm được bố trí thỏa mãn các giới hạn khung/hướng nhiệm vụ.");
  const tasks=selected.map(id=>id==="wall"
   ? {id,...assignment.get(id),reversed:wallReversed,modelRotation:wallReversed?180:0}
   : {id,...assignment.get(id)});
@@ -113,6 +119,6 @@ export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false
  // Obstacles are selected exclusively from their own nine small rectangles, never from task frames.
  const obstacles=shuffled(OBSTACLE_SLOTS,rng).slice(0,OBSTACLE_COUNT).map(x=>x.id);
  return {id:"layout-"+Date.now().toString(36),version:3,level:preset.id,seed:String(seed),wallMode,wallReversed,
-  tasks,obstacles,created:new Date().toISOString(),official:false,placementStatus:"simulation",
+  tasks,obstacles,created:new Date().toISOString(),official:false,placementStatus:verifiedOnly?"physically-reviewed":"simulation",verifiedOnly,
   note:"7 nhiệm vụ chính và 3 vật cản. Chế độ đảo Great Wall độc lập với hướng tiếp cận; xác nhận vị trí lắp thực tế trước khi thi."};
 }
