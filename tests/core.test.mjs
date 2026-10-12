@@ -1,4 +1,4 @@
-import {OBSTACLE_SLOTS,SLOTS,NORMAL_MODELS,LEVELS,validPlacement,OBSTACLE_COUNT,MAIN_TASK_COUNT} from "../placement.mjs";
+import {OBSTACLE_SLOTS,SLOTS,NORMAL_MODELS,LEVELS,validPlacement,OBSTACLE_COUNT,MAIN_TASK_COUNT,resolveWallReversed,WALL_MODES} from "../placement.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {TASKS,initialData,invScore,invRank,scoreRetry,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout} from "../core.mjs";
@@ -59,7 +59,7 @@ test("Seven mandatory models, three small-rectangle obstacles at every practice 
   for(const seed of ["VPLUS-001","VPLUS-2026","FLL-2026","123456"]){
    const x=generateLayout({seed,level:level.id});
    const y=generateLayout({seed,level:level.id});
-   assert.equal(x.version,2);
+   assert.equal(x.version,3);
    assert.deepEqual(x.tasks,y.tasks);
    assert.deepEqual(x.obstacles,y.obstacles);
    assert.equal(x.tasks.length,7);
@@ -84,3 +84,37 @@ test("Optional bonus does not reduce seven core tasks or three obstacles",()=>{
  assert.equal(new Set(x.tasks.map(t=>t.slot)).size,8);
 });
 test("Initial settings are safe",()=>{const x=initialData();assert.equal(x.rounds,2);assert.equal(x.bonusEnabled,false);});
+test("Great Wall reversal controls only the model mounting direction",()=>{
+ const seed="VPLUS-WALL-TEST-2026";
+ const base=generateLayout({seed,level:"medium",wallMode:"normal"});
+ const reversed=generateLayout({seed,level:"medium",wallMode:"reversed"});
+ const randomized=generateLayout({seed,level:"medium",wallMode:"random"});
+ const again=generateLayout({seed,level:"medium",wallMode:"random"});
+ assert.deepEqual(randomized.tasks,again.tasks);
+ assert.equal(base.tasks.length,7);
+ assert.equal(reversed.tasks.length,7);
+ assert.equal(base.obstacles.length,3);
+ assert.deepEqual(base.obstacles,reversed.obstacles);
+ assert.deepEqual(base.obstacles,randomized.obstacles);
+ const nonWall=l=>l.tasks.filter(t=>t.id!=="wall");
+ assert.deepEqual(nonWall(base),nonWall(reversed),"Reversing the wall must not touch other missions");
+ assert.deepEqual(nonWall(base),nonWall(randomized),"Random wall orientation must not touch other missions");
+ const wall=l=>l.tasks.find(t=>t.id==="wall");
+ assert.ok(wall(base));
+ assert.equal(wall(base).reversed,false);
+ assert.equal(wall(base).modelRotation,0);
+ assert.equal(wall(reversed).reversed,true);
+ assert.equal(wall(reversed).modelRotation,180);
+ assert.equal(wall(base).slot,wall(reversed).slot,"Wall remains in the same mission slot");
+ assert.equal(wall(base).angle,wall(reversed).angle,"Robot approach direction is unaffected");
+ assert.equal(wall(randomized).reversed,resolveWallReversed("random",seed));
+ assert.equal(base.wallMode,"normal");
+ assert.equal(reversed.wallMode,"reversed");
+});
+test("Great Wall random reverse/normal returns both outcomes across seeded proposals",()=>{
+ const outcomes=new Set();
+ for(let i=0;i<50;i++)outcomes.add(resolveWallReversed("random","WALL-"+i));
+ assert.deepEqual([...outcomes].sort(),[false,true]);
+ assert.equal(WALL_MODES.length,3);
+ assert.throws(()=>resolveWallReversed("unknown","X"),/không hợp lệ/);
+});
