@@ -44,6 +44,15 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.ok(q('[data-inv-tab="p13"]'));
  click('[data-inv-tab="p13"]');
  assert.equal(q('[data-inv-tab="p13"]').getAttribute("aria-selected"),"true");
+ assert.ok(q(".scoreboard-podium"),"Division-specific podium should be displayed");
+ assert.ok(q(".scoreboard-mobile-row"),"Leaderboard needs a dedicated mobile view");
+ const search=q("#scoreboard-search");
+ search.value="no_matching_team_2026";
+ search.dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+ assert.ok([...dom.window.document.querySelectorAll(".scoreboard-table tbody tr.scoreboard-searchable")].every(x=>x.hidden));
+ search.value="Invention One";
+ search.dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+ assert.equal([...dom.window.document.querySelectorAll(".scoreboard-table tbody tr.scoreboard-searchable:not([hidden])")].length,1);
  click('[data-inv-tab="all"]');
  addTeam("Red Team","battle");
  addTeam("Blue Team","battle");
@@ -184,6 +193,16 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(loadLayouts()[0].wallMode,"normal");
  assert.equal(loadLayouts()[0].tasks.find(t=>t.id==="wall").reversed,false);
  click('[data-page="teams-invention"]');
+ assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),true,"Import must start as hidden popup");
+ assert.ok(q('[data-open-team-import]'));
+ click('[data-open-team-import]');
+ assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),false,"Import button opens the popup");
+ assert.equal(q(".bulk-import-dialog").getAttribute("aria-modal"),"true");
+ q(".bulk-import-dialog").dispatchEvent(new dom.window.KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
+ assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),true,"Escape closes import popup");
+ click('[data-open-team-import]');
+ click('[data-copy-team-template="csv"]');
+ assert.match(q("#team-import-text").value,/code/);
  // Non-destructive JSON import, preview, and skip duplicates.
  const bulk=[{code:"V-101",name:"CSV Import One",school:"School",division:"p13",
   member1:"A",member2:"B",coach:"C"}];
@@ -194,16 +213,23 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  click("[data-import-teams]");
  click("#modal-confirm");
  assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).teams.length,4);
- assert.match(q("#team-import-status").textContent,/Đã nhập 1 đội/);
+ assert.match(q(".roster-import-feedback").textContent,/Đã nhập 1 đội/);
+ assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),true,"Successful import closes popup");
+ click('[data-open-team-import]');
+ q("#team-import-format").value="json";
+ q("#team-import-text").value=JSON.stringify(bulk);
  click("[data-import-teams]");
  assert.match(q("#team-import-status").textContent,/Không có đội mới/);
  click('[data-page="teams-battle"]');
+ assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),true);
+ click('[data-open-team-import]');
  q("#team-import-format").value="csv";
  q("#team-import-text").value='code,name,division,group,member1,member2,coach\n"B-02","Battle Imported",primary,A,A,B,C';
  click("[data-import-teams]");
  click("#modal-confirm");
  assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).teams.length,5);
  click('[data-page="battle-ranking"]');
+ assert.ok(q(".scoreboard-header"));
  assert.ok(q('[data-battle-tab="primary"]'));
  click('[data-battle-tab="primary"]');
  assert.equal(q('[data-battle-tab="primary"]').getAttribute("aria-selected"),"true");
