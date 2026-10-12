@@ -344,3 +344,13 @@ body.dialog-open{overflow:hidden;}
  .single-team-form-body .team-form{grid-template-columns:1fr;gap:11px;}
  .single-team-form-body .team-form>.field:last-child .field{display:none;}
 }
+
+/* One export toolbar replaces the old duplicate page heading. */
+.scoreboard-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 13px;}
+.scoreboard-actions>span{color:#55798e;font-size:10.5px;font-weight:850;letter-spacing:1.3px;}
+.scoreboard-actions .btn{font-size:12px;min-height:39px;padding:9px 13px;}
+@media(max-width:760px){
+ .scoreboard-actions>span{font-size:9px;letter-spacing:.35px;}
+ .scoreboard-actions .btn{font-size:10.5px;padding:8px 10px;white-space:nowrap;}
+}
+@media print{.scoreboard-actions{display:none!important;}}
