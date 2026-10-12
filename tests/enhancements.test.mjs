@@ -62,7 +62,7 @@ test("Leaderboards include general and category tabs, with no global cross-divis
  ];
  const all=renderInventionLeaderboard(d,"all");
  assert.match(all,/role="tablist"/);
- assert.match(all,/Tổng quan/);
+ assert.match(all,/TỔNG QUAN KẾT QUẢ/);
  assert.match(all,/Tiểu học khối nhỏ/);
  assert.match(all,/THCS/);
  assert.match(all,/13,5/);
@@ -72,7 +72,7 @@ test("Leaderboards include general and category tabs, with no global cross-divis
  assert.match(one,/Đội 1/);
  assert.doesNotMatch(one,/Đội 2/);
  const battle=renderBattleLeaderboard(d,"all");
- assert.match(battle,/Bảng xếp hạng Battle/);
+ assert.match(battle,/Battle of Stars/);
  assert.match(battle,/role="tablist"/);
  assert.match(battle,/Vòng loại trực tiếp/);
 });
