@@ -1,7 +1,7 @@
-import {MODEL_META,WALL_MODES} from "./placement.mjs";
+import {MODEL_META,WALL_MODES} from "./placement.mjs?v=20261012-wall-modes-v1";
 import {teamUi,readTeamFields} from "./teams-ui.mjs";
-import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs";
-import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs";
+import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261012-wall-modes-v1";
+import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261012-wall-modes-v1";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
 const V=escapeHtml;
