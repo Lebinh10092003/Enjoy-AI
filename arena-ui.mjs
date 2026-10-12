@@ -1,5 +1,5 @@
-import {MODEL_META,SLOTS,OBSTACLE_SLOTS} from "./placement.mjs?v=20261012-wall-modes-v1";
-import {escapeHtml as E} from "./core.mjs?v=20261012-wall-modes-v1";
+import {MODEL_META,SLOTS,OBSTACLE_SLOTS} from "./placement.mjs?v=20261012-v2";
+import {escapeHtml as E} from "./core.mjs?v=20261012-v2";
 const FOCUS={compass:[490,158],paper:[510,170],gun:[308,128],printing:[530,205],seismo:[334,145],pyramid:[495,176],wall:[622,200]};
 export function modelPicture(id,compact=false,reversed=false){
  const m=MODEL_META[id]||MODEL_META.bonus;
