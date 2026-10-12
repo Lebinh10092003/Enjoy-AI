@@ -64,7 +64,7 @@ function renderInvention(){
   return s;
 }
 function renderRanking(){
- return title("Bảng xếp hạng Invention","Tổng quan và từng bảng thi được phân tách rõ; điểm và thời gian giữ nguyên độ chính xác.",'<button class="btn btn-outline" data-export-ranking>↓ Xuất CSV</button>')+
+ return '<div class="scoreboard-actions"><span>THÀNH TÍCH THI ĐẤU · INVENTIONS TRAIL</span><button type="button" class="btn btn-outline" data-export-ranking>↓ Xuất CSV</button></div>'+
  renderInventionLeaderboard(data,ui.invDivision);
 }
 function renderMap(layout){return renderArena(layout,data.mapImage||"https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg");}
@@ -166,7 +166,7 @@ function battleResultText(m){
   return x.kind==="draw"?"HÒA · Mỗi đội 1 điểm vòng bảng":x.kind==="tiebreak"?"Chưa phân thắng bại · Cần thi đấu phân định":"Chưa có kết quả";
 }
 function renderBattleRanking(){
- return title("Bảng xếp hạng Battle","Tổng quan, từng bảng thi và các nhóm đối kháng; giữ nguyên luật xếp hạng.",'<button class="btn btn-outline" data-export-battle-ranking>↓ Xuất CSV</button>')+
+ return '<div class="scoreboard-actions"><span>THÀNH TÍCH THI ĐẤU · BATTLE OF STARS</span><button type="button" class="btn btn-outline" data-export-battle-ranking>↓ Xuất CSV</button></div>'+
  renderBattleLeaderboard(data,ui.battleDivision,ui.battleGroup);
 }
 function renderSettings(){
