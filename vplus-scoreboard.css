@@ -313,3 +313,11 @@ body.dialog-open{overflow:hidden;}
  .scoreboard-mobile-list{display:none!important;}
  .scoreboard-podium-slot,.scoreboard-ranking-section,.scoreboard-division-card{box-shadow:none!important;break-inside:avoid;}
 }
+
+/* Search reveals the relevant rankings rather than unrelated overview tiles. */
+.scoreboard-division-grid[hidden],.scoreboard-overview-head[hidden]{display:none!important;}
+.roster-import-cta:focus-visible,.bulk-import-close:focus-visible,
+.scoreboard-group-filters button:focus-visible,.scoreboard-division-footer button:focus-visible{
+ outline:3px solid #75b8d8;outline-offset:3px;
+}
+@media(min-width:761px){.bulk-import-dialog .team-import-file:focus-within{outline:3px solid #75b8d8;outline-offset:2px;}}
