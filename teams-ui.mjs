@@ -16,6 +16,17 @@ export function teamUi(teams,type,editingId){
    fld("member1","Học sinh 1 *",names[0],true)+fld("member2","Học sinh 2 *",names[1],true)+
    fld("coach","Huấn luyện viên *",old?.coach||"",true)+fld("note","Ghi chú",old?.note||"")+
    '<div class="field"><label>&nbsp;</label><button type="submit" class="btn">'+(old?"Lưu thay đổi":"+ Thêm đội")+'</button></div></form></div>';
+ view+='<div class="panel team-import-panel"><div class="panel-top"><div><h3>Nhập danh sách đội hàng loạt</h3><p class="muted">Tải CSV hoặc dán JSON. Kiểm tra dữ liệu trước khi nhập; đội trùng sẽ được bỏ qua, điểm số cũ được giữ nguyên.</p></div><span class="tag">CSV / JSON</span></div>'+
+ '<div class="team-import-toolbar"><div class="field"><label for="team-import-format">Định dạng dữ liệu</label><select id="team-import-format"><option value="csv">CSV (Excel, Google Sheets)</option><option value="json">JSON (copy / paste)</option></select></div>'+
+ '<label class="btn btn-outline team-import-file">↑ Chọn file CSV / JSON<input type="file" id="team-import-file" accept=".csv,.json,text/csv,application/json" hidden></label>'+
+ '<button type="button" class="btn btn-outline" data-copy-team-template="csv">Sao chép mẫu CSV</button>'+
+ '<button type="button" class="btn btn-outline" data-copy-team-template="json">Sao chép mẫu JSON</button></div>'+
+ '<div class="field"><label for="team-import-text">Nội dung danh sách đội</label>'+
+ '<textarea id="team-import-text" rows="7" spellcheck="false" placeholder="Dán nội dung CSV có tiêu đề hoặc JSON là một mảng các đội..."></textarea></div>'+
+ '<div class="action-row"><button type="button" class="btn btn-soft" data-preview-teams>Kiểm tra danh sách</button>'+
+ '<button type="button" class="btn" data-import-teams>Nhập đội hợp lệ</button></div>'+
+ '<div id="team-import-status" class="team-import-status" role="status" aria-live="polite">Tối đa 500 đội/lần. Mã bảng Invention: p13, p46, m79, h1012; Battle: primary, middle.</div>'+
+ '</div>';
  view+='<div class="panel"><div class="panel-top"><h3>Danh sách đội '+(isBattle?"Battle":"Invention")+' ('+list.length+')</h3></div>'+
   '<div class="table-wrap"><table class="table"><thead><tr><th>Mã</th><th>Tên đội</th><th>Trường</th><th>Bảng thi</th>'+(isBattle?"<th>Nhóm</th>":"")+'<th>Học sinh 1</th><th>Học sinh 2</th><th>HLV</th><th>Thao tác</th></tr></thead><tbody>'+
   list.map(t=>{const legacy=(t.members||"").split(/[,;\n]/).map(s=>s.trim());return '<tr><td>'+E(t.code||"—")+'</td><td><strong>'+E(t.name)+'</strong></td><td>'+E(t.school||"—")+'</td><td>'+E(divisionOptions.find(d=>d.id===t.division)?.label||t.division)+'</td>'+
