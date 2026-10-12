@@ -45,10 +45,13 @@ const keys=t=>E([t.name,t.school,t.code,t.group].filter(Boolean).join(" ").toLoc
 function divisionOverviewCard(items,div,kind){
  const ranked=items.filter(t=>t.rank!=null).sort((a,b)=>a.rank-b.rank);
  const leader=ranked[0];
+ const groups=[...new Set(items.map(t=>t.group||"A"))];
  return '<article class="scoreboard-division-card"><div class="scoreboard-division-card-head"><span class="scoreboard-category">'+E(shortDivision(div.id))+'</span><span>'+items.length+' đội</span></div>'+
    '<h3>'+E(div.label)+'</h3>'+
-   (leader?'<div class="scoreboard-division-best"><div class="scoreboard-first-icon" aria-hidden="true">Ⅰ</div><div class="scoreboard-first-data"><small>ĐANG DẪN ĐẦU</small><strong>'+nameOf(leader)+'</strong><span>'+E(leader.school||leader.group||"")+'</span></div><b>'+fmt(leader.points)+' <small>điểm</small></b></div>':
-     '<div class="scoreboard-division-noresults">Chưa có kết quả thi đấu để xếp hạng.</div>')+
+   (kind==="battle"?
+ '<div class="scoreboard-division-best"><div class="scoreboard-first-icon" aria-hidden="true">≡</div><div class="scoreboard-first-data"><small>NHÓM THI ĐẤU</small><strong>'+groups.length+' nhóm đã đăng ký</strong><span>Thứ hạng tính riêng từng nhóm</span></div><b>'+ranked.length+' <small>đội đã có hạng</small></b></div>':
+ leader?'<div class="scoreboard-division-best"><div class="scoreboard-first-icon" aria-hidden="true">Ⅰ</div><div class="scoreboard-first-data"><small>ĐANG DẪN ĐẦU</small><strong>'+nameOf(leader)+'</strong><span>'+E(leader.school||leader.group||"")+'</span></div><b>'+fmt(leader.points)+' <small>điểm</small></b></div>':
+ '<div class="scoreboard-division-noresults">Chưa có kết quả thi đấu để xếp hạng.</div>')+
    '<div class="scoreboard-division-footer"><span>'+ranked.length+' đội có thứ hạng</span><button type="button" '+(kind==="battle"?"data-battle-tab":"data-inv-tab")+'="'+E(div.id)+'">Xem bảng <span aria-hidden="true">→</span></button></div></article>';
 }
 function podium(items){
