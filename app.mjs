@@ -219,7 +219,10 @@ function importBulkTeams(){
    const final=validateTeamImport($('#team-import-text').value,$('#team-import-format').value,bulkImportType(),data.teams);
    if(final.errors.length){previewBulkTeams();return;}
    const added=final.teams.map(row=>({...row,id:uid("team")}));
+   const raw=$('#team-import-text').value,mode=$('#team-import-format').value;
    data.teams.push(...added);persist();render();
+   if($('#team-import-text'))$('#team-import-text').value=raw;
+   if($('#team-import-format'))$('#team-import-format').value=mode;
    teamImportStatus("Đã nhập "+added.length+" đội, bỏ qua "+final.skipped.length+" trùng. Kết quả thi cũ được giữ nguyên.");
   });
 }
