@@ -182,3 +182,23 @@ Bản thiết kế này là **tái cấu trúc giao diện**, không chỉ sửa
 ### Kiểm thử thiết kế
 
 `node --test tests/*.test.mjs` kiểm tra chức năng giao diện và tính hợp lệ của các tệp CSS. Kiểm thử tự động không thay thế bước đánh giá trực quan trên trình duyệt thật, đặc biệt đối với kích thước 360px, 768px, 1280px và hình nền sa bàn có tọa độ phần trăm.
+
+
+## Quy tắc random theo cấp lớp — bản V+ (12/10/2026)
+
+**Đây là quy tắc tổ chức luyện tập do V+ cung cấp, không phải bảng số lượng thay đổi được nêu chi tiết trong luật ENJOY AI.** Tài liệu luật năm 2026 xác nhận bốn cấp lớp (1–3, 4–6, 7–9, 10–12), đồng thời mô tả vị trí/hướng nhiệm vụ thay đổi và công bố trước giờ debug.
+
+| Cấp lớp | Mô hình nhiệm vụ phải đổi vị trí | Vật cản phải đổi vị trí |
+|---|---:|---:|
+| 1–3 | 2 | 0 |
+| 4–6 | 2 | 1 |
+| 7–9 | 3 | 1 |
+| 10–12 | 3 | 2 |
+
+- Tổng số mô hình nhiệm vụ **luôn là 7**, tổng vật cản **luôn là 3**. Không tự tăng số lượng theo cấp lớp.
+- Có **bố trí gốc V+** trong `BASE_TASK_SLOTS` và `BASE_OBSTACLE_SLOTS` của `placement.mjs`. Khi random, chỉ **hoán đổi tuần hoàn 2 hoặc 3 mô hình không phải Tường Thành**, những mô hình khác giữ vị trí gốc. Số vật cản đổi sẽ được chuyển sang các ô chữ nhật O1–O9 chưa bị chiếm.
+- **Bố trí gốc hiện là cấu hình tham chiếu kỹ thuật chưa được xác nhận là bố trí thi đấu thực tế:** Tường Thành ở E; 3 vật cản O1, O5, O8. Phải đối chiếu với vị trí gốc thực tế trước khi sử dụng tại sự kiện. Các ô nhiệm vụ/ô cản không bị dùng chung.
+- Mặc định Tường Thành ở chế độ `normal`, **không đảo** và không đổi vị trí. Chỉ khi người dùng **chủ động** chọn `reversed` hoặc `random` thì hướng lắp mới có thể đảo 180°. Không tự kế thừa chế độ đảo từ đề đã lưu khi mở trang Random.
+- Chế độ đảo ở đây là **xoay hình mô phỏng Tường Thành trong cùng ô**, không phải di chuyển Tường Thành sang khung đối diện. Việc đảo cần được thử với mô hình thật.
+- Ghi chi tiết thay đổi trong bản JSON mỗi đề: `changeRules.swapTasks`, `changeRules.moveObstacles`, `changedTaskIds`, `movedObstacleFrom`, `version: 4`. Các đề cũ vẫn được giữ nhưng được cảnh báo không theo cấu hình hiện hành.
+- Seed cố định tái tạo chính xác các vị trí nhiệm vụ, vị trí vật cản và chế độ lắp Tường Thành. Không dùng thuật toán random tự do thay toàn bộ sa bàn.
