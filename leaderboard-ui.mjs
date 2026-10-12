@@ -60,7 +60,7 @@ function podium(items){
  const layout=[leaders[1],leaders[0],leaders[2]];
  return '<div class="scoreboard-podium" aria-label="Ba đội dẫn đầu">'+layout.map((t,i)=>{
   if(!t)return '<div class="scoreboard-podium-slot placeholder" aria-hidden="true"></div>';
-  const first=i===1;
+  const first=t.rank===1;
   return '<div class="scoreboard-podium-slot'+(first?" is-champion":"")+'">'+
    '<div class="scoreboard-podium-crown" aria-hidden="true">'+(first?'♛':'✦')+'</div>'+
    '<div class="scoreboard-podium-name">'+nameOf(t)+'</div><div class="scoreboard-podium-school">'+E(t.school||t.group||"")+'</div>'+
