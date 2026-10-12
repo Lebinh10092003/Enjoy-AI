@@ -202,3 +202,32 @@ Bản thiết kế này là **tái cấu trúc giao diện**, không chỉ sửa
 - Chế độ đảo ở đây là **xoay hình mô phỏng Tường Thành trong cùng ô**, không phải di chuyển Tường Thành sang khung đối diện. Việc đảo cần được thử với mô hình thật.
 - Ghi chi tiết thay đổi trong bản JSON mỗi đề: `changeRules.swapTasks`, `changeRules.moveObstacles`, `changedTaskIds`, `movedObstacleFrom`, `version: 4`. Các đề cũ vẫn được giữ nhưng được cảnh báo không theo cấu hình hiện hành.
 - Seed cố định tái tạo chính xác các vị trí nhiệm vụ, vị trí vật cản và chế độ lắp Tường Thành. Không dùng thuật toán random tự do thay toàn bộ sa bàn.
+
+## Thiết kế lại giao diện quản lý đội và bảng xếp hạng — 12/10/2026
+
+### Quản lý đội dạng popup
+
+- **Thêm đội** và **Sửa đội** mở cửa sổ nhập thông tin thay vì chiếm diện tích trang danh sách.
+- **Nhập đội hàng loạt** mở popup riêng từ nút `Nhập CSV / JSON`; có chọn file, dán văn bản, sao chép mẫu CSV/JSON, kiểm tra và xác nhận trước khi nhập.
+- Popup hỗ trợ đóng bằng nút ×, nhấn **Esc**, nhấn vào vùng ngoài nội dung; bàn phím Tab được giới hạn trong popup. Popup đóng sau khi nhập thành công và danh sách hiển thị số đội đã nhập / bị bỏ qua.
+- Import vẫn giữ toàn bộ dữ liệu chấm điểm và đội cũ; trùng mã đội hoặc tên trong bảng tương ứng được bỏ qua. Thông báo nhập đội của Invention và Battle được lưu riêng trong phiên làm việc.
+
+### Bảng xếp hạng khán giả / trọng tài
+
+- Trang **Inventions Trail** và **Battle of Stars** có đầu trang dạng bảng thành tích, màu xanh than V+, biểu tượng SVG và tông xanh lá nhấn; không sử dụng ảnh bitmap nặng.
+- Có bộ lọc **Chung · tất cả / từng bảng thi**; riêng Battle còn lọc theo **nhóm** khi có nhiều nhóm. Hạng của nhóm/bảng luôn độc lập, không tạo thứ hạng toàn giải giả.
+- **Tổng quan** có thẻ tổng hợp từng bảng và lối tắt mở bảng chi tiết. Khi chọn bảng sẽ thấy **Top 3**, danh sách toàn bộ thứ hạng và thống kê.
+- **Tìm kiếm đội** theo tên, trường và mã đội: lọc trực tiếp các hàng của bảng đang xem, không gửi dữ liệu lên máy chủ.
+- Điện thoại sử dụng thẻ xếp hạng có số hạng, tên đội và điểm; bảng dữ liệu nhiều cột chỉ hiện trên màn hình lớn. Vòng loại trực tiếp vẫn cho phép cuộn ngang khi cần.
+- Top 3 lấy **thứ hạng do thuật toán chấm điểm tính**, bao gồm cả trường hợp **đồng hạng 1**, không tự tạo ra hạng 2 hay 3.
+- Kết quả chưa chấm không được xếp hạng. Các thông số thời gian thập phân, điểm, retries, lượt/trận vẫn sử dụng dữ liệu thực tế.
+- Chỉ có hai file CSS áp dụng sau lớp nền: `vplus-2026.css` và `vplus-scoreboard.css`. Bảng xếp hạng sử dụng văn bản + SVG + CSS vector để sắc nét khi phóng to, không cần tải ảnh minh họa.
+
+### Nguyên tắc thiết kế
+
+Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng dẫn khả năng tiếp cận:
+- W3C WAI: https://www.w3.org/WAI/WCAG2/supplemental/patterns/o5p03-manageable-quantity/
+- PanelUI Leaderboard: https://panelui.dev/docs/components/leaderboard
+- Mobile leaderboard design: https://www.kylegarzia.com/project-CFcustomleaderboard.html
+
+Để kiểm tra: `node --test tests/*.test.mjs`; tập trung thử mở/đóng popup bằng bàn phím, nhập đội không trùng, lọc bảng/nhóm và bảng xếp hạng trên màn hình nhỏ.
