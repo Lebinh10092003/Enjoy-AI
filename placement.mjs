@@ -58,6 +58,21 @@ export const LEVELS=[
  {id:"expert",name:"Nâng cao",division:"Lớp 10–12",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT}
 ];
 export const NORMAL_MODELS=["compass","paper","gun","printing","seismo","pyramid","wall"];
+// Deliberately separate model orientation from the robot's approach direction.
+// This is an optional V+ practice configuration; actual reversed mounting requires physical confirmation.
+export const WALL_MODES=[
+ {id:"normal",label:"Không đảo (mặc định)"},
+ {id:"reversed",label:"Luôn đảo Tường Thành 180°"},
+ {id:"random",label:"Random đảo / không đảo"}
+];
+export function resolveWallReversed(mode="normal",seed="DEMO"){
+ if(!WALL_MODES.some(x=>x.id===mode))throw Error("Chế độ đảo Tường Thành không hợp lệ.");
+ if(mode==="normal")return false;
+ if(mode==="reversed")return true;
+ // Independent seeded RNG: switching wall mode must never change the other models/obstacles.
+ return seeded(String(seed)+"|great-wall-orientation-v1")()>=0.5;
+}
+
 export function hashSeed(seed){let h=2166136261;for(const ch of String(seed)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 export function seeded(seed){let state=hashSeed(seed);return()=>{state=(state+0x6D2B79F5)>>>0;let t=state;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 function shuffled(arr,rng){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -67,7 +82,7 @@ export function validPlacement(taskId,slotId,angle,approved={}){
  const key=taskId+":"+slotId+":"+angle;
  return approved[key]!==false;
 }
-export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,approved={}}={}){
+export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,wallMode="normal",approved={}}={}){
  const preset=LEVELS.find(x=>x.id===level)||LEVELS[1],rng=seeded(seed);
  // Exactly seven mandatory tasks in every generated layout, independent of practice level.
  const selected=shuffled(NORMAL_MODELS,rng);
@@ -90,10 +105,14 @@ export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false
   return false;
  };
  if(!search(0))throw Error("Không tìm được bố trí thỏa mãn các giới hạn khung/hướng nhiệm vụ.");
- const tasks=selected.map(id=>({id,...assignment.get(id)}));
+ const wallReversed=resolveWallReversed(wallMode,seed);
+ const tasks=selected.map(id=>id==="wall"
+  ? {id,...assignment.get(id),reversed:wallReversed,modelRotation:wallReversed?180:0}
+  : {id,...assignment.get(id)});
+
  // Obstacles are selected exclusively from their own nine small rectangles, never from task frames.
  const obstacles=shuffled(OBSTACLE_SLOTS,rng).slice(0,OBSTACLE_COUNT).map(x=>x.id);
- return {id:"layout-"+Date.now().toString(36),version:2,level:preset.id,seed:String(seed),
+ return {id:"layout-"+Date.now().toString(36),version:3,level:preset.id,seed:String(seed),wallMode,wallReversed,
   tasks,obstacles,created:new Date().toISOString(),official:false,placementStatus:"simulation",
-  note:"7 nhiệm vụ chính và 3 vật cản tại các ô chữ nhật nhỏ. Hướng tiếp cận phải được kiểm tra trên mô hình thực tế."};
+  note:"7 nhiệm vụ chính và 3 vật cản. Chế độ đảo Great Wall độc lập với hướng tiếp cận; xác nhận vị trí lắp thực tế trước khi thi."};
 }
