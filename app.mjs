@@ -12,7 +12,7 @@ const V=escapeHtml;
 let data=readData();
 let page="overview";
 let autoSeedSequence=0;
-const ui={editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
+const ui={teamImportFeedback:"",editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
 const names={overview:"Tổng quan giải đấu",teams:"Đội Invention","teams-invention":"Đội Inventions Trail","teams-battle":"Đội Battle of Stars",invention:"Chấm điểm · Inventions Trail",ranking:"Xếp hạng · Inventions Trail",random:"Random đề Invention",battle:"Chấm điểm · Battle of Stars","battle-ranking":"Xếp hạng · Battle of Stars",settings:"Dữ liệu & hướng dẫn"};
 const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
@@ -41,7 +41,7 @@ function render(){
   bindDynamic();
 }
 function renderOverview(){return renderDashboard(data);}
-function renderTeams(type="invention"){return teamUi(data.teams,type,ui.editTeam);}
+function renderTeams(type="invention"){return teamUi(data.teams,type,ui.editTeam,ui.teamImportFeedback);}
 function invDefault(team,round){return {id:uid("inv"),teamId:team,round,tasks:{},retries:0,smooth:false,time:"",status:"draft",note:""};}
 function getInv(team,round){return data.invention.find(e=>e.teamId===team&&e.round===round)||invDefault(team,round);}
 function ensureInv(team,round){let x=data.invention.find(e=>e.teamId===team&&e.round===round);if(!x){x=invDefault(team,round);data.invention.push(x);}return x;}
@@ -177,6 +177,25 @@ function renderSettings(){
    [['La bàn','50','Meteorite Tower','100 / tháp hợp lệ'],['Làm giấy','60','Energy Defense','10 / khối (≤8)'],['Thuốc súng','40','Full Firepower','15 / bóng (≤8)'],['In chữ rời','40 + 40','Final Fortress','Thắng ngay nếu đạt 3 điều kiện'],['Máy đo địa chấn','40','Bonus không retry','0–40 tùy điều kiện'],['Kim tự tháp','60','Lỗi 7.4','−10 / lỗi, tính retry'],['Vạn Lý Trường Thành','60','Thời gian','180 giây / trận'],['Bonus (nếu áp dụng)','100','Thể thức','Vòng bảng + loại trực tiếp']].map(row=>'<tr>'+row.map((cell,i)=>'<td'+(i===1?' class="num"':'')+'>'+V(cell)+'</td>').join("")+'</tr>').join("")+'</tbody></table></div></div>'+
    '<div class="panel"><h3>Tham khảo</h3><p class="muted">Luật Invention: PDF tiếng Việt/Anh do người dùng cung cấp; Battle: tài liệu Battle of Stars 2026 từ trang Enjoy AI Greece. Khi BTC tại Việt Nam ban hành sửa đổi, cần đối chiếu và cập nhật cấu hình hệ thống.</p><p><a target="_blank" rel="noopener" href="https://www.enjoyaiglobal.org/resources">ENJOY AI Global 2026 ↗</a> · <a target="_blank" rel="noopener" href="https://www.enjoyaigreece.gr/en/enjoy-ai-2026-battle-of-stars/">Battle of Stars · Luật ↗</a> · <a target="_blank" rel="noopener" href="https://www.enjoyaigreece.gr/en/enjoy-ai-2026-inventions-trail/">Inventions Trail · Luật ↗</a></p></div>';
 }
+let importOpener=null;
+function openBulkImport(){
+ const overlay=$('#bulk-import-overlay');
+ if(!overlay)return;
+ importOpener=document.activeElement;
+ overlay.classList.remove("hidden");
+ overlay.setAttribute("aria-hidden","false");
+ document.body.classList.add("dialog-open");
+ $('#team-import-format')?.focus();
+}
+function closeBulkImport(){
+ const overlay=$('#bulk-import-overlay');
+ if(!overlay||overlay.classList.contains("hidden"))return;
+ overlay.classList.add("hidden");
+ overlay.setAttribute("aria-hidden","true");
+ document.body.classList.remove("dialog-open");
+ if(importOpener&&document.contains(importOpener))importOpener.focus();
+ importOpener=null;
+}
 function bulkImportType(){return page==="teams-battle"?"battle":"invention";}
 function teamImportStatus(message,isError=false){
  const box=$('#team-import-status');if(!box)return;
@@ -207,14 +226,25 @@ function importBulkTeams(){
    const final=validateTeamImport($('#team-import-text').value,$('#team-import-format').value,bulkImportType(),data.teams);
    if(final.errors.length){previewBulkTeams();return;}
    const added=final.teams.map(row=>({...row,id:uid("team")}));
-   const raw=$('#team-import-text').value,mode=$('#team-import-format').value;
-   data.teams.push(...added);persist();render();
-   if($('#team-import-text'))$('#team-import-text').value=raw;
-   if($('#team-import-format'))$('#team-import-format').value=mode;
-   teamImportStatus("Đã nhập "+added.length+" đội, bỏ qua "+final.skipped.length+" trùng. Kết quả thi cũ được giữ nguyên.");
+   data.teams.push(...added);persist();
+   ui.teamImportFeedback="Đã nhập "+added.length+" đội, bỏ qua "+final.skipped.length+" đội trùng. Kết quả thi cũ được giữ nguyên.";
+   closeBulkImport();render();
   });
 }
 function bindDynamic(){
+ const overlay=$('#bulk-import-overlay');
+ if(overlay){
+  overlay.addEventListener("click",e=>{if(e.target===overlay)closeBulkImport();});
+  overlay.addEventListener("keydown",e=>{
+   if(e.key==="Escape"){e.preventDefault();closeBulkImport();return;}
+   if(e.key!=="Tab")return;
+   const targets=[...overlay.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])')].filter(x=>!x.hidden&&x.type!=="file");
+   if(!targets.length)return;
+   const first=targets[0],last=targets[targets.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
+ }
  const add=$('#add-team');
  if(add)add.addEventListener("submit",e=>{
   e.preventDefault();
@@ -372,6 +402,8 @@ el.addEventListener("change",e=>{
 });
 el.addEventListener("click",e=>{
  const t=e.target.closest("button");if(!t)return;
+ if(t.hasAttribute("data-open-team-import"))return openBulkImport();
+ if(t.hasAttribute("data-close-team-import"))return closeBulkImport();
  if(t.dataset.go){ui.editTeam="";return go(t.dataset.go);}
  if(t.hasAttribute("data-inv-tab")){ui.invDivision=t.dataset.invTab;render();return;}
  if(t.hasAttribute("data-battle-tab")){ui.battleDivision=t.dataset.battleTab;render();return;}
