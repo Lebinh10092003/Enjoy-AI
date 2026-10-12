@@ -32,11 +32,16 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).teams.length,1);
  click('[data-page="invention"]');
  change('[data-inv-task="compass"]',true);
- change("#inv-time","80");
+ change("#inv-time","13,5s");
  click('[data-final-inv="done"]');
+ assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).invention[0].time,13.5);
  assert.match(q("#content").textContent,/HOÀN TẤT CHẤM/);
  click('[data-page="ranking"]');
  assert.match(q("#content").textContent,/50/);
+ assert.ok(q('[data-inv-tab="p13"]'));
+ click('[data-inv-tab="p13"]');
+ assert.equal(q('[data-inv-tab="p13"]').getAttribute("aria-selected"),"true");
+ click('[data-inv-tab="all"]');
  addTeam("Red Team","battle");
  addTeam("Blue Team","battle");
  click('[data-page="battle"]');
@@ -44,8 +49,9 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  click("[data-create-match]");
  assert.ok(q('[data-battle-field="red.tower"]'));
  change('[data-battle-field="red.tower"]',true);
- change("#battle-time","120");
+ change("#battle-time","120,125s");
  click('[data-final-battle="done"]');
+ assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).battles[0].time,120.125);
  const state=JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1"));
  assert.equal(state.invention[0].status,"done");
  assert.equal(state.battles[0].status,"done");
@@ -142,5 +148,50 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(q("#layout-wall-mode").value,"normal","Restores wall orientation of saved normal layout");
  change("#selected-layout",replay);
  assert.equal(q("#layout-wall-mode").value,"reversed","Restores wall orientation of saved reversed layout");
+ // Manual physical approval is never assumed. Verified-only random rejects unknown layouts.
+ const verifiedLayout=loadLayouts()[0];
+ assert.equal(q("#layout-verified-only").checked,false);
+ change("#layout-verified-only",true);
+ q("#layout-seed").value=verifiedLayout.seed;
+ const beforeBlocked=loadLayouts().length;
+ click("[data-generate-seed]");
+ assert.equal(loadLayouts().length,beforeBlocked);
+ assert.match(q("#random-status").textContent,/Chưa có đủ cấu hình/);
+ // Review seven individual placements, then deterministic strict mode can regenerate.
+ for(const task of verifiedLayout.tasks){
+  const k=[task.id,task.slot,task.angle,task.id==="wall"&&task.reversed?"reversed":"normal"].join("|");
+  const btn=q('[data-verify-placement="'+k+'"]');
+  assert.ok(btn,"Verification button for "+task.id);
+  btn.click();
+  click("#modal-confirm");
+ }
+ q("#layout-seed").value=verifiedLayout.seed;
+ click("[data-generate-seed]");
+ assert.equal(loadLayouts().length,beforeBlocked+1);
+ assert.equal(loadLayouts()[0].verifiedOnly,true);
+ // Non-destructive JSON import, preview, and skip duplicates.
+ click('[data-page="teams-invention"]');
+ const bulk=[{code:"V-101",name:"CSV Import One",school:"School",division:"p13",
+  member1:"A",member2:"B",coach:"C"}];
+ q("#team-import-format").value="json";
+ q("#team-import-text").value=JSON.stringify(bulk);
+ click("[data-preview-teams]");
+ assert.match(q("#team-import-status").textContent,/1 đội hợp lệ/);
+ click("[data-import-teams]");
+ click("#modal-confirm");
+ assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).teams.length,4);
+ assert.match(q("#team-import-status").textContent,/Đã nhập 1 đội/);
+ click("[data-import-teams]");
+ assert.match(q("#team-import-status").textContent,/Không có đội mới/);
+ click('[data-page="teams-battle"]');
+ q("#team-import-format").value="csv";
+ q("#team-import-text").value='code,name,division,group,member1,member2,coach\n"B-02","Battle Imported",primary,A,A,B,C';
+ click("[data-import-teams]");
+ click("#modal-confirm");
+ assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).teams.length,5);
+ click('[data-page="battle-ranking"]');
+ assert.ok(q('[data-battle-tab="primary"]'));
+ click('[data-battle-tab="primary"]');
+ assert.equal(q('[data-battle-tab="primary"]').getAttribute("aria-selected"),"true");
  dom.window.close();
 });
