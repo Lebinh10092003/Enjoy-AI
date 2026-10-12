@@ -131,7 +131,7 @@ export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false
   if(assignment)break;
  }
  if(!assignment)throw Error(verifiedOnly?
-  "Chưa có đủ vị trí và hướng đã kiểm nghiệm cho đúng số nhiệm vụ cần đổi. Hãy xác nhận thêm cấu hình trên sa bàn thật.":
+  "Chưa có đủ cấu hình vị trí và hướng đã kiểm nghiệm cho đúng số nhiệm vụ cần đổi. Hãy xác nhận thêm cấu hình trên sa bàn thật.":
   "Không tìm được hoán đổi nhiệm vụ hợp lệ. Hãy kiểm tra các hướng/vị trí.");
  const tasks=NORMAL_MODELS.map(id=>{
   const slot=assignment[id],angle=SLOTS.find(x=>x.id===slot).approach;
