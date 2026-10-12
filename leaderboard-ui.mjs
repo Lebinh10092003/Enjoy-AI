@@ -59,7 +59,7 @@ export function renderInventionLeaderboard(data,selected="all"){
  return '<div class="lb-shell"><div class="lb-hero"><div><span class="lb-eyebrow">V+ STEAM LAB · ENJOY AI 2026</span>'+
  '<h2>Bảng xếp hạng Invention</h2><p>Theo dõi điểm từng lượt, thứ hạng và tiến độ của từng bảng thi.</p></div>'+
  '<span class="lb-hero-symbol" aria-hidden="true">V+</span></div>'+
- stats(filter,label,"invention")+tabs([{id:"all",label:"Tổng quan"},...INV_DIVISIONS],valid,"data-inv-tab")+
+ stats(filter,label,"invention")+tabs([{id:"all",label:"Chung · tất cả"},...INV_DIVISIONS],valid,"data-inv-tab")+
  '<div class="lb-content">'+(valid==="all"?
  '<p class="lb-note">Mỗi bảng thi được xếp hạng <strong>độc lập</strong>; không so sánh điểm số giữa các cấp lớp.</p>'+
  INV_DIVISIONS.map(d=>invSection(all.filter(t=>t.division===d.id),d,data.rounds,false)).join("") :
@@ -104,7 +104,7 @@ export function renderBattleLeaderboard(data,selected="all"){
  return '<div class="lb-shell"><div class="lb-hero"><div><span class="lb-eyebrow">V+ STEAM LAB · ENJOY AI 2026</span>'+
  '<h2>Bảng xếp hạng Battle</h2><p>Điểm trận, bảng đấu và vòng loại trực tiếp cập nhật theo kết quả đã chấm.</p></div>'+
  '<span class="lb-hero-symbol" aria-hidden="true">V+</span></div>'+
- stats(filtered,label,"battle")+tabs([{id:"all",label:"Tổng quan"},...BATTLE_DIVISIONS],valid,"data-battle-tab")+
+ stats(filtered,label,"battle")+tabs([{id:"all",label:"Chung · tất cả"},...BATTLE_DIVISIONS],valid,"data-battle-tab")+
  '<div class="lb-content"><p class="lb-note">Mỗi nhóm vòng bảng xếp hạng độc lập; thắng 3 điểm, hòa 1 điểm và thua 0 điểm.</p>'+
  (valid==="all"?BATTLE_DIVISIONS.map(d=>battleSections(all.filter(t=>t.division===d.id),d.label)).join("") :
  battleSections(filtered,BATTLE_DIVISIONS.find(d=>d.id===valid)?.label||valid))+
