@@ -16,8 +16,14 @@ export function teamUi(teams,type,editingId){
    fld("member1","Học sinh 1 *",names[0],true)+fld("member2","Học sinh 2 *",names[1],true)+
    fld("coach","Huấn luyện viên *",old?.coach||"",true)+fld("note","Ghi chú",old?.note||"")+
    '<div class="field"><label>&nbsp;</label><button type="submit" class="btn">'+(old?"Lưu thay đổi":"+ Thêm đội")+'</button></div></form></div>';
- view+='<div class="panel team-import-panel"><div class="panel-top"><div><h3>Nhập danh sách đội hàng loạt</h3><p class="muted">Tải CSV hoặc dán JSON. Kiểm tra dữ liệu trước khi nhập; đội trùng sẽ được bỏ qua, điểm số cũ được giữ nguyên.</p></div><span class="tag">CSV / JSON</span></div>'+
- '<div class="team-import-toolbar"><div class="field"><label for="team-import-format">Định dạng dữ liệu</label><select id="team-import-format"><option value="csv">CSV (Excel, Google Sheets)</option><option value="json">JSON (copy / paste)</option></select></div>'+
+ view+='<div class="roster-shortcuts"><div class="roster-shortcuts-copy"><span class="roster-shortcuts-label">QUẢN LÝ DANH SÁCH</span><strong>'+list.length+' đội '+(isBattle?"Battle of Stars":"Inventions Trail")+'</strong><small>Nhập CSV / JSON không ghi đè đội cũ</small></div><button type="button" class="btn roster-import-cta" data-open-team-import><span aria-hidden="true">↥</span> Nhập đội hàng loạt <span aria-hidden="true">↗</span></button></div>';
+ view+='<div class="panel"><div class="panel-top"><h3>Danh sách đội '+(isBattle?"Battle":"Invention")+' ('+list.length+')</h3></div>'+
+  '<div class="table-wrap"><table class="table"><thead><tr><th>Mã</th><th>Tên đội</th><th>Trường</th><th>Bảng thi</th>'+(isBattle?"<th>Nhóm</th>":"")+'<th>Học sinh 1</th><th>Học sinh 2</th><th>HLV</th><th>Thao tác</th></tr></thead><tbody>'+
+  list.map(t=>{const legacy=(t.members||"").split(/[,;\n]/).map(s=>s.trim());return '<tr><td>'+E(t.code||"—")+'</td><td><strong>'+E(t.name)+'</strong></td><td>'+E(t.school||"—")+'</td><td>'+E(divisionOptions.find(d=>d.id===t.division)?.label||t.division)+'</td>'+
+    (isBattle?'<td>'+E(t.group||"A")+'</td>':"")+'<td>'+E(t.member1||legacy[0]||"Chưa nhập")+'</td><td>'+E(t.member2||legacy[1]||"Chưa nhập")+'</td><td>'+E(t.coach||"Chưa nhập")+'</td><td><button class="btn btn-outline btn-small" data-edit-team="'+E(t.id)+'">Sửa</button> <button class="btn btn-danger btn-small" data-delete-team="'+E(t.id)+'">Xóa</button></td></tr>';}).join("")+
+  '</tbody></table>'+(list.length?"":'<div class="empty"><strong>Chưa có đội thi.</strong>Thêm đội bằng biểu mẫu phía trên.</div>')+'</div></div>';
+ view+='<div class="bulk-import-overlay hidden" id="bulk-import-overlay" aria-hidden="true"><div class="bulk-import-dialog" role="dialog" aria-modal="true" aria-labelledby="bulk-import-title" tabindex="-1"><div class="bulk-import-heading"><span class="bulk-import-eyebrow">V+ STEAM LAB / QUẢN LÝ ĐỘI</span><button type="button" class="bulk-import-close" data-close-team-import aria-label="Đóng cửa sổ nhập đội">×</button></div><div class="bulk-import-intro"><span class="bulk-import-symbol" aria-hidden="true">↥</span><div><h3 id="bulk-import-title">Nhập danh sách đội hàng loạt</h3><p>Tải CSV hoặc dán JSON, xem kết quả kiểm tra trước khi nhập.</p></div></div><div class="team-import-panel"><div class="panel-top"><div><h3>Nhập danh sách đội hàng loạt</h3><p class="muted">Tải CSV hoặc dán JSON. Kiểm tra dữ liệu trước khi nhập; đội trùng sẽ được bỏ qua, điểm số cũ được giữ nguyên.</p></div><span class="tag">CSV / JSON</span></div>'+
+ '<div class="bulk-import-steps"><span><b>01</b> Chuẩn bị dữ liệu</span><span><b>02</b> Kiểm tra</span><span><b>03</b> Xác nhận nhập</span></div><div class="team-import-toolbar"><div class="field"><label for="team-import-format">Định dạng dữ liệu</label><select id="team-import-format"><option value="csv">CSV (Excel, Google Sheets)</option><option value="json">JSON (copy / paste)</option></select></div>'+
  '<label class="btn btn-outline team-import-file">↑ Chọn file CSV / JSON<input type="file" id="team-import-file" accept=".csv,.json,text/csv,application/json" hidden></label>'+
  '<button type="button" class="btn btn-outline" data-copy-team-template="csv">Sao chép mẫu CSV</button>'+
  '<button type="button" class="btn btn-outline" data-copy-team-template="json">Sao chép mẫu JSON</button></div>'+
@@ -26,12 +32,7 @@ export function teamUi(teams,type,editingId){
  '<div class="action-row"><button type="button" class="btn btn-soft" data-preview-teams>Kiểm tra danh sách</button>'+
  '<button type="button" class="btn" data-import-teams>Nhập đội hợp lệ</button></div>'+
  '<div id="team-import-status" class="team-import-status" role="status" aria-live="polite">Tối đa 500 đội/lần. Mã bảng Invention: p13, p46, m79, h1012; Battle: primary, middle.</div>'+
- '</div>';
- view+='<div class="panel"><div class="panel-top"><h3>Danh sách đội '+(isBattle?"Battle":"Invention")+' ('+list.length+')</h3></div>'+
-  '<div class="table-wrap"><table class="table"><thead><tr><th>Mã</th><th>Tên đội</th><th>Trường</th><th>Bảng thi</th>'+(isBattle?"<th>Nhóm</th>":"")+'<th>Học sinh 1</th><th>Học sinh 2</th><th>HLV</th><th>Thao tác</th></tr></thead><tbody>'+
-  list.map(t=>{const legacy=(t.members||"").split(/[,;\n]/).map(s=>s.trim());return '<tr><td>'+E(t.code||"—")+'</td><td><strong>'+E(t.name)+'</strong></td><td>'+E(t.school||"—")+'</td><td>'+E(divisionOptions.find(d=>d.id===t.division)?.label||t.division)+'</td>'+
-    (isBattle?'<td>'+E(t.group||"A")+'</td>':"")+'<td>'+E(t.member1||legacy[0]||"Chưa nhập")+'</td><td>'+E(t.member2||legacy[1]||"Chưa nhập")+'</td><td>'+E(t.coach||"Chưa nhập")+'</td><td><button class="btn btn-outline btn-small" data-edit-team="'+E(t.id)+'">Sửa</button> <button class="btn btn-danger btn-small" data-delete-team="'+E(t.id)+'">Xóa</button></td></tr>';}).join("")+
-  '</tbody></table>'+(list.length?"":'<div class="empty"><strong>Chưa có đội thi.</strong>Thêm đội bằng biểu mẫu phía trên.</div>')+'</div></div>';
+ '</div></div></div>';
  return view;
 }
 export function readTeamFields(type,existing={}){
