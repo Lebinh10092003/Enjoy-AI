@@ -196,6 +196,23 @@ function closeBulkImport(){
  if(importOpener&&document.contains(importOpener))importOpener.focus();
  importOpener=null;
 }
+let teamFormOpener=null;
+function openSingleTeamForm(){
+ const overlay=$('#single-team-overlay');if(!overlay)return;
+ teamFormOpener=document.activeElement;
+ overlay.classList.remove("hidden");overlay.setAttribute("aria-hidden","false");
+ document.body.classList.add("dialog-open");
+ $('#team-name')?.focus();
+}
+function closeSingleTeamForm(){
+ const overlay=$('#single-team-overlay');if(!overlay||overlay.classList.contains("hidden"))return;
+ overlay.classList.add("hidden");overlay.setAttribute("aria-hidden","true");
+ document.body.classList.remove("dialog-open");
+ const oldEdit=ui.editTeam;ui.editTeam="";
+ if(oldEdit)render();
+ else if(teamFormOpener&&document.contains(teamFormOpener))teamFormOpener.focus();
+ teamFormOpener=null;
+}
 function bulkImportType(){return page==="teams-battle"?"battle":"invention";}
 function teamImportStatus(message,isError=false){
  const box=$('#team-import-status');if(!box)return;
@@ -245,6 +262,19 @@ function bindDynamic(){
    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
   });
  }
+ const single=$('#single-team-overlay');
+ if(single){
+  single.addEventListener("click",e=>{if(e.target===single)closeSingleTeamForm();});
+  single.addEventListener("keydown",e=>{
+   if(e.key==="Escape"){e.preventDefault();closeSingleTeamForm();return;}
+   if(e.key!=="Tab")return;
+   const targets=[...single.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])')];
+   if(!targets.length)return;
+   const first=targets[0],last=targets[targets.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
+ }
  const add=$('#add-team');
  if(add)add.addEventListener("submit",e=>{
   e.preventDefault();
@@ -254,7 +284,9 @@ function bindDynamic(){
   if(!t.name||!t.member1||!t.member2||!t.coach)return notify("Cần nhập đủ tên đội, 2 học sinh và huấn luyện viên.",true);
   if(data.teams.some(x=>x.id!==t.id&&x.type===t.type&&x.division===t.division&&x.name.toLowerCase()===t.name.toLowerCase()))return notify("Tên đội bị trùng trong cùng bảng.",true);
   if(old)Object.assign(old,t);else data.teams.push(t);
-  ui.editTeam="";persist();render();notify("Đã lưu đội "+t.name+".");
+  ui.editTeam="";persist();document.body.classList.remove("dialog-open");
+  ui.teamImportFeedback[type]="Đã lưu đội "+t.name+".";
+  render();
  });
  const bdiv=$('#match-division');if(bdiv)bdiv.addEventListener("change",()=>{
   ui.matchDivision=bdiv.value;const options=battleTeamOptions(bdiv.value);
@@ -420,6 +452,8 @@ el.addEventListener("input",e=>{
 });
 el.addEventListener("click",e=>{
  const t=e.target.closest("button");if(!t)return;
+ if(t.hasAttribute("data-open-team-form"))return openSingleTeamForm();
+ if(t.hasAttribute("data-close-team-form"))return closeSingleTeamForm();
  if(t.hasAttribute("data-open-team-import"))return openBulkImport();
  if(t.hasAttribute("data-close-team-import"))return closeBulkImport();
  if(t.dataset.go){ui.editTeam="";return go(t.dataset.go);}
@@ -440,8 +474,8 @@ el.addEventListener("click",e=>{
  if(t.hasAttribute("data-export-teams"))return exportCsv([["Mã","Tên đội","Nội dung","Trường","Bảng thi","Nhóm","Học sinh 1","Học sinh 2","HLV","Ghi chú"],...data.teams.filter(x=>x.type===(page==="teams-battle"?"battle":"invention")).map(x=>[x.code,x.name,x.type,x.school,x.division,x.group,x.member1,x.member2,x.coach,x.note])],"enjoy-ai-teams.csv");
  if(t.hasAttribute("data-export-ranking"))return exportCsv([["Hạng","Đội","Bảng",...Array.from({length:data.rounds},(_,i)=>"Lượt "+(i+1)),"Tổng điểm","Tổng thời gian","Retry","Điểm tốt nhất"],...invRank(data.teams,data.invention,data.rounds,data.bonusEnabled).filter(x=>ui.invDivision==="all"||x.division===ui.invDivision).map(x=>[x.rank||"",x.name,x.division,...x.byRound.map(x=>x??""),x.points,x.time,x.retries,x.best])],"invention-ranking.csv");
  if(t.hasAttribute("data-export-battle-ranking"))return exportCsv([["Hạng","Đội","Bảng","Nhóm","Trận","Thắng","Hòa","Thua","Điểm trận","Thắng đối đầu","Tổng điểm nhiệm vụ","Tháp","Retry"],...battleRanking(data.teams,data.battles).filter(x=>ui.battleDivision==="all"||x.division===ui.battleDivision).map(x=>[x.rank||"",x.name,x.division,x.group,x.played,x.wins,x.draws,x.losses,x.points,x.directWins,x.total,x.towers,x.retries])],"battle-ranking.csv");
- if(t.hasAttribute("data-edit-team")){ui.editTeam=t.dataset.editTeam;render();window.scrollTo(0,0);return;}
- if(t.hasAttribute("data-cancel-edit")){ui.editTeam="";render();return;}
+ if(t.hasAttribute("data-edit-team")){ui.editTeam=t.dataset.editTeam;render();openSingleTeamForm();return;}
+ if(t.hasAttribute("data-cancel-edit")){ui.editTeam="";document.body.classList.remove("dialog-open");render();return;}
  if(t.hasAttribute("data-delete-team"))return showConfirm("Xóa đội này sẽ đồng thời xóa tất cả lượt chấm/trận Battle liên quan. Thao tác không thể hoàn tác nếu chưa sao lưu.",()=>{const id=t.dataset.deleteTeam;data.teams=data.teams.filter(x=>x.id!==id);data.invention=data.invention.filter(x=>x.teamId!==id);data.battles=data.battles.filter(x=>x.redId!==id&&x.blueId!==id);persist();render();});
  if(t.dataset.finalInv){
    if(!ui.invTeam)return;
