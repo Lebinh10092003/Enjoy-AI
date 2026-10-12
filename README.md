@@ -126,3 +126,43 @@ Trong dữ liệu `layout.version = 3`: `layout.wallMode` là một trong `norma
 **Giới hạn:** đây là tùy chọn luyện tập do V+ thiết kế, không có quy định đảo 180° riêng trong luật ENJOY AI 2026. Robot và mô hình thật phải được kiểm tra về mặt thao tác trước khi dùng cách lắp đảo ở buổi thi chính thức.
 
 Đề xuất phát triển tiếp: bản đồ tọa độ được hiệu chuẩn theo khung sa bàn, danh sách hướng lắp được kiểm nghiệm theo từng ô, tài nguyên hình ảnh lưu trong repo (không phụ thuộc website khác), và đồng bộ dữ liệu có phân quyền trọng tài.
+
+
+## Nâng cấp quản lý thi — 12/10/2026
+
+### 1. Xác minh vị trí và hướng mô hình Invention
+
+- Mỗi nhiệm vụ trong danh sách phân bố có nút **Xác nhận đã thử** để giáo viên chỉ đánh dấu khi đã kiểm tra trên mô hình/sa bàn và robot thật.
+- Dữ liệu xác nhận lưu tại \`placementApprovals\` trong cùng bản sao lưu JSON; phân biệt nhiệm vụ, khung A–J, hướng robot tiếp cận và trạng thái đảo Tường Thành.
+- Bật **Chỉ dùng vị trí/hướng đã xác nhận trên sa bàn thật** để random từ các cấu hình đã được đánh dấu. Thiếu cấu hình sẽ **báo lỗi, không tự chuyển sang hướng chưa xác minh**.
+- Chế độ thường vẫn tạo đề **luyện tập/mô phỏng**, tuyệt đối không được ngầm xem như đề chính thức. Tính hợp lệ của BTC là một việc khác với xác nhận thao tác thực tế.
+- Khi đảo Great Wall 180° phải xác nhận riêng cho cấu hình đảo, không dùng lại xác nhận không đảo.
+
+### 2. Nhập đội hàng loạt CSV / JSON
+
+- Tại **Đội Invention** hoặc **Đội Battle**, mở phần **Nhập danh sách đội hàng loạt**; tải CSV, dán CSV hoặc JSON (mảng đối tượng / đối tượng \`{"teams":[...]}\`).
+- Có **Sao chép mẫu CSV** và **Sao chép mẫu JSON**; mẫu được điền vào vùng nhập để dễ chỉnh sửa.
+- Cột chuẩn: \`code,name,school,division,group,member1,member2,coach,note,type\`. CSV chấp nhận dấu phẩy, chấm phẩy hoặc tab, UTF-8 BOM, ô có dấu ngoặc kép/dấu xuống dòng.
+- Các mã bảng: Invention \`p13\`, \`p46\`, \`m79\`, \`h1012\`; Battle \`primary\`, \`middle\`. Mỗi lần nhập tối đa 500 đội.
+- Bấm **Kiểm tra danh sách** trước khi **Nhập đội hợp lệ**. Có dòng lỗi thì không được nhập; tên/mã đội trùng được bỏ qua. Dữ liệu đội và điểm số cũ **không bị ghi đè**.
+- Đội Battle được nhập riêng; không trộn dữ liệu đội Battle sang Invention hoặc ngược lại. Tài liệu mẫu dùng dữ liệu giả, phải thay trước khi nhập.
+
+### 3. Thời gian thập phân
+
+- Thời gian Invention tối đa 150 giây và Battle tối đa 180 giây. Nhập \`13.5\`, \`13,5\`, \`13,5s\` hoặc \`13,5 giây\` đều lưu là **13.5** (giây), không làm tròn xuống 13.
+- Hỗ trợ tối đa 3 chữ số thập phân. Thời gian trên bảng xếp hạng hiển thị theo định dạng Việt Nam (VD \`13,5\`).
+- Dữ liệu thời gian cũ là số nguyên vẫn được đọc bình thường.
+
+### 4. Bảng xếp hạng và giao diện
+
+- Invention: tab **Tổng quan** và 4 bảng lớp; Battle: **Tổng quan**, Tiểu học, THCS. Hạng được tính độc lập trong từng bảng/nhóm, không xếp hạng chéo cấp lớp.
+- Có thống kê, Top 3, bảng tiến độ từng lượt/trận, xuất CSV theo tab đang xem và danh sách thi đấu loại trực tiếp Battle.
+- Giao diện mới sử dụng \`vplus-experience.css\`: thẻ kết quả, màu xanh V+, khoảng trắng, trạng thái, tab ngang trên di động, chuyển động ngắn và \`prefers-reduced-motion\`. Không dùng thư viện UI nặng.
+- Toàn bộ dữ liệu vẫn chỉ lưu ở trình duyệt hiện tại; muốn sử dụng chính thức nhiều trọng tài đồng thời cần backend có đồng bộ, phân quyền, kiểm toán thao tác.
+
+### Kiểm thử
+
+\`\`\`sh
+node --test tests/*.test.mjs
+\`\`\`
+Bao gồm kiểm tra parser CSV/JSON, trùng dữ liệu, thập phân, bộ lọc bảng xếp hạng, xác nhận hướng lắp và các thao tác giao diện.
