@@ -41,7 +41,7 @@ test("CSS rules have balanced block delimiters",()=>{
 });
 
 test("Scoreboard styles respect accessible reduced motion and mobile tables",()=>{
- assert.match(html,/vplus-experience\.css/);
+ assert.match(html,/vplus-2026\.css/);
  assert.match(enhanced,/prefers-reduced-motion:reduce/);
  assert.match(enhanced,/\.leaderboard-tabs/);
  assert.match(enhanced,/\.team-import-panel/);
