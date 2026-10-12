@@ -21,11 +21,15 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  };
  const addTeam=(name,type)=>{
    click('[data-page="'+(type==="battle"?"teams-battle":"teams-invention")+'"]');
+   assert.equal(q("#single-team-overlay").classList.contains("hidden"),true,"Single-team form should start as a popup");
+   click('[data-open-team-form]');
+   assert.equal(q("#single-team-overlay").classList.contains("hidden"),false);
    q("#team-name").value=name;
    q("#team-member1").value=name+" Student 1";
    q("#team-member2").value=name+" Student 2";
    q("#team-coach").value="Coach "+name;
    q("#add-team").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+   assert.equal(q("#single-team-overlay").classList.contains("hidden"),true,"Saving a team must close popup");
  };
  assert.match(q("#content").textContent,/Đội tham gia/);
  assert.ok(q(".dashboard-hero"));
@@ -193,6 +197,10 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(loadLayouts()[0].wallMode,"normal");
  assert.equal(loadLayouts()[0].tasks.find(t=>t.id==="wall").reversed,false);
  click('[data-page="teams-invention"]');
+ assert.ok(q('[data-open-team-form]'));
+ click('[data-open-team-form]');
+ q("#single-team-overlay").dispatchEvent(new dom.window.KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
+ assert.equal(q("#single-team-overlay").classList.contains("hidden"),true,"Escape closes the single-team modal");
  assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),true,"Import must start as hidden popup");
  assert.ok(q('[data-open-team-import]'));
  click('[data-open-team-import]');
