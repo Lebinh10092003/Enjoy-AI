@@ -34,7 +34,7 @@ function csvValue(s){const v=String(s??"");return '"'+v.replaceAll('"','""')+'"'
 function exportCsv(rows,filename){download(filename,"\ufeff"+rows.map(row=>row.map(csvValue).join(",")).join("\r\n"),"text/csv;charset=utf-8");}
 function uid(prefix){return prefix+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7);}
 function safeNumber(value,max){if(value===""||value==null)return 0;return normInt(value,0,max);}
-function go(next){if(next==="random"&&page!=="random")ui.wallMode="normal";page=next;all(".nav-button").forEach(n=>n.classList.toggle("selected",n.dataset.page===page));$('#page-title').textContent=names[page];$('#alert').innerHTML="";render();window.scrollTo(0,0);}
+function go(next){document.body.classList.remove("dialog-open");if(next==="random"&&page!=="random")ui.wallMode="normal";page=next;all(".nav-button").forEach(n=>n.classList.toggle("selected",n.dataset.page===page));$('#page-title').textContent=names[page];$('#alert').innerHTML="";render();window.scrollTo(0,0);}
 function render(){
   const views={overview:renderOverview,teams:()=>renderTeams("invention"),"teams-invention":()=>renderTeams("invention"),"teams-battle":()=>renderTeams("battle"),invention:renderInvention,ranking:renderRanking,random:renderRandom,battle:renderBattle,"battle-ranking":renderBattleRanking,settings:renderSettings};
   el.innerHTML=(views[page]||renderOverview)();
