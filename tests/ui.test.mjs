@@ -206,7 +206,7 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  click('[data-open-team-import]');
  assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),false,"Import button opens the popup");
  assert.equal(q(".bulk-import-dialog").getAttribute("aria-modal"),"true");
- q(".bulk-import-dialog").dispatchEvent(new dom.window.KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
+ q("#bulk-import-overlay .bulk-import-dialog").dispatchEvent(new dom.window.KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
  assert.equal(q("#bulk-import-overlay").classList.contains("hidden"),true,"Escape closes import popup");
  click('[data-open-team-import]');
  click('[data-copy-team-template="csv"]');
