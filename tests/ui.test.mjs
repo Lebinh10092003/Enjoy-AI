@@ -175,8 +175,16 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  click("[data-generate-seed]");
  assert.equal(loadLayouts().length,beforeBlocked+1);
  assert.equal(loadLayouts()[0].verifiedOnly,true);
- // Non-destructive JSON import, preview, and skip duplicates.
+ // Reopening Random never silently inherits reversed orientation from saved layout.
  click('[data-page="teams-invention"]');
+ click('[data-page="random"]');
+ assert.equal(q("#layout-wall-mode").value,"normal","Great Wall defaults to NOT reversed when entering Random");
+ change("#layout-verified-only",false);
+ click("[data-generate]");
+ assert.equal(loadLayouts()[0].wallMode,"normal");
+ assert.equal(loadLayouts()[0].tasks.find(t=>t.id==="wall").reversed,false);
+ click('[data-page="teams-invention"]');
+ // Non-destructive JSON import, preview, and skip duplicates.
  const bulk=[{code:"V-101",name:"CSV Import One",school:"School",division:"p13",
   member1:"A",member2:"B",coach:"C"}];
  q("#team-import-format").value="json";
