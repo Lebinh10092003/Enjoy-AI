@@ -12,7 +12,7 @@ const V=escapeHtml;
 let data=readData();
 let page="overview";
 let autoSeedSequence=0;
-const ui={teamImportFeedback:"",editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleGroup:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
+const ui={teamImportFeedback:{invention:"",battle:""},editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleGroup:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
 const names={overview:"Tổng quan giải đấu",teams:"Đội Invention","teams-invention":"Đội Inventions Trail","teams-battle":"Đội Battle of Stars",invention:"Chấm điểm · Inventions Trail",ranking:"Xếp hạng · Inventions Trail",random:"Random đề Invention",battle:"Chấm điểm · Battle of Stars","battle-ranking":"Xếp hạng · Battle of Stars",settings:"Dữ liệu & hướng dẫn"};
 const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
@@ -41,7 +41,7 @@ function render(){
   bindDynamic();
 }
 function renderOverview(){return renderDashboard(data);}
-function renderTeams(type="invention"){return teamUi(data.teams,type,ui.editTeam,ui.teamImportFeedback);}
+function renderTeams(type="invention"){return teamUi(data.teams,type,ui.editTeam,ui.teamImportFeedback[type]||"");}
 function invDefault(team,round){return {id:uid("inv"),teamId:team,round,tasks:{},retries:0,smooth:false,time:"",status:"draft",note:""};}
 function getInv(team,round){return data.invention.find(e=>e.teamId===team&&e.round===round)||invDefault(team,round);}
 function ensureInv(team,round){let x=data.invention.find(e=>e.teamId===team&&e.round===round);if(!x){x=invDefault(team,round);data.invention.push(x);}return x;}
@@ -227,7 +227,7 @@ function importBulkTeams(){
    if(final.errors.length){previewBulkTeams();return;}
    const added=final.teams.map(row=>({...row,id:uid("team")}));
    data.teams.push(...added);persist();
-   ui.teamImportFeedback="Đã nhập "+added.length+" đội, bỏ qua "+final.skipped.length+" đội trùng. Kết quả thi cũ được giữ nguyên.";
+   ui.teamImportFeedback[bulkImportType()]="Đã nhập "+added.length+" đội, bỏ qua "+final.skipped.length+" đội trùng. Kết quả thi cũ được giữ nguyên.";
    closeBulkImport();render();
   });
 }
