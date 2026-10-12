@@ -51,15 +51,25 @@ export const OBSTACLE_SLOTS=[
 ];
 export const MAIN_TASK_COUNT=7;
 export const OBSTACLE_COUNT=3;
+// Required V+ event movement rules. The number placed on the board stays unchanged.
+// "swapTasks" = exactly that many mission models leave their fixed baseline positions.
+// "moveObstacles" = exactly that many of the three obstacles move to other small rectangles.
 export const LEVELS=[
- {id:"easy",name:"Cơ bản",division:"Lớp 1–3",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT},
- {id:"medium",name:"Trung bình",division:"Lớp 4–6",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT},
- {id:"hard",name:"Khó",division:"Lớp 7–9",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT},
- {id:"expert",name:"Nâng cao",division:"Lớp 10–12",tasks:MAIN_TASK_COUNT,obstacles:OBSTACLE_COUNT}
+ {id:"easy",name:"Cơ bản",division:"Lớp 1–3",tasks:7,obstacles:3,swapTasks:2,moveObstacles:0},
+ {id:"medium",name:"Trung bình",division:"Lớp 4–6",tasks:7,obstacles:3,swapTasks:2,moveObstacles:1},
+ {id:"hard",name:"Khó",division:"Lớp 7–9",tasks:7,obstacles:3,swapTasks:3,moveObstacles:1},
+ {id:"expert",name:"Nâng cao",division:"Lớp 10–12",tasks:7,obstacles:3,swapTasks:3,moveObstacles:2}
 ];
 export const NORMAL_MODELS=["compass","paper","gun","printing","seismo","pyramid","wall"];
-// Deliberately separate model orientation from the robot's approach direction.
-// This is an optional V+ practice configuration; actual reversed mounting requires physical confirmation.
+// V+ initial reference configuration for the numbered area of the board.
+// It must be confirmed against the actual competition setup, not treated as a
+// referee-approved official map. The three obstacles are always present.
+// Great Wall remains at the same original frame E unless a separately designed,
+// physically verified wall relocation feature is introduced.
+export const BASE_TASK_SLOTS=Object.freeze({
+ compass:"G",paper:"A",gun:"B",printing:"H",seismo:"C",pyramid:"D",wall:"E"
+});
+export const BASE_OBSTACLE_SLOTS=Object.freeze(["O1","O5","O8"]);
 export const WALL_MODES=[
  {id:"normal",label:"Không đảo (mặc định)"},
  {id:"reversed",label:"Luôn đảo Tường Thành 180°"},
@@ -85,40 +95,74 @@ export function validPlacement(taskId,slotId,angle,approved={}){
  const key=taskId+":"+slotId+":"+angle;
  return approved[key]!==false;
 }
-export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,wallMode="normal",approved={},verifiedOnly=false,approvals={}}={}){
- const preset=LEVELS.find(x=>x.id===level)||LEVELS[1],rng=seeded(seed);
- // Exactly seven mandatory tasks in every generated layout, independent of practice level.
- const selected=shuffled(NORMAL_MODELS,rng);
- if(includeBonus)selected.push("bonus");
+// All variants are derived from ONE stable base; random never shuffles all seven.
+function combinations(source,n,start=0,chosen=[],out=[]){
+ if(chosen.length===n){out.push([...chosen]);return out;}
+ for(let i=start;i<=source.length-(n-chosen.length);i++){
+  chosen.push(source[i]);combinations(source,n,i+1,chosen,out);chosen.pop();
+ }
+ return out;
+}
+export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,
+ wallMode="normal",approved={},verifiedOnly=false,approvals={}}={}){
+ const preset=LEVELS.find(x=>x.id===level);
+ if(!preset)throw Error("Bảng thi không hợp lệ.");
+ const rng=seeded(seed);
  const wallReversed=resolveWallReversed(wallMode,seed);
- // Each model has a constrained task-frame/approach set; solve without reusing a task frame.
- const options=selected.map(id=>({
-  id,choices:shuffled(SLOTS.flatMap(slot=>(APPROACH_RULES[id]?.[slot.id]||[])
-   .filter(angle=>validPlacement(id,slot.id,angle,approved)&&
-     (!verifiedOnly||approvals[placementKey(id,slot.id,angle,id==="wall"&&wallReversed)]===true))
-   .map(angle=>({slot:slot.id,angle}))),rng)
- })).sort((a,b)=>a.choices.length-b.choices.length);
- const used=new Set(),assignment=new Map();
- const search=i=>{
-  if(i>=options.length)return true;
-  for(const choice of options[i].choices){
-   if(used.has(choice.slot))continue;
-   used.add(choice.slot);assignment.set(options[i].id,choice);
-   if(search(i+1))return true;
-   used.delete(choice.slot);assignment.delete(options[i].id);
-  }
-  return false;
+ const pool=NORMAL_MODELS.filter(id=>id!=="wall");
+ // Exactly 2 or 3 models change position. Reversed model orientation never
+ // alters task location, and unselected models remain on the baseline positions.
+ const taskOptions=shuffled(combinations(pool,preset.swapTasks),rng);
+ let selectedTasks=null,assignment=null;
+ const allowed=(id,slot)=>{
+  const angle=SLOTS.find(x=>x.id===slot)?.approach;
+  return validPlacement(id,slot,angle,approved)&&
+   (!verifiedOnly||approvals[placementKey(id,slot,angle,id==="wall"&&wallReversed)]===true);
  };
- if(!search(0))throw Error(verifiedOnly?
-  "Chưa có đủ cấu hình được xác nhận thực tế cho 7 nhiệm vụ. Hãy tắt chế độ chỉ dùng hướng đã xác nhận hoặc thử thêm các vị trí/hướng trên sa bàn.":
-  "Không tìm được bố trí thỏa mãn các giới hạn khung/hướng nhiệm vụ.");
- const tasks=selected.map(id=>id==="wall"
-  ? {id,...assignment.get(id),reversed:wallReversed,modelRotation:wallReversed?180:0}
-  : {id,...assignment.get(id)});
-
- // Obstacles are selected exclusively from their own nine small rectangles, never from task frames.
- const obstacles=shuffled(OBSTACLE_SLOTS,rng).slice(0,OBSTACLE_COUNT).map(x=>x.id);
- return {id:"layout-"+Date.now().toString(36),version:3,level:preset.id,seed:String(seed),wallMode,wallReversed,
-  tasks,obstacles,created:new Date().toISOString(),official:false,placementStatus:verifiedOnly?"physically-reviewed":"simulation",verifiedOnly,
-  note:"7 nhiệm vụ chính và 3 vật cản. Chế độ đảo Great Wall độc lập với hướng tiếp cận; xác nhận vị trí lắp thực tế trước khi thi."};
+ for(const subset of taskOptions){
+  const directions=subset.length===2?[[1,0]]:[[1,2,0],[2,0,1]];
+  for(const permutation of shuffled(directions,rng)){
+   const next={...BASE_TASK_SLOTS};
+   for(let i=0;i<subset.length;i++)next[subset[i]]=BASE_TASK_SLOTS[subset[permutation[i]]];
+   if(NORMAL_MODELS.every(id=>allowed(id,next[id]))){
+    selectedTasks=subset;assignment=next;break;
+   }
+  }
+  if(assignment)break;
+ }
+ if(!assignment)throw Error(verifiedOnly?
+  "Chưa có đủ vị trí và hướng đã kiểm nghiệm cho đúng số nhiệm vụ cần đổi. Hãy xác nhận thêm cấu hình trên sa bàn thật.":
+  "Không tìm được hoán đổi nhiệm vụ hợp lệ. Hãy kiểm tra các hướng/vị trí.");
+ const tasks=NORMAL_MODELS.map(id=>{
+  const slot=assignment[id],angle=SLOTS.find(x=>x.id===slot).approach;
+  return id==="wall"?{id,slot,angle,reversed:wallReversed,modelRotation:wallReversed?180:0}:{id,slot,angle};
+ });
+ if(includeBonus){
+  // Bonus is not one of the seven mandatory models. Never remove/alter a core model.
+  // Choose an empty task frame where it is permitted, or reject explicitly.
+  const bonusCandidates=shuffled(SLOTS.filter(x=>!Object.values(assignment).includes(x.id)&&allowed("bonus",x.id)),rng);
+  if(!bonusCandidates.length)throw Error("Không còn khung hợp lệ cho Bonus.");
+  tasks.push({id:"bonus",slot:bonusCandidates[0].id,angle:bonusCandidates[0].approach});
+ }
+ // Move exactly N of the 3 baseline obstacles to previously vacant rectangle(s).
+ // The position IDs of every unselected obstacle are left unchanged.
+ const movable=shuffled([...BASE_OBSTACLE_SLOTS],rng).slice(0,preset.moveObstacles);
+ const free=shuffled(OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),rng);
+ const movedTo=free.slice(0,preset.moveObstacles);
+ const obstacleMap=Object.fromEntries(BASE_OBSTACLE_SLOTS.map((id,i)=>[i,id]));
+ for(let i=0;i<movable.length;i++){
+  const originalIndex=BASE_OBSTACLE_SLOTS.indexOf(movable[i]);
+  obstacleMap[originalIndex]=movedTo[i];
+ }
+ const obstacles=BASE_OBSTACLE_SLOTS.map((_,i)=>obstacleMap[i]);
+ return {
+  id:"layout-"+Date.now().toString(36),version:4,level:preset.id,seed:String(seed),
+  wallMode,wallReversed,tasks,obstacles,
+  changeRules:{swapTasks:preset.swapTasks,moveObstacles:preset.moveObstacles},
+  changedTaskIds:[...selectedTasks],movedObstacleFrom:[...movable],
+  created:new Date().toISOString(),official:false,
+  placementStatus:verifiedOnly?"physically-reviewed":"simulation",verifiedOnly,
+  note:"Quy tắc V+: đổi "+preset.swapTasks+" nhiệm vụ, đổi "+preset.moveObstacles+
+   " vị trí vật cản; tổng 7 nhiệm vụ và 3 vật cản. Tường Thành giữ ô gốc khi không đảo. Bản đồ gốc cần được xác nhận trên sa bàn thật."
+ };
 }
