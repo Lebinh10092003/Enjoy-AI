@@ -12,7 +12,7 @@ const V=escapeHtml;
 let data=readData();
 let page="overview";
 let autoSeedSequence=0;
-const ui={teamImportFeedback:"",editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
+const ui={teamImportFeedback:"",editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleGroup:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
 const names={overview:"Tổng quan giải đấu",teams:"Đội Invention","teams-invention":"Đội Inventions Trail","teams-battle":"Đội Battle of Stars",invention:"Chấm điểm · Inventions Trail",ranking:"Xếp hạng · Inventions Trail",random:"Random đề Invention",battle:"Chấm điểm · Battle of Stars","battle-ranking":"Xếp hạng · Battle of Stars",settings:"Dữ liệu & hướng dẫn"};
 const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
@@ -167,7 +167,7 @@ function battleResultText(m){
 }
 function renderBattleRanking(){
  return title("Bảng xếp hạng Battle","Tổng quan, từng bảng thi và các nhóm đối kháng; giữ nguyên luật xếp hạng.",'<button class="btn btn-outline" data-export-battle-ranking>↓ Xuất CSV</button>')+
- renderBattleLeaderboard(data,ui.battleDivision);
+ renderBattleLeaderboard(data,ui.battleDivision,ui.battleGroup);
 }
 function renderSettings(){
   return title("Dữ liệu & quy định","Chấm điểm trên GitHub Pages chạy ở phía trình duyệt, không có tài khoản trọng tài hoặc đồng bộ liên thiết bị.")+
@@ -400,13 +400,28 @@ el.addEventListener("change",e=>{
    file.text().then(raw=>{const imported=normalizeData(JSON.parse(raw));showConfirm("Nhập dữ liệu sẽ GHI ĐÈ toàn bộ đội thi, điểm số, đề và các trận đang lưu trên thiết bị. Bạn đã sao lưu dữ liệu hiện tại?",()=>{data=imported;ui.invTeam="";ui.battleId="";ui.layoutId="";persist();go("overview");notify("Khôi phục dữ liệu JSON thành công.");});}).catch(err=>notify(err.message,true));
  }
 });
+el.addEventListener("input",e=>{
+ const t=e.target;
+ if(t.id!=="scoreboard-search")return;
+ const text=t.value.trim().toLocaleLowerCase("vi");
+ el.querySelectorAll(".scoreboard-searchable").forEach(node=>{
+  const match=(node.dataset.search||"").toLocaleLowerCase("vi").includes(text);
+  node.hidden=!match;
+ });
+ const status=$('#scoreboard-search-status');
+ if(status){
+  const displayed=el.querySelectorAll(".scoreboard-table tbody tr.scoreboard-searchable:not([hidden])").length;
+  status.textContent=text?displayed+" đội khớp từ khóa.":"";
+ }
+});
 el.addEventListener("click",e=>{
  const t=e.target.closest("button");if(!t)return;
  if(t.hasAttribute("data-open-team-import"))return openBulkImport();
  if(t.hasAttribute("data-close-team-import"))return closeBulkImport();
  if(t.dataset.go){ui.editTeam="";return go(t.dataset.go);}
  if(t.hasAttribute("data-inv-tab")){ui.invDivision=t.dataset.invTab;render();return;}
- if(t.hasAttribute("data-battle-tab")){ui.battleDivision=t.dataset.battleTab;render();return;}
+ if(t.hasAttribute("data-battle-tab")){ui.battleDivision=t.dataset.battleTab;ui.battleGroup="all";render();return;}
+ if(t.hasAttribute("data-battle-group")){ui.battleGroup=t.dataset.battleGroup;render();return;}
  if(t.hasAttribute("data-copy-team-template")){
   const mode=t.dataset.copyTeamTemplate,template=teamImportTemplate(bulkImportType(),mode);
   const input=$('#team-import-text');
