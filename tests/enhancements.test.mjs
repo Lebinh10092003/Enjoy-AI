@@ -90,3 +90,30 @@ test("Strict placement mode rejects untested configurations, then accepts verifi
  const withoutOne={...approvals};delete withoutOne[placementKey(trial.tasks[0].id,trial.tasks[0].slot,trial.tasks[0].angle,trial.tasks[0].reversed)];
  assert.throws(()=>generateLayout({...options,verifiedOnly:true,approvals:withoutOne}),/Chưa có đủ cấu hình/);
 });
+
+test("Battle group filter never compares unrelated groups",()=>{
+ const d=initialData();
+ d.teams=[
+  {id:"a",type:"battle",name:"Northern Robots",division:"primary",group:"A",school:"S1"},
+  {id:"b",type:"battle",name:"Southern Robots",division:"primary",group:"B",school:"S2"}
+ ];
+ const all=renderBattleLeaderboard(d,"primary","all");
+ assert.match(all,/data-battle-group="A"/);
+ assert.match(all,/data-battle-group="B"/);
+ const byB=renderBattleLeaderboard(d,"primary","B");
+ assert.match(byB,/Southern Robots/);
+ assert.doesNotMatch(byB,/Northern Robots/);
+ assert.match(byB,/Nhóm B/);
+});
+test("Tied leaders retain their original rank instead of a fabricated second place",()=>{
+ const d=initialData();
+ d.teams=[
+  {id:"a",type:"invention",name:"Alpha Team",division:"p13"},
+  {id:"b",type:"invention",name:"Beta Team",division:"p13"}
+ ];
+ d.invention=["a","b"].map(teamId=>({teamId,round:1,time:13.5,retries:0,smooth:false,status:"done",tasks:{compass:true}}));
+ const rendered=renderInventionLeaderboard(d,"p13");
+ assert.match(rendered,/Alpha Team/);
+ assert.match(rendered,/Beta Team/);
+ assert.equal((rendered.match(/class="scoreboard-podium-slot is-champion"/g)||[]).length,2);
+});
