@@ -1,4 +1,4 @@
-import {SLOTS as PHYSICAL_SLOTS,LEVELS as PRACTICE_LEVELS,buildRandomLayout} from "./placement.mjs";
+import {SLOTS as PHYSICAL_SLOTS,LEVELS as PRACTICE_LEVELS,buildRandomLayout} from "./placement.mjs?v=20261012-wall-modes-v1";
 // ENJOY AI 2026 — quy tắc tính điểm và lưu trữ độc lập với giao diện.
 export const VERSION = 1;
 export const INV_DIVISIONS = [
