@@ -26,7 +26,7 @@ export const LAYOUT_NAMES = {compass:"La bàn",paper:"Làm giấy",gun:"Thuốc 
 // Các mốc minh họa trên sa bàn, không phải tọa độ lắp đặt do BTC chứng nhận.
 export const SLOTS=PHYSICAL_SLOTS;
 export const LEVELS=PRACTICE_LEVELS;
-export function initialData(){return {version:VERSION,rounds:2,teams:[],invention:[],battles:[],layouts:[],bonusEnabled:false,bonusDescription:""};}
+export function initialData(){return {version:VERSION,rounds:2,teams:[],invention:[],battles:[],layouts:[],placementApprovals:{},bonusEnabled:false,bonusDescription:""};}
 export function normInt(value,min=0,max=99999){const v=Number(value);return Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;}
 export function scoreRetry(retries,smooth=true){
   const r=normInt(retries,0,1000);
