@@ -110,3 +110,19 @@ GitHub Actions tự kiểm thử với Node.js 22 khi push vào main.
 - Giữ nguyên các phần tử điều khiển và ảnh nền sa bàn; thay marker nhiệm vụ/vật cản mà không tải lại ảnh nền.
 - Bổ sung nút **Random lại** ở đầu khung sa bàn để tạo một bố trí mới ngay khi đang xem kết quả.
 - Chọn đề đã lưu và xóa đề cũng cập nhật vùng kết quả tại chỗ. Kiểm thử tự động bảo đảm không gọi cuộn lên đầu trang và không phá hủy phần tử ảnh nền.
+
+## Chế độ đảo Tường Thành (V+ STEAM LAB)
+
+Phần **Random đề Invention** có trường **Vạn Lý Trường Thành – hướng lắp** với ba lựa chọn:
+
+- **Không đảo (mặc định)**: mô hình Tường Thành ở hướng lắp mặc định của công cụ.
+- **Luôn đảo Tường Thành 180°**: xoay riêng mô hình Tường Thành 180° quanh tâm mô hình trong mô phỏng.
+- **Random đảo / không đảo**: với mỗi seed, dùng một bộ RNG độc lập để chọn một trong hai trạng thái.
+
+**Không thay đổi** vị trí nhiệm vụ Tường Thành, hướng robot tiếp cận Tường Thành, vị trí/góc của sáu nhiệm vụ khác hoặc ba vật cản khi giữ cùng seed. Chế độ được lưu vào đề, CSV/JSON sao lưu và mô tả khi sao chép đề. Khi mở lại đề, bộ chọn trở về chế độ của đề đó.
+
+Trong dữ liệu `layout.version = 3`: `layout.wallMode` là một trong `normal/reversed/random`; riêng nhiệm vụ `wall` có `reversed: boolean`, `modelRotation: 0 | 180`. Dữ liệu cũ thiếu các trường này được coi là **không đảo**, không bị sửa/xóa.
+
+**Giới hạn:** đây là tùy chọn luyện tập do V+ thiết kế, không có quy định đảo 180° riêng trong luật ENJOY AI 2026. Robot và mô hình thật phải được kiểm tra về mặt thao tác trước khi dùng cách lắp đảo ở buổi thi chính thức.
+
+Đề xuất phát triển tiếp: bản đồ tọa độ được hiệu chuẩn theo khung sa bàn, danh sách hướng lắp được kiểm nghiệm theo từng ô, tài nguyên hình ảnh lưu trong repo (không phụ thuộc website khác), và đồng bộ dữ liệu có phân quyền trọng tài.
