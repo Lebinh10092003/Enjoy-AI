@@ -364,3 +364,29 @@ button, a, input, select, textarea{-webkit-tap-highlight-color:transparent;}
   .arena-board.real-arena{box-shadow:none;border:1px solid #555;}
   .obstacle-rect,.arena-background,.mission-marker{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
+
+
+/* Optional Great Wall mounting orientation. Approach arrows remain untouched. */
+.wall-mode-row{
+  display:flex;align-items:end;gap:15px;flex-wrap:wrap;
+  margin:-3px 0 16px;padding:15px 16px;
+  border:1px solid #cfe2f5;border-radius:13px;
+  background:linear-gradient(110deg,#eef7ff,#f7fbff);
+}
+.wall-mode-row>.field{width:min(100%,355px);flex-shrink:0;}
+.wall-mode-row .muted{flex:1;min-width:245px;margin:0;padding-bottom:3px;}
+.wall-rotation-label{
+  color:#a64c18!important;
+  display:inline-flex;align-items:center;
+  font-size:12px;padding:3px 7px;margin-top:5px;
+  background:#fff4e7;border:1px solid #f4d6b3;border-radius:7px;
+}
+.model-thumb.wall-reversed{transform:rotate(180deg);outline:2px solid #efa762;outline-offset:1px;}
+.wall-reverse-mark{display:inline;color:#be6426;white-space:nowrap;font-size:10px;}
+@media(max-width:760px){
+  .wall-mode-row{padding:12px;gap:7px;}
+  .wall-mode-row>.field{width:100%;}
+  .wall-mode-row .muted{min-width:0;font-size:12px;}
+  .wall-reverse-mark{font-size:8px;}
+}
+@media(prefers-reduced-motion:reduce){.model-thumb.wall-reversed{transition:none!important;}}
