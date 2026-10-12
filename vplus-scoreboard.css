@@ -321,3 +321,26 @@ body.dialog-open{overflow:hidden;}
  outline:3px solid #75b8d8;outline-offset:3px;
 }
 @media(min-width:761px){.bulk-import-dialog .team-import-file:focus-within{outline:3px solid #75b8d8;outline-offset:2px;}}
+
+/* Keep the roster visible: create/edit one team is now a compact form dialog. */
+.team-heading-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
+.team-heading-actions .btn{font-size:12px;min-height:40px;white-space:nowrap;}
+.team-heading-actions [data-open-team-form]{background:#aee789!important;border-color:#aee789!important;color:#183b2d!important;box-shadow:none!important;}
+.team-heading-actions [data-open-team-form]:hover{background:#c4f3a7!important;}
+.single-team-dialog{width:min(800px,100%);}
+.single-team-form-body{padding:18px 26px 27px;overflow-y:auto;scrollbar-width:thin;}
+.single-team-form-body .panel-top{margin-bottom:20px;}
+.single-team-form-body .panel-top h3{font-size:22px;color:#1e435b;}
+.single-team-form-body .team-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;}
+.single-team-form-body .team-form>.field:last-child{display:flex;align-items:end;}
+.single-team-form-body .team-form>.field:last-child .btn{width:100%;min-height:45px;}
+.single-team-form-body .field label{font-size:12px;}
+.single-team-form-body .field input,.single-team-form-body .field select{min-height:45px;}
+@media(max-width:760px){
+ .team-heading-actions{width:100%;justify-content:flex-start;}
+ .team-heading-actions .btn{flex:1 1 auto;font-size:11.5px;min-height:43px;}
+ .single-team-form-body{padding:15px 18px 25px;}
+ .single-team-form-body .panel-top h3{font-size:19px;}
+ .single-team-form-body .team-form{grid-template-columns:1fr;gap:11px;}
+ .single-team-form-body .team-form>.field:last-child .field{display:none;}
+}
