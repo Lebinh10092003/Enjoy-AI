@@ -27,7 +27,10 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
    q("#team-coach").value="Coach "+name;
    q("#add-team").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
  };
- assert.match(q("#content").textContent,/Tổng đội thi/);
+ assert.match(q("#content").textContent,/Đội tham gia/);
+ assert.ok(q(".dashboard-hero"));
+ assert.ok(q(".dashboard-metrics"));
+ assert.ok(q(".dashboard-workflows"));
  addTeam("Invention One","invention");
  assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).teams.length,1);
  click('[data-page="invention"]');
@@ -57,6 +60,9 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(state.battles[0].status,"done");
  assert.equal(state.battles[0].red.tower,true);
  click('[data-page="random"]');
+ assert.ok(q(".studio-layout"));
+ assert.ok(q(".studio-controls"));
+ assert.ok(q(".studio-stage"));
  assert.match(q("#content").textContent,/7 nhiệm vụ/);
  assert.match(q("#content").textContent,/3 vật cản/);
  assert.equal(q("#layout-task-count"),null);
