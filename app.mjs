@@ -408,6 +408,10 @@ el.addEventListener("input",e=>{
   const match=(node.dataset.search||"").toLocaleLowerCase("vi").includes(text);
   node.hidden=!match;
  });
+ for(const selector of [".scoreboard-division-grid",".scoreboard-overview-head"]){
+  const node=el.querySelector(selector);
+  if(node)node.hidden=Boolean(text);
+ }
  const status=$('#scoreboard-search-status');
  if(status){
   const displayed=el.querySelectorAll(".scoreboard-table tbody tr.scoreboard-searchable:not([hidden])").length;
