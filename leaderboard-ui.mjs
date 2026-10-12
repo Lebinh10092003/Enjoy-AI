@@ -32,7 +32,7 @@ function summaryCards(items,kind,active,data){
 function searchBar(){
  return '<div class="scoreboard-toolbar"><div class="scoreboard-search"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>'+
  '<input type="search" id="scoreboard-search" placeholder="Tìm tên đội, trường, mã đội..." aria-label="Tìm đội trong bảng xếp hạng" autocomplete="off"></div>'+
- '<span class="scoreboard-toolbar-hint">Kết quả đã chấm · Không xếp hạng chéo bảng</span></div>';
+ '<span class="scoreboard-toolbar-hint">Kết quả đã chấm · Không xếp hạng chéo bảng</span><span id="scoreboard-search-status" role="status" aria-live="polite"></span></div>';
 }
 function statusTag(done,total,label){
  return '<span class="scoreboard-status '+(done===0?"status-pending":done>=total?"status-done":"status-progress")+'">'+(done===0?"Chưa thi":done>=total?"Hoàn thành":label)+'</span>';
