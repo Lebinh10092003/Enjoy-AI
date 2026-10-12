@@ -1098,3 +1098,11 @@ body{
  .brand-emblem .brand-emblem-fallback{font-size:16px;}
  .sidebar #navigation .nav-button{min-height:41px;font-size:12px;padding:9px 11px;}
 }
+
+
+/* Show exactly which model frames were changed relative to the fixed V+ baseline. */
+.layout-change-tag{display:inline-flex;align-items:center;margin:6px 0 0 8px;padding:3px 7px;
+ border-radius:7px;font-size:10px;font-weight:800;line-height:1.25;vertical-align:middle;}
+.layout-change-tag.is-changed{background:#e7f5ff;color:#186eac;border:1px solid #c6e1f6;}
+.layout-change-tag.is-fixed{background:#f0f5f2;color:#44745a;border:1px solid #d8e7dd;}
+@media print{.layout-change-tag{color:#202020!important;border:1px solid #888;background:#fff!important;}}
