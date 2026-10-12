@@ -217,6 +217,7 @@ button, a, input, select, textarea{-webkit-tap-highlight-color:transparent;}
 .arena-legend .orange{background:#e85b4b;}
 .arena-legend .gray{background:#c2d4e4;}
 .mission-marker{
+  --vp-marker-shift:-50%;
   max-width:162px;min-width:110px;gap:6px;padding:5px;
   color:#163c5f;background:rgba(255,255,255,.97);
   border:1.5px solid #7baedd;border-radius:10px;
@@ -226,16 +227,16 @@ button, a, input, select, textarea{-webkit-tap-highlight-color:transparent;}
   animation:vpMissionEnter .3s both cubic-bezier(.2,.8,.2,1);
 }
 .mission-marker:hover,.mission-marker:focus-visible{
-  transform:translate(-50%,-50%) scale(1.045);
+  transform:translate(var(--vp-marker-shift),-50%) scale(1.045);
   border-color:#1b72c1;
   box-shadow:0 8px 23px rgba(18,68,119,.26);
   z-index:8;
 }
 .mission-marker[data-map-slot="H"],
-.mission-marker[data-map-slot="J"]{transform:translate(-93%,-50%);}
+.mission-marker[data-map-slot="J"]{--vp-marker-shift:-93%;transform:translate(-93%,-50%);}
 .mission-marker[data-map-slot="H"]:hover,.mission-marker[data-map-slot="J"]:hover,
 .mission-marker[data-map-slot="H"]:focus-visible,.mission-marker[data-map-slot="J"]:focus-visible{
-  transform:translate(-93%,-50%) scale(1.04);
+  transform:translate(var(--vp-marker-shift),-50%) scale(1.04);
 }
 .mission-marker .marker-info{max-width:86px;gap:2px;}
 .mission-marker .marker-info strong{font-size:11px;line-height:1.2;font-weight:800;color:#164672;}
@@ -270,8 +271,8 @@ button, a, input, select, textarea{-webkit-tap-highlight-color:transparent;}
 .modal-box h3{font-size:20px;color:var(--vp-blue-950);}
 .modal-box p{font-size:14px;color:#526b85;}
 @keyframes vpMissionEnter{
-  from{opacity:.2;transform:translate(-50%,-50%) scale(.91);}
-  to{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  from{opacity:.2;transform:translate(var(--vp-marker-shift),-50%) scale(.94);}
+  to{opacity:1;transform:translate(var(--vp-marker-shift),-50%) scale(1);}
 }
 @keyframes vpCardEnter{
   from{opacity:.35;transform:translateY(5px);}
