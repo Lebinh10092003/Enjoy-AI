@@ -119,7 +119,7 @@ Phần **Random đề Invention** có trường **Vạn Lý Trường Thành –
 - **Luôn đảo Tường Thành 180°**: xoay riêng mô hình Tường Thành 180° quanh tâm mô hình trong mô phỏng.
 - **Random đảo / không đảo**: với mỗi seed, dùng một bộ RNG độc lập để chọn một trong hai trạng thái.
 
-**Không thay đổi** vị trí nhiệm vụ Tường Thành, hướng robot tiếp cận Tường Thành, vị trí/góc của sáu nhiệm vụ khác hoặc ba vật cản khi giữ cùng seed. Chế độ được lưu vào đề, CSV/JSON sao lưu và mô tả khi sao chép đề. Khi mở lại đề, bộ chọn trở về chế độ của đề đó.
+**Không thay đổi** vị trí nhiệm vụ Tường Thành, hướng robot tiếp cận Tường Thành, vị trí/góc của sáu nhiệm vụ khác hoặc ba vật cản khi giữ cùng seed. Chế độ được lưu vào đề và bản sao lưu JSON và mô tả khi sao chép đề. Khi mở lại đề, bộ chọn trở về chế độ của đề đó.
 
 Trong dữ liệu `layout.version = 3`: `layout.wallMode` là một trong `normal/reversed/random`; riêng nhiệm vụ `wall` có `reversed: boolean`, `modelRotation: 0 | 180`. Dữ liệu cũ thiếu các trường này được coi là **không đảo**, không bị sửa/xóa.
 
