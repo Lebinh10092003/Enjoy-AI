@@ -1,4 +1,4 @@
-import {OBSTACLE_SLOTS,SLOTS,NORMAL_MODELS,LEVELS,validPlacement,OBSTACLE_COUNT,MAIN_TASK_COUNT,resolveWallReversed,WALL_MODES} from "../placement.mjs";
+import {OBSTACLE_SLOTS,SLOTS,NORMAL_MODELS,LEVELS,validPlacement,OBSTACLE_COUNT,MAIN_TASK_COUNT,resolveWallReversed,WALL_MODES,BASE_TASK_SLOTS,BASE_OBSTACLE_SLOTS} from "../placement.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {TASKS,initialData,invScore,invRank,scoreRetry,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout} from "../core.mjs";
@@ -59,7 +59,7 @@ test("Seven mandatory models, three small-rectangle obstacles at every practice 
   for(const seed of ["VPLUS-001","VPLUS-2026","FLL-2026","123456"]){
    const x=generateLayout({seed,level:level.id});
    const y=generateLayout({seed,level:level.id});
-   assert.equal(x.version,3);
+   assert.equal(x.version,4);
    assert.deepEqual(x.tasks,y.tasks);
    assert.deepEqual(x.obstacles,y.obstacles);
    assert.equal(x.tasks.length,7);
@@ -117,4 +117,56 @@ test("Great Wall random reverse/normal returns both outcomes across seeded propo
  assert.deepEqual([...outcomes].sort(),[false,true]);
  assert.equal(WALL_MODES.length,3);
  assert.throws(()=>resolveWallReversed("unknown","X"),/không hợp lệ/);
+});
+
+test("Immutable V+ movement matrix: 1–3=2/0, 4–6=2/1, 7–9=3/1, 10–12=3/2",()=>{
+ const matrix={easy:[2,0],medium:[2,1],hard:[3,1],expert:[3,2]};
+ assert.deepEqual(BASE_OBSTACLE_SLOTS,["O1","O5","O8"]);
+ assert.equal(new Set(Object.values(BASE_TASK_SLOTS)).size,7);
+ for(const [level,[swapTasks,moveObstacles]] of Object.entries(matrix)){
+  const preset=LEVELS.find(x=>x.id===level);
+  assert.equal(preset.swapTasks,swapTasks);
+  assert.equal(preset.moveObstacles,moveObstacles);
+  for(let i=0;i<75;i++){
+   const seed="vplus-grade-"+level+"-"+i;
+   const layout=generateLayout({seed,level,wallMode:"normal"});
+   const map=Object.fromEntries(layout.tasks.map(t=>[t.id,t.slot]));
+   const changed=NORMAL_MODELS.filter(id=>map[id]!==BASE_TASK_SLOTS[id]);
+   const moved=BASE_OBSTACLE_SLOTS.filter((id,j)=>layout.obstacles[j]!==id);
+   assert.equal(layout.version,4);
+   assert.equal(layout.tasks.filter(x=>x.id!=="bonus").length,7);
+   assert.equal(layout.obstacles.length,3);
+   assert.equal(changed.length,swapTasks,"Missions changed level="+level+" seed="+seed);
+   assert.equal(new Set(layout.tasks.map(x=>x.slot)).size,7);
+   assert.deepEqual([...changed].sort(),[...layout.changedTaskIds].sort());
+   assert.equal(moved.length,moveObstacles,"Obstacles changed level="+level+" seed="+seed);
+   assert.deepEqual([...moved].sort(),[...layout.movedObstacleFrom].sort());
+   assert.equal(layout.tasks.find(x=>x.id==="wall").slot,BASE_TASK_SLOTS.wall);
+   assert.equal(layout.tasks.find(x=>x.id==="wall").reversed,false);
+   assert.equal(layout.tasks.find(x=>x.id==="wall").modelRotation,0);
+   assert.equal(layout.wallMode,"normal");
+   assert.ok(layout.tasks.every(t=>validPlacement(t.id,t.slot,t.angle)));
+   assert.ok(layout.obstacles.every(x=>OBSTACLE_SLOTS.some(y=>y.id===x)));
+   assert.equal(new Set(layout.obstacles).size,3);
+   assert.deepEqual(generateLayout({seed,level,wallMode:"normal"}).tasks,layout.tasks);
+   assert.deepEqual(generateLayout({seed,level,wallMode:"normal"}).obstacles,layout.obstacles);
+  }
+ }
+});
+test("Great Wall reversal never changes task slots or obstacle positions at any level",()=>{
+ for(const level of LEVELS){
+  for(let i=0;i<20;i++){
+   const seed=level.id+i;
+   const normal=generateLayout({seed,level:level.id,wallMode:"normal"});
+   const reversed=generateLayout({seed,level:level.id,wallMode:"reversed"});
+   assert.deepEqual(normal.obstacles,reversed.obstacles);
+   assert.deepEqual(normal.tasks.filter(t=>t.id!=="wall"),reversed.tasks.filter(t=>t.id!=="wall"));
+   assert.equal(normal.tasks.find(t=>t.id==="wall").slot,reversed.tasks.find(t=>t.id==="wall").slot);
+   assert.equal(reversed.tasks.find(t=>t.id==="wall").reversed,true);
+  }
+ }
+});
+test("Obstacle positions are fixed for classes 1–3 regardless of seed",()=>{
+ for(let i=0;i<100;i++)
+  assert.deepEqual(generateLayout({seed:"low-"+i,level:"easy"}).obstacles,[...BASE_OBSTACLE_SLOTS]);
 });
