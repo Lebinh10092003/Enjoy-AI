@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 
 const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
-const theme=readFileSync(new URL("../vplus-theme.css",import.meta.url),"utf8");
-const enhanced=readFileSync(new URL("../vplus-experience.css",import.meta.url),"utf8");
+const theme=readFileSync(new URL("../vplus-2026.css",import.meta.url),"utf8");
+const enhanced=readFileSync(new URL("../vplus-2026.css",import.meta.url),"utf8");
 
 test("V+ theme is loaded after the base stylesheet",()=>{
  const base=html.indexOf("./styles.css");
- const blue=html.indexOf("./vplus-theme.css");
+ const blue=html.indexOf("./vplus-2026.css");
  assert.ok(base>=0,"Expected the base CSS link");
- assert.ok(blue>base,"V+ theme must override the original purple styles");
+ assert.ok(blue>base,"V+ design system must follow core styles");
 });
 
 test("V+ interface has readable typography and responsive improvements",()=>{
@@ -46,4 +46,13 @@ test("Scoreboard styles respect accessible reduced motion and mobile tables",()=
  assert.match(enhanced,/\.leaderboard-tabs/);
  assert.match(enhanced,/\.team-import-panel/);
  assert.match(enhanced,/@media\(max-width:760px\)/);
+});
+
+test("New workspace exposes real app navigation and unique random workbench",()=>{
+ assert.match(html,/class="brand-emblem"/);
+ assert.match(html,/class="nav-icon"/);
+ assert.match(theme,/\.dashboard-hero/);
+ assert.match(theme,/\.studio-layout/);
+ assert.match(theme,/\.dashboard-metrics/);
+ assert.match(theme,/\.brand-emblem \.brand-logo-image/);
 });
