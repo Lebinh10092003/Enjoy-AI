@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import {parseSeconds,displaySeconds} from "../time-utils.mjs";
 import {parseCsv,validateTeamImport,teamImportTemplate} from "../team-import.mjs";
 import {renderInventionLeaderboard,renderBattleLeaderboard} from "../leaderboard-ui.mjs";
-import {initialData} from "../core.mjs";
+import {initialData,generateLayout} from "../core.mjs";
+import {placementKey} from "../placement.mjs";
 
 test("Robot times accept decimal period, comma and Vietnamese suffix without truncating",()=>{
  for(const source of ["13.5","13,5","13,5s","13.5 s","13,5 giây","13.5sec"]){
@@ -74,4 +75,18 @@ test("Leaderboards include general and category tabs, with no global cross-divis
  assert.match(battle,/Bảng xếp hạng Battle/);
  assert.match(battle,/role="tablist"/);
  assert.match(battle,/Vòng loại trực tiếp/);
+});
+
+test("Strict placement mode rejects untested configurations, then accepts verified arrangements",()=>{
+ const options={seed:"VPLUS-PHYSICAL-VERIFICATION",level:"medium",wallMode:"reversed"};
+ assert.throws(()=>generateLayout({...options,verifiedOnly:true,approvals:{}}),/Chưa có đủ cấu hình/);
+ const trial=generateLayout(options);
+ const approvals=Object.fromEntries(trial.tasks.map(t=>[placementKey(t.id,t.slot,t.angle,t.reversed),true]));
+ const reviewed=generateLayout({...options,verifiedOnly:true,approvals});
+ assert.equal(reviewed.verifiedOnly,true);
+ assert.equal(reviewed.placementStatus,"physically-reviewed");
+ assert.deepEqual(reviewed.tasks,trial.tasks);
+ assert.equal(reviewed.obstacles.length,3);
+ const withoutOne={...approvals};delete withoutOne[placementKey(trial.tasks[0].id,trial.tasks[0].slot,trial.tasks[0].angle,trial.tasks[0].reversed)];
+ assert.throws(()=>generateLayout({...options,verifiedOnly:true,approvals:withoutOne}),/Chưa có đủ cấu hình/);
 });
