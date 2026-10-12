@@ -1,3 +1,6 @@
+import {parseSeconds,displaySeconds} from "./time-utils.mjs";
+import {teamImportTemplate,validateTeamImport} from "./team-import.mjs";
+import {renderInventionLeaderboard,renderBattleLeaderboard} from "./leaderboard-ui.mjs";
 import {MODEL_META,WALL_MODES} from "./placement.mjs?v=20261012-wall-modes-v1";
 import {teamUi,readTeamFields} from "./teams-ui.mjs";
 import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261012-wall-modes-v1";
@@ -8,7 +11,7 @@ const V=escapeHtml;
 let data=readData();
 let page="overview";
 let autoSeedSequence=0;
-const ui={editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal"};
+const ui={editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal"};
 const names={overview:"Tổng quan giải đấu",teams:"Đội Invention","teams-invention":"Đội Inventions Trail","teams-battle":"Đội Battle of Stars",invention:"Chấm điểm · Inventions Trail",ranking:"Xếp hạng · Inventions Trail",random:"Random đề Invention",battle:"Chấm điểm · Battle of Stars","battle-ranking":"Xếp hạng · Battle of Stars",settings:"Dữ liệu & hướng dẫn"};
 const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
@@ -64,7 +67,7 @@ function renderInvention(){
   if(!t)return s+'<div class="panel empty"><strong>Chưa có đội Invention</strong>Thêm đội tại Quản lý đội thi trước khi chấm.<p><button class="btn" data-go="teams-invention">Thêm đội</button></p></div>';
   s+='<div class="panel"><div class="panel-top"><h3>Kiểm tra nhiệm vụ – '+V(t.name)+'</h3>'+badge("Tối đa "+(data.bonusEnabled?"530":"430")+" điểm")+'</div>'+
    '<div class="task-grid">'+TASKS.filter(task=>!task.optional||data.bonusEnabled).map(task=>'<label class="check-pill"><input type="checkbox" data-inv-task="'+task.id+'" '+(e.tasks[task.id]?"checked":"")+'><span><strong>'+V(task.name)+'</strong><small>'+V(task.detail)+'</small></span><b>+'+task.points+'</b></label>').join("")+'</div>'+
-   '<div class="form-grid">'+field("inv-retries","Số lần chạy lại (trống = 0)",e.retries,"number","min=0 max=999 step=1")+field("inv-time","Thời gian thực tế (giây) *",e.time,"number","min=1 max=150 step=1")+
+   '<div class="form-grid">'+field("inv-retries","Số lần chạy lại (trống = 0)",e.retries,"number","min=0 max=999 step=1")+field("inv-time","Thời gian thực tế (giây) *",e.time,"text","inputmode=decimal autocomplete=off placeholder='13.5 hoặc 13,5s'")+
    '<div class="field"><label>Thưởng 0 lần chạy lại</label><label class="check-pill" style="min-height:41px;padding:8px 12px"><input id="inv-smooth" type="checkbox" '+(e.smooth?"checked":"")+'><span><strong>Robot chạy trơn tru, liên tục</strong></span></label></div>'+
    '<div class="field"><label>Thưởng chạy lại tự động</label><strong style="font-size:23px;color:#7452c7;padding:8px">'+(e.retries===0?(e.smooth?40:0):Math.max(0,40-10*e.retries))+' điểm</strong></div></div>'+
    '<div class="field"><label for="inv-note">Ghi chú trọng tài</label><textarea id="inv-note" rows="2">'+V(e.note||"")+'</textarea></div>'+
@@ -73,10 +76,8 @@ function renderInvention(){
   return s;
 }
 function renderRanking(){
-  const ranked=invRank(data.teams,data.invention,data.rounds,data.bonusEnabled).filter(x=>ui.invDivision==="all"||x.division===ui.invDivision);
-  const rows=ranked.map(t=>'<tr><td>'+(t.rank??"—")+'</td><td><strong>'+V(t.name)+'</strong></td><td>'+V(INV_DIVISIONS.find(d=>d.id===t.division)?.label||t.division)+'</td>'+t.byRound.map(v=>'<td class="num">'+(v??"—")+'</td>').join("")+'<td class="num max">'+t.points+'</td><td class="num">'+(t.finished?t.time:"—")+'</td><td class="num">'+t.retries+'</td><td class="num">'+t.best+'</td><td>'+t.finished+"/"+data.rounds+'</td></tr>').join("");
-  return title("Bảng xếp hạng Invention","Ưu tiên: tổng điểm ↓, tổng thời gian ↑, tổng số lần chạy lại ↑, điểm cao nhất một lượt ↓. Đội 0 điểm không xếp hạng.",'<button class="btn btn-outline" data-export-ranking>↓ CSV</button>')+
-    '<div class="panel"><div class="form-grid two">'+selectField("inv-division","Lọc bảng thi",[{id:"all",label:"Tất cả bảng"},...INV_DIVISIONS],ui.invDivision)+'<div class="field"><label>Số lượt đang áp dụng</label><strong style="padding:11px">'+data.rounds+' lượt / đội</strong></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Hạng</th><th>Đội</th><th>Bảng thi</th>'+Array.from({length:data.rounds},(_,i)=>'<th class="num">L'+(i+1)+'</th>').join("")+'<th class="num">Tổng</th><th class="num">Giây</th><th class="num">Retry</th><th class="num">Lượt tốt nhất</th><th>Đã chấm</th></tr></thead><tbody>'+rows+'</tbody></table>'+(rows?"":'<div class="empty">Chưa có dữ liệu đội thi.</div>')+'</div></div>';
+ return title("Bảng xếp hạng Invention","Tổng quan và từng bảng thi được phân tách rõ; điểm và thời gian giữ nguyên độ chính xác.",'<button class="btn btn-outline" data-export-ranking>↓ Xuất CSV</button>')+
+ renderInventionLeaderboard(data,ui.invDivision);
 }
 function renderMap(layout){return renderArena(layout,data.mapImage||"https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg");}
 function renderRandom(){
@@ -162,7 +163,7 @@ function renderBattle(){
   if(!m)return s+'<div class="panel empty"><strong>Chưa có trận Battle</strong>Thêm tối thiểu hai đội Battle để tạo trận. <p><button class="btn" data-go="teams-battle">Quản lý đội</button></p></div>';
   s+='<div class="panel"><div class="panel-top"><h3>Trận · '+V(m.stage==="group"?"Vòng bảng":"Loại trực tiếp")+'</h3>'+badge("180 giây", "amber")+'</div>'+
     '<div class="battle-grid">'+renderBattleSide(m,"red","red")+renderBattleSide(m,"blue","blue")+'</div>'+
-    '<div class="form-grid two">'+field("battle-time","Thời gian thi thực tế (giây) *",m.time,"number","min=1 max=180")+
+    '<div class="form-grid two">'+field("battle-time","Thời gian thi thực tế (giây) *",m.time,"text","inputmode=decimal autocomplete=off placeholder='13.5 hoặc 13,5s'")+
     '<div class="field"><label for="battle-note">Ghi chú / Biên bản trọng tài</label><input id="battle-note" value="'+V(m.note||"")+'" placeholder="Lỗi, xử lý tranh chấp..."></div></div>'+
     '<div class="result-band">'+battleResultText(m)+'</div>'+
     '<div class="action-row" style="margin-top:15px"><button class="btn" data-final-battle="done">HOÀN TẤT CHẤM</button><button class="btn btn-outline" data-final-battle="draft">Lưu nháp</button><button class="btn btn-danger" data-final-battle="invalid">Hủy điểm trận</button><button class="btn btn-outline" data-print>In phiếu</button><button class="btn btn-danger btn-small" data-delete-battle="'+V(m.id)+'">Xóa trận</button></div>'+'<div class="print-signatures"><h3>XÁC NHẬN ĐIỂM / SCORE CONFIRMATION</h3><p>Tôi xác nhận các điểm số ghi trên là chính xác, hợp lệ và phản ánh đúng kết quả của trận đấu.</p><div class="signature-grid"><div>Thành viên đội thi / Team members<br><br><br>Ký tên: ____________________</div><div>Trọng tài / Referee<br><br><br>Ký tên: ____________________</div><div>Trọng tài trưởng / Chief referee<br><br><br>Ký tên: ____________________</div><div>Thư ký / Scorekeeper<br><br><br>Ký tên: ____________________</div></div></div>'+
@@ -177,19 +178,8 @@ function battleResultText(m){
   return x.kind==="draw"?"HÒA · Mỗi đội 1 điểm vòng bảng":x.kind==="tiebreak"?"Chưa phân thắng bại · Cần thi đấu phân định":"Chưa có kết quả";
 }
 function renderBattleRanking(){
-  const ranks=battleRanking(data.teams,data.battles);
-  const groups=[...new Set(ranks.map(t=>t.division+"|"+t.group))].sort();
-  let s=title("Bảng xếp hạng Battle","Vòng bảng tính điểm trận 3–1–0; xếp hạng theo thắng đối đầu, tổng điểm nhiệm vụ, số lần hoàn thành tháp và tổng retry.",'<button class="btn btn-outline" data-export-battle-ranking>↓ CSV</button>');
-  for(const group of groups){
-    const [division,groupName]=group.split("|");
-    const rows=ranks.filter(t=>t.division===division&&t.group===groupName).map(t=>'<tr><td>'+(t.rank??"—")+'</td><td><strong>'+V(t.name)+'</strong></td><td class="num">'+t.played+'</td><td class="num">'+t.wins+' / '+t.draws+' / '+t.losses+'</td><td class="num max">'+t.points+'</td><td class="num">'+t.directWins+'</td><td class="num">'+t.total+'</td><td class="num">'+t.towers+'</td><td class="num">'+t.retries+'</td></tr>').join("");
-    s+='<div class="panel"><h3>'+V(BATTLE_DIVISIONS.find(d=>d.id===division)?.label||division)+' · Nhóm '+V(groupName)+'</h3><div class="table-wrap"><table class="table"><thead><tr><th>Hạng</th><th>Đội</th><th class="num">Trận</th><th class="num">T / H / B</th><th class="num">Điểm trận</th><th class="num">Thắng đối đầu</th><th class="num">Điểm nhiệm vụ</th><th class="num">Tháp</th><th class="num">Retry</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
-  }
-  if(!groups.length)s+='<div class="panel empty">Chưa có đội Battle.</div>';
-  const finals=data.battles.filter(m=>m.stage==="final");
-  s+='<div class="panel"><h3>Vòng loại trực tiếp ('+finals.length+')</h3><div class="table-wrap"><table class="table"><thead><tr><th>Trận</th><th>Đỏ</th><th>Xanh</th><th class="num">Điểm Đỏ / Xanh</th><th>Kết quả</th></tr></thead><tbody>'+
-     finals.map((m,i)=>{const o=battleOutcome(m);return '<tr><td>#'+(i+1)+'</td><td>'+displayTeam(m.redId)+'</td><td>'+displayTeam(m.blueId)+'</td><td class="num">'+battleSideScore(m.red)+' / '+battleSideScore(m.blue)+'</td><td>'+(m.status!=="done"?prettyStatus(m.status):o.winner?displayTeam(o.winner):badge("Cần phân định","amber"))+'</td></tr>';}).join("")+'</tbody></table>'+(finals.length?"":'<div class="empty">Chưa có trận loại trực tiếp.</div>')+'</div></div>';
-  return s;
+ return title("Bảng xếp hạng Battle","Tổng quan, từng bảng thi và các nhóm đối kháng; giữ nguyên luật xếp hạng.",'<button class="btn btn-outline" data-export-battle-ranking>↓ Xuất CSV</button>')+
+ renderBattleLeaderboard(data,ui.battleDivision);
 }
 function renderSettings(){
   return title("Dữ liệu & quy định","Chấm điểm trên GitHub Pages chạy ở phía trình duyệt, không có tài khoản trọng tài hoặc đồng bộ liên thiết bị.")+
@@ -219,15 +209,25 @@ function bindDynamic(){
  if($('#match-blue')&&$('#match-blue').options.length>1&&$('#match-blue').value===$('#match-red').value)$('#match-blue').selectedIndex=1;
 }
 function updateInvFromControl(target){
+  let timeValue;
+  if(target.id==="inv-time"){
+    try{timeValue=parseSeconds(target.value,150);target.setCustomValidity("");}
+    catch(error){target.setCustomValidity(error.message);target.reportValidity?.();return;}
+  }
   const e=ensureInv(ui.invTeam,ui.invRound);
   if(target.dataset.invTask)e.tasks[target.dataset.invTask]=target.checked;
   if(target.id==="inv-retries")e.retries=safeNumber(target.value,999);
-  if(target.id==="inv-time")e.time=target.value===""?"":safeNumber(target.value,150);
+  if(target.id==="inv-time")e.time=timeValue??"";
   if(target.id==="inv-smooth")e.smooth=target.checked;
   if(target.id==="inv-note")e.note=target.value;
   e.status="draft";persist();render();
 }
 function updateBattleFromControl(target){
+  let timeValue;
+  if(target.id==="battle-time"){
+    try{timeValue=parseSeconds(target.value,180);target.setCustomValidity("");}
+    catch(error){target.setCustomValidity(error.message);target.reportValidity?.();return;}
+  }
   const m=getBattle(ui.battleId);if(!m)return;
   const parts=target.dataset.battleField?.split(".");
   if(parts){
@@ -237,7 +237,7 @@ function updateBattleFromControl(target){
     else m[side][property]=safeNumber(target.value,property==="blocks"?8:999);
     if(property==="fouls"&&m[side].fouls>m[side].retries)m[side].retries=m[side].fouls;
   }
-  if(target.id==="battle-time")m.time=target.value===""?"":safeNumber(target.value,180);
+  if(target.id==="battle-time")m.time=timeValue??"";
   if(target.id==="battle-note")m.note=target.value;
   m.status="draft";persist();render();
 }
@@ -324,9 +324,11 @@ el.addEventListener("change",e=>{
 el.addEventListener("click",e=>{
  const t=e.target.closest("button");if(!t)return;
  if(t.dataset.go){ui.editTeam="";return go(t.dataset.go);}
+ if(t.hasAttribute("data-inv-tab")){ui.invDivision=t.dataset.invTab;render();return;}
+ if(t.hasAttribute("data-battle-tab")){ui.battleDivision=t.dataset.battleTab;render();return;}
  if(t.hasAttribute("data-export-teams"))return exportCsv([["Mã","Tên đội","Nội dung","Trường","Bảng thi","Nhóm","Học sinh 1","Học sinh 2","HLV","Ghi chú"],...data.teams.filter(x=>x.type===(page==="teams-battle"?"battle":"invention")).map(x=>[x.code,x.name,x.type,x.school,x.division,x.group,x.member1,x.member2,x.coach,x.note])],"enjoy-ai-teams.csv");
- if(t.hasAttribute("data-export-ranking"))return exportCsv([["Hạng","Đội","Bảng",...Array.from({length:data.rounds},(_,i)=>"Lượt "+(i+1)),"Tổng điểm","Tổng thời gian","Retry","Điểm tốt nhất"],...invRank(data.teams,data.invention,data.rounds,data.bonusEnabled).map(x=>[x.rank||"",x.name,x.division,...x.byRound.map(x=>x??""),x.points,x.time,x.retries,x.best])],"invention-ranking.csv");
- if(t.hasAttribute("data-export-battle-ranking"))return exportCsv([["Hạng","Đội","Bảng","Nhóm","Trận","Thắng","Hòa","Thua","Điểm trận","Thắng đối đầu","Tổng điểm nhiệm vụ","Tháp","Retry"],...battleRanking(data.teams,data.battles).map(x=>[x.rank||"",x.name,x.division,x.group,x.played,x.wins,x.draws,x.losses,x.points,x.directWins,x.total,x.towers,x.retries])],"battle-ranking.csv");
+ if(t.hasAttribute("data-export-ranking"))return exportCsv([["Hạng","Đội","Bảng",...Array.from({length:data.rounds},(_,i)=>"Lượt "+(i+1)),"Tổng điểm","Tổng thời gian","Retry","Điểm tốt nhất"],...invRank(data.teams,data.invention,data.rounds,data.bonusEnabled).filter(x=>ui.invDivision==="all"||x.division===ui.invDivision).map(x=>[x.rank||"",x.name,x.division,...x.byRound.map(x=>x??""),x.points,x.time,x.retries,x.best])],"invention-ranking.csv");
+ if(t.hasAttribute("data-export-battle-ranking"))return exportCsv([["Hạng","Đội","Bảng","Nhóm","Trận","Thắng","Hòa","Thua","Điểm trận","Thắng đối đầu","Tổng điểm nhiệm vụ","Tháp","Retry"],...battleRanking(data.teams,data.battles).filter(x=>ui.battleDivision==="all"||x.division===ui.battleDivision).map(x=>[x.rank||"",x.name,x.division,x.group,x.played,x.wins,x.draws,x.losses,x.points,x.directWins,x.total,x.towers,x.retries])],"battle-ranking.csv");
  if(t.hasAttribute("data-edit-team")){ui.editTeam=t.dataset.editTeam;render();window.scrollTo(0,0);return;}
  if(t.hasAttribute("data-cancel-edit")){ui.editTeam="";render();return;}
  if(t.hasAttribute("data-delete-team"))return showConfirm("Xóa đội này sẽ đồng thời xóa tất cả lượt chấm/trận Battle liên quan. Thao tác không thể hoàn tác nếu chưa sao lưu.",()=>{const id=t.dataset.deleteTeam;data.teams=data.teams.filter(x=>x.id!==id);data.invention=data.invention.filter(x=>x.teamId!==id);data.battles=data.battles.filter(x=>x.redId!==id&&x.blueId!==id);persist();render();});
