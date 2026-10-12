@@ -166,3 +166,19 @@ Trong dữ liệu `layout.version = 3`: `layout.wallMode` là một trong `norma
 node --test tests/*.test.mjs
 \`\`\`
 Bao gồm kiểm tra parser CSV/JSON, trùng dữ liệu, thập phân, bộ lọc bảng xếp hạng, xác nhận hướng lắp và các thao tác giao diện.
+
+## Thiết kế lại giao diện V+ STEAM LAB (2026-10-12)
+
+Bản thiết kế này là **tái cấu trúc giao diện**, không chỉ sửa màu:
+
+- **Thanh bên trái**: xanh than đậm, icon SVG vector, phân nhóm Invention / Battle / Hệ thống, trạng thái lưu trên thiết bị và điểm nhấn xanh lá V+.
+- **Tổng quan**: hero Competition Control Center với đồ họa robot tạo bằng CSS/SVG; số liệu thực tế về đội, lượt Invention, trận Battle, đề đã tạo; lối tắt vào random/chấm điểm; tiến độ và kết quả dẫn đầu của **từng bảng** (không xếp hạng chéo cấp lớp).
+- **Random Studio**: bố cục hai cột trên laptop/desktop gồm bảng cấu hình và sa bàn thật; máy tính bảng/điện thoại chuyển thành bố cục dọc. Việc bấm Random **chỉ cập nhật kết quả**, không thay đổi vị trí cuộn, không tải lại ảnh sa bàn.
+- **Bảng xếp hạng**: giữ tab Chung / từng bảng, Top 3, tiến độ, xếp hạng độc lập. **Nhập đội**: giữ nguyên CSV/JSON, template, xác thực, dữ liệu cũ.
+- **Hiệu ứng**: hiệu ứng tải nội dung ngắn, hover nút/thẻ, đồ họa robot chuyển động nhẹ ở trang tổng quan, tôn trọng `prefers-reduced-motion`.
+- **Nhận diện thương hiệu**: sử dụng logo V+ tại nguồn chính thức (nếu truy cập được) và chữ V+ thay thế khi ảnh lỗi, kèm favicon.
+- **CSS**: chỉ còn `styles.css` (nền/cấu trúc) và `vplus-2026.css` (theme hiện tại). `vplus-theme.css` và `vplus-experience.css` là tệp lịch sử, **không còn được nạp**. Không phụ thuộc thư viện UI mới.
+
+### Kiểm thử thiết kế
+
+`node --test tests/*.test.mjs` kiểm tra chức năng giao diện và tính hợp lệ của các tệp CSS. Kiểm thử tự động không thay thế bước đánh giá trực quan trên trình duyệt thật, đặc biệt đối với kích thước 360px, 768px, 1280px và hình nền sa bàn có tọa độ phần trăm.
