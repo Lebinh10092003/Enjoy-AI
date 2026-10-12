@@ -4,6 +4,7 @@ import {readFileSync} from "node:fs";
 
 const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const theme=readFileSync(new URL("../vplus-theme.css",import.meta.url),"utf8");
+const enhanced=readFileSync(new URL("../vplus-experience.css",import.meta.url),"utf8");
 
 test("V+ theme is loaded after the base stylesheet",()=>{
  const base=html.indexOf("./styles.css");
@@ -37,4 +38,12 @@ test("CSS rules have balanced block delimiters",()=>{
  }
  assert.equal(inQuote,"","Unclosed CSS string");
  assert.equal(nesting,0,"Unbalanced CSS blocks");
+});
+
+test("Scoreboard styles respect accessible reduced motion and mobile tables",()=>{
+ assert.match(html,/vplus-experience\.css/);
+ assert.match(enhanced,/prefers-reduced-motion:reduce/);
+ assert.match(enhanced,/\.leaderboard-tabs/);
+ assert.match(enhanced,/\.team-import-panel/);
+ assert.match(enhanced,/@media\(max-width:760px\)/);
 });
