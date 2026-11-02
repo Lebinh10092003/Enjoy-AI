@@ -1,6 +1,7 @@
-// Chỉ điền Project URL và publishable/anon key. KHÔNG dùng service_role/secret key tại đây.
+// Supabase publishable key is intended to be visible in public frontend code.
+// NEVER store service_role, secret key, or user passwords in this repository.
 export const CLOUD_CONFIG = Object.freeze({
-  url: "",
-  publishableKey: "",
+  url: "https://oooiaqnzqcvodjuwnagh.supabase.co",
+  publishableKey: "sb_publishable_RdjbDZwlLpsgVi_Qpk3Jng_6QNGmMiI",
   workspaceId: "main",
 });

@@ -234,4 +234,4 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 
 ## Tích hợp Cloud (02/11/2026)
 
-Đã bổ sung `cloud-sync.mjs`, `cloud-config.mjs`, migration `supabase/schema.sql` và hướng dẫn `supabase/SETUP.md`. Database cần được tạo và cấp tài khoản trên Supabase trước khi hoạt động; không đưa secret/service-role key lên GitHub Pages. Chức năng lưu localStorage vẫn dùng được khi chưa cấu hình Cloud.
+Đã bổ sung `cloud-sync.mjs`, `cloud-config.mjs`, migration `supabase/schema.sql` và hướng dẫn `supabase/SETUP.md`. Đã tạo database tại project Enjoy-AI (Singapore) và cấu hình publishable key; cần cấp tài khoản tại Supabase Auth trước khi đăng nhập; không đưa secret/service-role key lên GitHub Pages. Chức năng lưu localStorage vẫn dùng được khi chưa cấu hình Cloud.
