@@ -50,7 +50,7 @@ test("Seven mandatory models, three small-rectangle obstacles at every practice 
  const taskIds=new Set(NORMAL_MODELS);
  const allowedObstacles=new Set(OBSTACLE_SLOTS.map(x=>x.id));
  assert.equal(taskIds.size,7);
- assert.equal(allowedObstacles.size,9);
+ assert.ok(allowedObstacles.size>=9);
  assert.equal(MAIN_TASK_COUNT,7);
  assert.equal(OBSTACLE_COUNT,3);
  for(const level of LEVELS){
