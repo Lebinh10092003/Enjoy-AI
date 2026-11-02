@@ -231,7 +231,17 @@ function renderBattleRanking(){
 function cloudPanel(){
   let body='<div class="panel"><div class="panel-top"><h3>Database Cloud · Supabase</h3>'+badge(cloud.ready?"Đã kết nối":cloud.configured?"Chưa đăng nhập":"Chưa cấu hình",cloud.ready?"green":"amber")+'</div>';
   if(!cloud.configured)body+='<p class="muted">Chưa cấu hình Project URL và publishable key trong file cloud-config.mjs. Chạy supabase/schema.sql theo hướng dẫn supabase/SETUP.md rồi nhập cấu hình để bật lưu Cloud. Website vẫn lưu cục bộ bình thường.</p>';
-  else if(!cloud.ready)body+='<p class="muted">Đăng nhập bằng tài khoản được quản trị viên cấp quyền. Sau đăng nhập, dữ liệu Cloud là nguồn chính; dữ liệu cục bộ khác biệt được sao lưu riêng.</p><div class="form-grid">'+field("cloud-email","Email trọng tài","","email",'autocomplete="username"')+field("cloud-password","Mật khẩu","","password",'autocomplete="current-password"')+'</div><div class="action-row"><button type="button" class="btn" data-cloud-login>Đăng nhập & tải dữ liệu Cloud</button></div>';
+  else if(!cloud.ready)body+=
+    '<p class="muted">Supabase đã được cấu hình, nhưng cần <strong>tài khoản Supabase Auth</strong> và quyền trong bảng <code>competition_members</code> để đăng nhập. Kết nối Supabase với ChatGPT không tự tạo tài khoản website.</p>'+
+    '<div class="panel-note"><strong>Thiết lập lần đầu:</strong> 1. Vào Authentication → Users để tạo tài khoản của bạn; 2. Điền cùng email ở dưới, chọn vai trò và sao chép SQL cấp quyền; 3. Chạy SQL trong Supabase SQL Editor; 4. Đăng nhập bằng email và mật khẩu vừa tạo. Không cần tạo lại database.</div>'+
+    '<div class="action-row"><a class="btn btn-outline" href="https://supabase.com/dashboard/project/oooiaqnzqcvodjuwnagh/auth/users" target="_blank" rel="noopener noreferrer">Mở Supabase · Tài khoản</a>'+
+    '<a class="btn btn-outline" href="https://supabase.com/dashboard/project/oooiaqnzqcvodjuwnagh/sql/new" target="_blank" rel="noopener noreferrer">Mở SQL Editor</a>'+
+    '<button class="btn btn-outline" type="button" data-cloud-test>Kiểm tra kết nối Auth</button></div>'+
+    '<div class="form-grid">'+field("cloud-email","Email tài khoản Supabase Auth","","email",'autocomplete="username"')+field("cloud-password","Mật khẩu tài khoản","","password",'autocomplete="current-password"')+
+    selectField("cloud-role","Quyền cần cấp",[{id:"admin",label:"Admin — quản lý/chấm"},{id:"referee",label:"Referee — chấm"},{id:"viewer",label:"Viewer — chỉ xem"}],"admin")+
+    '<div class="field"><label>Cấp quyền an toàn</label><button class="btn btn-outline" type="button" data-cloud-copy-sql>Sao chép SQL cấp quyền cho email trên</button></div></div>'+
+    '<div class="action-row"><button type="button" class="btn" data-cloud-login>Đăng nhập & tải dữ liệu Cloud</button></div>'+
+    '<p class="muted">Website không tự tạo tài khoản hoặc gửi email. Bạn quản lý việc tạo tài khoản và lời mời trực tiếp trên Supabase. SQL được sao chép để tự kiểm tra rồi chạy.</p>';
   else body+='<p class="muted">Tài khoản: <strong>'+V(cloud.session?.user?.email||"")+'</strong> · Quyền: <strong>'+V(cloud.role||"")+'</strong> · Phiên bản dữ liệu: <strong>'+cloud.revision+'</strong>. Dữ liệu được ghi lên máy chủ và không âm thầm ghi đè khi phiên bản thay đổi.</p><div class="action-row"><button type="button" class="btn btn-outline" data-cloud-retry>Đồng bộ lại khi lỗi</button><button type="button" class="btn btn-outline" data-cloud-refresh>Tải lại Cloud</button><button type="button" class="btn btn-outline" data-cloud-logout>Đăng xuất</button></div>';
   body+='<p id="cloud-status" class="panel-note" role="status" aria-live="polite">'+V(cloudMessage||"Lưu cục bộ đang hoạt động.")+'</p>';
   if(localStorage.getItem(CLOUD_BACKUP_KEY))body+='<div class="action-row"><button class="btn btn-outline" type="button" data-cloud-backup>↓ Tải bản dữ liệu cục bộ trước khi kết nối Cloud</button></div>';
@@ -540,12 +550,50 @@ el.addEventListener("click",e=>{
   else ready();
   return;
  }
+ if(t.hasAttribute("data-cloud-test")){
+   t.disabled=true;
+   const display=$('#cloud-status');
+   if(display)display.textContent="Đang kiểm tra khả năng kết nối máy chủ Auth...";
+   void cloud.checkConnection()
+     .then(()=>{if(display)display.textContent="Kết nối Supabase Auth hoạt động. Điều này chưa xác nhận tài khoản hoặc quyền truy cập dữ liệu.";})
+     .catch(error=>{if(display)display.textContent="Không kết nối được Supabase Auth: "+error.message;})
+     .finally(()=>{t.disabled=false;});
+   return;
+ }
+ if(t.hasAttribute("data-cloud-copy-sql")){
+   const email=String($('#cloud-email')?.value||"").trim();
+   const role=$('#cloud-role')?.value||"";
+   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))
+     return notify("Nhập email tài khoản Supabase Auth cần cấp quyền trước khi sao chép SQL.",true);
+   if(!["admin","referee","viewer"].includes(role))return notify("Vai trò không hợp lệ.",true);
+   const literal=email.replaceAll("'","''");
+   const sql="-- Chạy trong Supabase SQL Editor SAU KHI tạo tài khoản tại Authentication > Users.\\n"+
+     "insert into public.competition_members (user_id, role)\\n"+
+     "select id, '"+role+"' from auth.users\\n"+
+     "where lower(email) = lower('"+literal+"')\\n"+
+     "on conflict (user_id) do update set role = excluded.role;\\n\\n"+
+     "-- Kết quả phải có 1 dòng; nếu 0 dòng, kiểm tra email và tài khoản Auth.\\n"+
+     "select m.role, u.email from public.competition_members m\\n"+
+     "join auth.users u on u.id = m.user_id\\n"+
+     "where lower(u.email) = lower('"+literal+"');";
+   if(!navigator.clipboard?.writeText)
+     return notify("Trình duyệt không hỗ trợ sao chép tự động. Hãy dùng SQL trong supabase/SETUP.md.",true);
+   void navigator.clipboard.writeText(sql)
+     .then(()=>{const display=$('#cloud-status');if(display)display.textContent="Đã sao chép SQL. Kiểm tra email/vai trò trong SQL Editor trước khi bấm Run; kết quả phải có 1 dòng.";})
+     .catch(()=>notify("Không thể sao chép SQL. Hãy dùng SQL trong supabase/SETUP.md.",true));
+   return;
+ }
  if(t.hasAttribute("data-cloud-login")){
    const email=$('#cloud-email')?.value.trim(),password=$('#cloud-password')?.value;
-   if(!email||!password)return notify("Vui lòng nhập email và mật khẩu.",true);
+   if(!email||!password){const status=$('#cloud-status');if(status)status.textContent="Vui lòng nhập email và mật khẩu.";return;}
    t.disabled=true;
-   void cloud.login(email,password).then(snapshot=>{applyCloudSnapshot(snapshot);go("settings");notify("Đã kết nối Cloud. Kiểm tra trạng thái đồng bộ trước khi chấm.");})
-    .catch(error=>{cloud.signOut();notify("Không thể đăng nhập/tải Cloud: "+error.message,true);}).finally(()=>{t.disabled=false;});
+   void cloud.login(email,password)
+     .then(snapshot=>{applyCloudSnapshot(snapshot);go("settings");notify("Đã kết nối Cloud. Kiểm tra trạng thái đồng bộ trước khi chấm.");})
+     .catch(error=>{
+       cloud.signOut();
+       const display=$('#cloud-status');
+       if(display)display.textContent="Đăng nhập Cloud không thành công: "+error.message;
+     }).finally(()=>{const pass=$('#cloud-password');if(pass)pass.value="";t.disabled=false;});
    return;
  }
  if(t.hasAttribute("data-cloud-logout")){
