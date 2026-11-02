@@ -50,13 +50,14 @@ export function checkNavigation(rectangles,{robotCm=MAX_ROBOT_CM,marginCm=SAFETY
       Math.abs(py-item.y)<=item.h/2+half){blocked[idx]=1;break;}
   }
  }
- // Start zone: robot may start at several feasible points of the 30x30cm
- // region at the lower-left, rather than forcing one potentially obstructed pixel.
+ // Start zone is intentionally narrow, adjacent to the actual 30 x 30 cm
+ // lower-left starting base. Starting farther up/right would incorrectly
+ // allow an apparently navigable layout even if the launch exit is blocked.
  const seen=new Uint8Array(NX*NY), queue=new Int32Array(NX*NY),parent=new Int32Array(NX*NY).fill(-1);
  let head=0,tail=0;
  for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){
   const px=(x+.5)*CELL_CM,py=(y+.5)*CELL_CM,id=y*NX+x;
-  if(px>=17&&px<=42&&py>=76&&py<=103&&!blocked[id]){
+  if(px>=16&&px<=24&&py>=94&&py<=104&&!blocked[id]){
    seen[id]=1;parent[id]=-2;queue[tail++]=id;
   }
  }
