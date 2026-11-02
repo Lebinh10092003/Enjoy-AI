@@ -1,4 +1,4 @@
-import {OBSTACLE_SLOTS,SLOTS,NORMAL_MODELS,LEVELS,validPlacement,OBSTACLE_COUNT,MAIN_TASK_COUNT,resolveWallReversed,WALL_MODES,BASE_TASK_SLOTS,BASE_OBSTACLE_SLOTS} from "../placement.mjs";
+import {OBSTACLE_SLOTS,SLOTS,NORMAL_MODELS,LEVELS,validPlacement,OBSTACLE_COUNT,MAIN_TASK_COUNT,resolveWallReversed,WALL_MODES,BASE_TASK_SLOTS,BASE_OBSTACLE_SLOTS,countLayoutVariants} from "../placement.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {TASKS,initialData,invScore,invRank,scoreRetry,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout} from "../core.mjs";
@@ -175,4 +175,44 @@ test("Default smooth running award is 40, each retry costs 10 and old explicit f
   const {scoreRetry:newScore}= {scoreRetry};
   assert.deepEqual([0,1,2,3,4,5].map(r=>newScore(r,true)),[40,30,20,10,0,0]);
   assert.equal(newScore(0,false),0);
+});
+
+test("Random V2 counts the valid search space for each grade",()=>{
+ const expected={easy:9,medium:162,hard:288,expert:1440};
+ for(const [level,count] of Object.entries(expected)){
+  assert.equal(countLayoutVariants({level}),count,level);
+  assert.equal(countLayoutVariants({level,wallMode:"reversed"}),count);
+  assert.equal(countLayoutVariants({level,wallMode:"random"}),count*2);
+  const seen=new Set();
+  for(let i=0;i<400;i++){
+   const p=generateLayout({level,seed:"uniform-v2-"+level+"-"+i});
+   assert.equal(p.generatorVersion,2);
+   assert.equal(p.version,4);
+   seen.add(JSON.stringify([p.tasks,p.obstacles]));
+  }
+  assert.ok(seen.size>=Math.min(count,8),"Seeds must reach different valid layouts in "+level);
+ }
+});
+test("Random V2 samples all nine valid 2-task swaps without strong selection bias",()=>{
+ const histogram=new Map();
+ for(let i=0;i<9000;i++){
+  const x=generateLayout({level:"easy",seed:"fair-sampling-"+i});
+  const moved=x.tasks.filter(t=>t.id!=="wall"&&t.slot!==BASE_TASK_SLOTS[t.id]).map(t=>t.id).sort().join(",");
+  histogram.set(moved,(histogram.get(moved)||0)+1);
+ }
+ assert.equal(histogram.size,9);
+ for(const n of histogram.values())assert.ok(n>700&&n<1300,"Skewed mission swap: "+n);
+});
+test("Strict mode counts only tested task assignments and legacy seeds remain reproducible",()=>{
+ const opts={level:"medium",seed:"physical-v2",wallMode:"normal"};
+ const trial=generateLayout(opts);
+ const approvals=Object.fromEntries(trial.tasks.map(t=>[t.id+"|"+t.slot+"|"+t.angle+"|normal",true]));
+ assert.equal(countLayoutVariants({...opts,verifiedOnly:true,approvals}),18);
+ const blocked={...approvals};
+ const t=trial.tasks[0];delete blocked[t.id+"|"+t.slot+"|"+t.angle+"|normal"];
+ assert.equal(countLayoutVariants({...opts,verifiedOnly:true,approvals:blocked}),0);
+ const legacy=generateLayout({...opts,algorithmVersion:1});
+ assert.equal(legacy.version,4);
+ assert.equal(legacy.generatorVersion,undefined);
+ assert.deepEqual(legacy.tasks,generateLayout({...opts,algorithmVersion:1}).tasks);
 });
