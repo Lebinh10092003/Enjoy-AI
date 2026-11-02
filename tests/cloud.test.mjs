@@ -80,7 +80,7 @@ test("Cloud connection diagnostic uses Auth health endpoint without login or sec
   }});
  assert.deepEqual(await sync.checkConnection(),{reachable:true,service:"Supabase Auth"});
  assert.equal(calls.length,1);
- assert.match(calls[0].url,/\\/auth\\/v1\\/health$/);
+ assert.ok(calls[0].url.endsWith("/auth/v1/health"));
  assert.ok(calls[0].options.headers.apikey);
  assert.equal(calls[0].options.headers.Authorization,undefined);
  assert.equal(sync.ready,false);
