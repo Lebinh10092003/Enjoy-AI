@@ -229,7 +229,7 @@ function renderBattleRanking(){
  renderBattleLeaderboard(data,ui.battleDivision,ui.battleGroup);
 }
 function cloudPanel(){
-  let body='<div class="panel"><div class="panel-top"><h3>Database Cloud · Supabase</h3>'+badge(cloud.ready?"Đã kết nối":cloud.configured?"Chưa đăng nhập":"Chưa cấu hình",cloud.ready?"green":"amber")+'</div>';
+  let body='<div class="panel cloud-panel"><div class="panel-top"><h3>Database Cloud · Supabase</h3>'+badge(cloud.ready?"Đã kết nối":cloud.configured?"Chưa đăng nhập":"Chưa cấu hình",cloud.ready?"green":"amber")+'</div>';
   if(!cloud.configured)body+='<p class="muted">Chưa cấu hình Project URL và publishable key trong file cloud-config.mjs. Chạy supabase/schema.sql theo hướng dẫn supabase/SETUP.md rồi nhập cấu hình để bật lưu Cloud. Website vẫn lưu cục bộ bình thường.</p>';
   else if(!cloud.ready)body+=
     '<p class="muted">Supabase đã được cấu hình, nhưng cần <strong>tài khoản Supabase Auth</strong> và quyền trong bảng <code>competition_members</code> để đăng nhập. Kết nối Supabase với ChatGPT không tự tạo tài khoản website.</p>'+
