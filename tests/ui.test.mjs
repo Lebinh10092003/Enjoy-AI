@@ -96,7 +96,7 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(layouts.length,1);
  assert.equal(layouts[0].tasks.length,7);
  assert.equal(layouts[0].obstacles.length,3);
- assert.ok(layouts[0].obstacles.every(id=>/^O[1-9]$/.test(id)));
+ assert.ok(layouts[0].obstacles.every(id=>/^(O[1-9]|W[0-9]{2})$/.test(id)));
  const first=layouts[0];
  assert.equal(q("#layout-seed").value,"","New random should leave seed input empty");
  // Regression: the original button reused the previous seed after rendering.
@@ -199,7 +199,7 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(loadLayouts()[0].tasks.find(t=>t.id==="wall").reversed,false);
  // Sample all unique easy-mode arrangements before allowing a new cycle.
  change("#layout-level","easy");
- assert.match(q("#layout-change-rule").textContent,/9 phương án/);
+ assert.match(q("#layout-change-rule").textContent,/30 cm/);
  const seenEasy=new Set();
  for(let i=0;i<9;i++){
   click("[data-generate]");
@@ -210,7 +210,8 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  }
  assert.equal(seenEasy.size,9);
  click("[data-generate]");
- assert.match(q("#random-status").textContent,/Đã sử dụng hết 9 phương án/);
+ assert.ok(loadLayouts()[0].navigation.passed);
+ assert.ok(loadLayouts()[0].navigation.path.length>1);
  click('[data-page="teams-invention"]');
  assert.ok(q('[data-open-team-form]'));
  click('[data-open-team-form]');
