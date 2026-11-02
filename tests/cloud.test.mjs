@@ -10,7 +10,9 @@ function makeFakeBackend(){
   const fetchImpl=async(url,options={})=>{
     requests.push({url,method:options.method||"GET",body:options.body});
     if(url.includes("/auth/v1/token?grant_type=password"))
-      return {ok:true,json:async()=>({access_token:"JWT",refresh_token:"REFRESH",expires_in:3600,user:{email:"judge@example.org"}})};
+      return {ok:true,json:async()=>({access_token:"JWT",refresh_token:"REFRESH",expires_in:3600,user:{id:"00000000-0000-4000-8000-000000000001",email:"judge@example.org"}})};
+    if(url.includes("/rest/v1/competition_members"))
+      return {ok:true,json:async()=>[{role:"referee"}]};
     if(url.includes("/rest/v1/competition_state")&&(options.method||"GET")==="GET")
       return {ok:true,json:async()=>[{revision,data:remote}]};
     if(url.includes("/rest/v1/competition_state")&&options.method==="PATCH"){
