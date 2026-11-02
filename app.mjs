@@ -22,8 +22,23 @@ const names={overview:"Tổng quan giải đấu",teams:"Đội Invention","team
 const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
 const el=$('#content');
-function readData(){try{const saved=localStorage.getItem(KEY);return saved?normalizeData(JSON.parse(saved)):initialData();}catch(e){console.warn("Cannot load stored data",e);return initialData();}}
-function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){notify("Không thể lưu dữ liệu trên trình duyệt. Hãy xuất JSON và kiểm tra bộ nhớ.",true);}}
+function readData(){
+ try{
+  const cloudSession=typeof sessionStorage!=="undefined"&&sessionStorage.getItem("enjoy-ai-cloud-session-v1");
+  const cloudCache=cloudSession?sessionStorage.getItem(KEY+"-cloud-cache"):null;
+  const saved=cloudCache||localStorage.getItem(KEY);
+  return saved?normalizeData(JSON.parse(saved)):initialData();
+ }catch(e){console.warn("Cannot load stored data",e);return initialData();}
+}
+function saveLocal(){
+ try{
+  const snapshot=JSON.stringify(data);
+  if(cloud.ready){
+   sessionStorage.setItem(KEY+"-cloud-cache",snapshot);
+   localStorage.removeItem(KEY); // Dữ liệu học sinh trên Cloud không tồn tại ở cache dài hạn sau khi đóng phiên.
+  }else localStorage.setItem(KEY,snapshot);
+ }catch(e){notify("Không thể lưu bản dự phòng trên trình duyệt. Hãy xuất JSON và kiểm tra bộ nhớ.",true);}
+}
 function persist(){saveLocal();cloud.queue(data);}
 function updateCloudStatus(event){
   cloudMessage=event.message||"";
@@ -37,7 +52,7 @@ function updateCloudStatus(event){
 function applyCloudSnapshot(snapshot){
   const imported=normalizeData(snapshot);
   const local=JSON.stringify(data);
-  if(local!==JSON.stringify(imported)&&local!==JSON.stringify(initialData())){
+  if(local!==JSON.stringify(imported)&&local!==JSON.stringify(initialData())&&!localStorage.getItem(CLOUD_BACKUP_KEY)){
     try{localStorage.setItem(CLOUD_BACKUP_KEY,local);}catch(error){throw Error("Không thể sao lưu dữ liệu cục bộ trước khi tải Cloud: "+error.message);}
   }
   data=imported;ui.invTeam="";ui.battleId="";ui.layoutId="";saveLocal();
@@ -46,7 +61,7 @@ function applyCloudSnapshot(snapshot){
 async function restoreCloudSession(){
   if(!cloud.configured||!cloud.session)return;
   try{const snapshot=await cloud.load();applyCloudSnapshot(snapshot);render();}
-  catch(error){updateCloudStatus({status:"error",message:error.message});}
+  catch(error){cloud.signOut();updateCloudStatus({status:"error",message:error.message});}
 }
 function notify(message,error=false){$('#alert').innerHTML='<div class="toast'+(error?' error':'')+'">'+V(message)+'</div>';window.scrollTo({top:0,behavior:"smooth"});}
 function field(id,label,value,kind="text",attrs=""){return '<div class="field"><label for="'+V(id)+'">'+V(label)+'</label><input id="'+V(id)+'" type="'+V(kind)+'" value="'+V(value??"")+'" '+attrs+'></div>';}
@@ -68,6 +83,10 @@ function render(){
   const views={overview:renderOverview,teams:()=>renderTeams("invention"),"teams-invention":()=>renderTeams("invention"),"teams-battle":()=>renderTeams("battle"),invention:renderInvention,ranking:renderRanking,random:renderRandom,battle:renderBattle,"battle-ranking":renderBattleRanking,settings:renderSettings};
   el.innerHTML=(views[page]||renderOverview)();
   bindDynamic();
+  if(cloud.ready&&cloud.role==="viewer"){
+    const allowed='[data-go],[data-inv-tab],[data-battle-tab],[data-battle-group],[data-export-teams],[data-export-ranking],[data-export-battle-ranking],[data-print],[data-backup],[data-cloud-refresh],[data-cloud-logout],[data-cloud-backup],[data-cloud-retry],#scoreboard-search,#inv-team,#inv-round,#selected-match,#selected-layout';
+    el.querySelectorAll("button,input,textarea,select").forEach(control=>{if(!control.matches(allowed))control.disabled=true;});
+  }
 }
 function renderOverview(){return renderDashboard(data);}
 function renderTeams(type="invention"){return teamUi(data.teams,type,ui.editTeam,ui.teamImportFeedback[type]||"");}
@@ -202,7 +221,7 @@ function cloudPanel(){
   let body='<div class="panel"><div class="panel-top"><h3>Database Cloud · Supabase</h3>'+badge(cloud.ready?"Đã kết nối":cloud.configured?"Chưa đăng nhập":"Chưa cấu hình",cloud.ready?"green":"amber")+'</div>';
   if(!cloud.configured)body+='<p class="muted">Chưa cấu hình Project URL và publishable key trong file cloud-config.mjs. Chạy supabase/schema.sql theo hướng dẫn supabase/SETUP.md rồi nhập cấu hình để bật lưu Cloud. Website vẫn lưu cục bộ bình thường.</p>';
   else if(!cloud.ready)body+='<p class="muted">Đăng nhập bằng tài khoản được quản trị viên cấp quyền. Sau đăng nhập, dữ liệu Cloud là nguồn chính; dữ liệu cục bộ khác biệt được sao lưu riêng.</p><div class="form-grid">'+field("cloud-email","Email trọng tài","","email",'autocomplete="username"')+field("cloud-password","Mật khẩu","","password",'autocomplete="current-password"')+'</div><div class="action-row"><button type="button" class="btn" data-cloud-login>Đăng nhập & tải dữ liệu Cloud</button></div>';
-  else body+='<p class="muted">Tài khoản: <strong>'+V(cloud.session?.user?.email||"")+'</strong> · Phiên bản dữ liệu: <strong>'+cloud.revision+'</strong>. Dữ liệu được ghi lên máy chủ và không âm thầm ghi đè khi phiên bản thay đổi.</p><div class="action-row"><button type="button" class="btn btn-outline" data-cloud-retry>Đồng bộ lại khi lỗi</button><button type="button" class="btn btn-outline" data-cloud-refresh>Tải lại Cloud</button><button type="button" class="btn btn-outline" data-cloud-logout>Đăng xuất</button></div>';
+  else body+='<p class="muted">Tài khoản: <strong>'+V(cloud.session?.user?.email||"")+'</strong> · Quyền: <strong>'+V(cloud.role||"")+'</strong> · Phiên bản dữ liệu: <strong>'+cloud.revision+'</strong>. Dữ liệu được ghi lên máy chủ và không âm thầm ghi đè khi phiên bản thay đổi.</p><div class="action-row"><button type="button" class="btn btn-outline" data-cloud-retry>Đồng bộ lại khi lỗi</button><button type="button" class="btn btn-outline" data-cloud-refresh>Tải lại Cloud</button><button type="button" class="btn btn-outline" data-cloud-logout>Đăng xuất</button></div>';
   body+='<p id="cloud-status" class="panel-note" role="status" aria-live="polite">'+V(cloudMessage||"Lưu cục bộ đang hoạt động.")+'</p>';
   if(localStorage.getItem(CLOUD_BACKUP_KEY))body+='<div class="action-row"><button class="btn btn-outline" type="button" data-cloud-backup>↓ Tải bản dữ liệu cục bộ trước khi kết nối Cloud</button></div>';
   return body+'</div>';
@@ -512,10 +531,13 @@ el.addEventListener("click",e=>{
    if(!email||!password)return notify("Vui lòng nhập email và mật khẩu.",true);
    t.disabled=true;
    void cloud.login(email,password).then(snapshot=>{applyCloudSnapshot(snapshot);go("settings");notify("Đã kết nối Cloud. Kiểm tra trạng thái đồng bộ trước khi chấm.");})
-    .catch(error=>notify("Không thể đăng nhập/tải Cloud: "+error.message,true)).finally(()=>{t.disabled=false;});
+    .catch(error=>{cloud.signOut();notify("Không thể đăng nhập/tải Cloud: "+error.message,true);}).finally(()=>{t.disabled=false;});
    return;
  }
- if(t.hasAttribute("data-cloud-logout")){if(cloud.pending||cloud.inFlight)return notify("Còn dữ liệu chưa đồng bộ. Hãy sao lưu JSON trước khi đăng xuất.",true);cloud.signOut();render();return;}
+ if(t.hasAttribute("data-cloud-logout")){
+   if(cloud.pending||cloud.inFlight)return notify("Còn dữ liệu chưa đồng bộ. Hãy sao lưu JSON trước khi đăng xuất.",true);
+   cloud.signOut();sessionStorage.removeItem(KEY+"-cloud-cache");data=initialData();ui.invTeam="";ui.battleId="";ui.layoutId="";render();return;
+ }
  if(t.hasAttribute("data-cloud-backup")){const saved=localStorage.getItem(CLOUD_BACKUP_KEY);if(saved)download("enjoy-ai-precloud-backup.json",saved,"application/json");return;}
  if(t.hasAttribute("data-cloud-retry")){void cloud.retry().then(ok=>{if(ok)notify("Đã kiểm tra đồng bộ Cloud.");else notify("Chưa đồng bộ được. "+cloudMessage,true);}).catch(error=>notify(error.message,true));return;}
  if(t.hasAttribute("data-cloud-refresh")){
@@ -599,3 +621,4 @@ $('#export-top').addEventListener("click",exportJson);
 render();
 updateCloudStatus({status:"local",message:cloud.configured?"Chưa đăng nhập Cloud. Đang lưu cục bộ.":"Đang lưu cục bộ."});
 void restoreCloudSession();
+window.addEventListener("beforeunload",event=>{if(cloud.ready&&(cloud.pending||cloud.inFlight)){event.preventDefault();event.returnValue="";}});
