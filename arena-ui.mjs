@@ -1,4 +1,4 @@
-import {MODEL_META,SLOTS,OBSTACLE_SLOTS} from "./placement.mjs?v=20261012-grade-v4";
+import {MODEL_META,SLOTS,OBSTACLE_SLOTS} from "./placement.mjs?v=20261102-grid-clearance-v3";
 import {escapeHtml as E} from "./core.mjs?v=20261012-grade-v4";
 const FOCUS={compass:[490,158],paper:[510,170],gun:[308,128],printing:[530,205],seismo:[334,145],pyramid:[495,176],wall:[622,200]};
 export function modelPicture(id,compact=false,reversed=false){
@@ -13,10 +13,17 @@ export function angleName(value){
 export function renderArena(layout,image="https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg"){
  const assigned=new Map((layout?.tasks||[]).map(t=>[t.slot,t]));
  const obstacles=new Set(layout?.obstacles||[]);
+ const route=Array.isArray(layout?.navigation?.path)?layout.navigation.path:[];
+ const routeMarkup=layout?.generatorVersion===3&&route.length>1?
+ '<svg class="clearance-route-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+
+ '<polyline fill="none" stroke="#139a50" stroke-width="0.7" stroke-dasharray="1.2 0.8" stroke-linecap="round" stroke-linejoin="round" points="'+
+ route.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)).map(p=>p.x+','+p.y).join(' ')+'"/></svg>':'';
  return '<div class="arena-board real-arena">'+
  '<img class="arena-background" src="'+E(image)+'" alt="Ảnh sa bàn Enjoy AI 2026 người dùng cung cấp có 10 vị trí mô hình">'+
+ routeMarkup+
  SLOTS.map(slot=>{
   const p=assigned.get(slot.id);
+  if(!p&&slot.edge==="white")return "";
   if(!p)return '<span class="slot-marker empty-slot" style="left:'+slot.x+'%;top:'+slot.y+'%" title="Khung nhiệm vụ '+slot.id+'">'+slot.id+'</span>';
   return '<button class="mission-marker" data-map-slot="'+E(slot.id)+'" type="button" style="left:'+slot.x+'%;top:'+slot.y+'%" title="'+E(MODEL_META[p.id]?.name||p.id)+' / ô '+slot.id+' / hướng '+p.angle+'°">'+
    modelPicture(p.id,true,Boolean(p.reversed))+'<span class="marker-info"><strong>'+E(slot.id)+' · '+E(MODEL_META[p.id]?.name||p.id)+(p.id==="wall"&&p.reversed?'<span class="wall-reverse-mark"> ↻ Đảo</span>':"")+'</strong><span class="marker-arrow" style="transform:rotate('+p.angle+'deg)">➜</span><small>'+E(angleName(p.angle))+' · '+p.angle+'°</small></span></button>';
@@ -24,7 +31,7 @@ export function renderArena(layout,image="https://d2ol7oe51mr4n9.cloudfront.net/
  OBSTACLE_SLOTS.filter(slot=>obstacles.has(slot.id)).map(slot=>
   '<span class="obstacle-rect" style="left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+'%" title="Vật cản '+slot.id+'" aria-label="Vật cản '+slot.id+'"><span class="obstacle-label">'+slot.id+'</span></span>'
  ).join("")+
- '</div><div class="arena-legend"><span><i></i>Mô hình: chọn để xem</span><span><i class="orange"></i>Vật cản (3 ô chữ nhật nhỏ)</span><span><i class="gray"></i>Khung nhiệm vụ trống</span></div>';
+ '</div><div class="arena-legend"><span><i></i>Mô hình: chọn để xem</span><span><i class="orange"></i>Vật cản O/W</span><span><i class="gray"></i>Ô tím trống</span><span>Đường nét xanh: hành lang 30 cm mô phỏng (không nhất thiết bám line)</span></div>';
 }
 export function modelPopup(p){
  const meta=MODEL_META[p.id]||MODEL_META.bonus;
