@@ -56,3 +56,7 @@
 .random-inline-status{min-height:23px;margin-top:8px;padding:3px 0;font-size:12px;font-weight:650;color:#23795e;line-height:17px;}
 .random-inline-status.error{color:#b3454e;}
 #random-results .arena-board{contain:layout;}
+
+/* 30 cm safe-corridor overlay: informational, not a guaranteed line-following track. */
+.clearance-route-overlay{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 1px white)}
+@media print{.clearance-route-overlay{filter:none}}
