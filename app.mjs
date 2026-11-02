@@ -4,10 +4,10 @@ import {CLOUD_CONFIG} from "./cloud-config.mjs";
 import {parseSeconds,displaySeconds} from "./time-utils.mjs";
 import {teamImportTemplate,validateTeamImport} from "./team-import.mjs";
 import {renderInventionLeaderboard,renderBattleLeaderboard} from "./leaderboard-ui.mjs?v=20261012-leaderboard-v3";
-import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261012-grade-v4";
+import {MODEL_META,WALL_MODES,placementKey,countLayoutVariants} from "./placement.mjs?v=20261102-random-v2";
 import {teamUi,readTeamFields} from "./teams-ui.mjs?v=20261012-leaderboard-v3";
 import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261012-grade-v4";
-import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261012-grade-v4";
+import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261102-random-v2";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
 const V=escapeHtml;
@@ -116,12 +116,24 @@ function renderRanking(){
  renderInventionLeaderboard(data,ui.invDivision);
 }
 function renderMap(layout){return renderArena(layout,data.mapImage||"https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg");}
+function randomRuleText(){
+ const preset=LEVELS.find(l=>l.id===ui.layoutLevel)||LEVELS[0];
+ const count=countLayoutVariants({level:preset.id,wallMode:ui.wallMode,
+  includeBonus:ui.layoutBonus&&data.bonusEnabled,verifiedOnly:ui.verifiedOnly,
+  approvals:data.placementApprovals||{}});
+ return preset.division+": đổi "+preset.swapTasks+" vị trí nhiệm vụ, "+preset.moveObstacles+
+  " vị trí vật cản. Tổng 7 nhiệm vụ + 3 vật cản. Có "+count.toLocaleString("vi-VN")+" phương án hợp lệ theo cấu hình hiện tại.";
+}
+function updateRandomRuleLabel(){
+ const element=$('#layout-change-rule');
+ if(element)element.textContent=randomRuleText();
+}
 function renderRandom(){
   const layout=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   if(layout)ui.layoutId=layout.id; // Never inherit an old layout's reverse/random mode when opening the page.
   let s=title("Tạo đề Invention ngẫu nhiên","Áp dụng quy tắc đổi vị trí cố định theo bảng thi của V+. Luôn giữ đủ 7 nhiệm vụ và 3 vật cản.",'<button class="btn btn-outline" data-print>In sơ đồ</button>');
-  s+='<div class="studio-layout"><div class="studio-controls"><div class="panel studio-config-panel"><div class="form-grid">'+selectField("layout-level","Cấp độ luyện tập",LEVELS.map(l=>({id:l.id,label:l.name+' · '+l.division})),ui.layoutLevel)+'<div class="panel-note" id="layout-change-rule">'+V((()=>{const x=LEVELS.find(l=>l.id===ui.layoutLevel)||LEVELS[0];return x.division+': đổi '+x.swapTasks+' vị trí nhiệm vụ, '+x.moveObstacles+' vị trí vật cản. Tổng 7 nhiệm vụ + 3 vật cản.';})())+'</div>'+field("layout-seed","Seed cố định (tùy chọn)",ui.layoutSeed,"text","placeholder='Dùng nút Tạo lại theo seed'")+'<div class="field"><label>Nhiệm vụ chính</label><strong class="fixed-layout-count">7 nhiệm vụ</strong></div><div class="field"><label>Vật cản</label><strong class="fixed-layout-count">3 vật cản</strong></div>'+'</div><div class="wall-mode-row">'+selectField("layout-wall-mode","Vạn Lý Trường Thành – hướng lắp",WALL_MODES,ui.wallMode)+'<p class="muted">Giữ nguyên, đảo 180° hoặc random hai hướng. Chỉ áp dụng Tường Thành; 6 nhiệm vụ khác và vật cản hoạt động bình thường.</p></div><label class="check-pill" style="max-width:430px;min-height:47px"><input type="checkbox" id="layout-bonus" '+(ui.layoutBonus?"checked":"")+(!data.bonusEnabled?" disabled":"")+'><span><strong>Thêm nhiệm vụ Bonus</strong><small>'+(data.bonusEnabled?"Đã được bật trong phần Dữ liệu & hướng dẫn":"BTC chưa xác nhận nhiệm vụ thưởng")+'</small></span></label>'+
-    '<label class="check-pill verified-only-toggle"><input type="checkbox" id="layout-verified-only" '+(ui.verifiedOnly?"checked":"")+'><span><strong>Chỉ dùng vị trí/hướng đã xác nhận trên sa bàn thật</strong><small>Nếu chưa đủ cấu hình hợp lệ, hệ thống sẽ báo lỗi thay vì tự đặt sai. Xác nhận từng nhiệm vụ sau khi đã thử thực tế.</small></span></label><p class="muted">Nút “Tạo đề ngẫu nhiên mới” luôn tạo một mã seed mới. Để tái tạo bố trí, hãy nhập seed rồi chọn “Tạo lại theo seed”.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div><div id="random-status" class="random-inline-status" role="status" aria-live="polite"></div></div>';
+  s+='<div class="studio-layout"><div class="studio-controls"><div class="panel studio-config-panel"><div class="form-grid">'+selectField("layout-level","Cấp độ luyện tập",LEVELS.map(l=>({id:l.id,label:l.name+' · '+l.division})),ui.layoutLevel)+'<div class="panel-note" id="layout-change-rule">'+V(randomRuleText())+'</div>'+field("layout-seed","Seed cố định (tùy chọn)",ui.layoutSeed,"text","placeholder='Dùng nút Tạo lại theo seed'")+'<div class="field"><label>Nhiệm vụ chính</label><strong class="fixed-layout-count">7 nhiệm vụ</strong></div><div class="field"><label>Vật cản</label><strong class="fixed-layout-count">3 vật cản</strong></div>'+'</div><div class="wall-mode-row">'+selectField("layout-wall-mode","Vạn Lý Trường Thành – hướng lắp",WALL_MODES,ui.wallMode)+'<p class="muted">Giữ nguyên, đảo 180° hoặc random hai hướng. Chỉ áp dụng Tường Thành; 6 nhiệm vụ khác và vật cản hoạt động bình thường.</p></div><label class="check-pill" style="max-width:430px;min-height:47px"><input type="checkbox" id="layout-bonus" '+(ui.layoutBonus?"checked":"")+(!data.bonusEnabled?" disabled":"")+'><span><strong>Thêm nhiệm vụ Bonus</strong><small>'+(data.bonusEnabled?"Đã được bật trong phần Dữ liệu & hướng dẫn":"BTC chưa xác nhận nhiệm vụ thưởng")+'</small></span></label>'+
+    '<label class="check-pill verified-only-toggle"><input type="checkbox" id="layout-verified-only" '+(ui.verifiedOnly?"checked":"")+'><span><strong>Chỉ dùng vị trí/hướng nhiệm vụ đã xác nhận (vật cản dùng ô O1–O9)</strong><small>Nếu chưa đủ cấu hình hợp lệ, hệ thống sẽ báo lỗi thay vì tự đặt sai. Xác nhận từng nhiệm vụ sau khi đã thử thực tế.</small></span></label><p class="muted">Nút “Tạo đề ngẫu nhiên mới” ưu tiên phương án chưa xuất hiện trong lịch sử cùng cấu hình. Khi hết phương án, hệ thống thông báo và bắt đầu chu kỳ mới. Nhập seed để tái tạo đề đã tạo.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div><div id="random-status" class="random-inline-status" role="status" aria-live="polite"></div></div>';
   return s+'</div><div id="random-results" class="studio-stage">'+renderRandomResults(layout)+'</div></div>';
 }
 function renderRandomResults(layout){
@@ -414,16 +426,30 @@ function makeLayout(mode="random"){
   if(mode==="seed"&&!typedSeed){refreshRandomResults("Nhập mã seed trước khi bấm “Tạo lại theo seed”.",true);return;}
   const previous=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   try{
+    const opts={level,includeBonus:bonus,wallMode,verifiedOnly,approvals:data.placementApprovals||{}};
+    const total=countLayoutVariants(opts);
+    if(!total)throw Error("Chưa có đủ cấu hình vị trí và hướng đã kiểm nghiệm cho đúng số nhiệm vụ cần đổi. Hãy xác nhận thêm cấu hình trên sa bàn thật.");
+    const history=data.layouts.filter(l=>l.version===4&&l.level===level&&
+      (l.wallMode||"normal")===wallMode&&Boolean(l.verifiedOnly)===verifiedOnly&&
+      l.tasks.some(t=>t.id==="bonus")===bonus);
+    const seen=new Set(history.map(layoutSignature));
+    const exhausted=mode==="random"&&seen.size>=total;
+    const previousSignature=previous&&previous.version===4?layoutSignature(previous):null;
     let seed=mode==="seed"?typedSeed:nextRandomSeed();
-    let layout=generateLayout({level,seed,includeBonus:bonus,wallMode,verifiedOnly,approvals:data.placementApprovals||{}});
-    // A new random request should not accidentally repeat the last visible arrangement.
-    if(mode==="random"&&previous&&previous.version===4){
-      const oldSignature=layoutSignature(previous);
-      for(let attempt=0;attempt<20&&layoutSignature(layout)===oldSignature;attempt++){
+    // Recreate historical v4 layouts with the exact legacy algorithm.
+    const legacy=mode==="seed"&&history.find(l=>l.seed===typedSeed&&!l.generatorVersion);
+    let layout=generateLayout({...opts,seed,...(legacy?{algorithmVersion:1}:{})});
+    if(mode==="random"){
+      const attempts=Math.max(120,Math.min(15000,total*9));
+      for(let i=0;i<attempts;i++){
+        const signature=layoutSignature(layout);
+        if((!exhausted&&!seen.has(signature))||
+           (exhausted&&(total===1||signature!==previousSignature)))break;
         seed=nextRandomSeed();
-        layout=generateLayout({level,seed,includeBonus:bonus,wallMode,verifiedOnly,approvals:data.placementApprovals||{}});
+        layout=generateLayout({...opts,seed});
       }
-      if(layoutSignature(layout)===oldSignature)throw Error("Không tìm được bố trí khác với giới hạn hiện tại. Hãy kiểm tra danh sách hướng/vị trí hợp lệ.");
+      if(!exhausted&&seen.has(layoutSignature(layout)))
+        throw Error("Không tìm được đề chưa từng xuất hiện sau "+attempts+" lần thử. Có thể dùng seed hoặc xóa bớt đề đã lưu.");
     }
     layout.id=uid("layout");
     ui.layoutId=layout.id;
@@ -436,7 +462,8 @@ function makeLayout(mode="random"){
     persist();
     refreshRandomResults((mode==="seed"?"Đã tái tạo đề":"Đã random đề mới")+
       ": đổi "+layout.changeRules.swapTasks+" nhiệm vụ, "+layout.changeRules.moveObstacles+
-      " vị trí vật cản; vẫn đủ 7 nhiệm vụ và 3 vật cản. Seed: "+seed+".");
+      " vị trí vật cản; vẫn đủ 7 nhiệm vụ và 3 vật cản. Seed: "+seed+"."+
+      (exhausted?" Đã sử dụng hết "+total+" phương án cùng cấu hình; bắt đầu chu kỳ mới, có thể lặp lại đề cũ.":""));
   }catch(error){refreshRandomResults(error?.message||"Không thể tạo đề hợp lệ.",true);}
 }
 function exportLayout(){const l=data.layouts.find(x=>x.id===ui.layoutId);if(l)download("invention-layout-"+l.seed+".json",JSON.stringify(l,null,2),"application/json");}
@@ -454,19 +481,12 @@ el.addEventListener("change",e=>{
  }
  if(t.dataset.invTask||["inv-retries","inv-time","inv-smooth","inv-note"].includes(t.id)){updateInvFromControl(t);return;}
  if(t.id==="inv-division"){ui.invDivision=t.value;render();return;}
- if(t.id==="layout-level"){
-  ui.layoutLevel=t.value;
-  const rule=LEVELS.find(x=>x.id===t.value);
-  const display=$('#layout-change-rule');
-  if(display&&rule)display.textContent=rule.division+": đổi "+rule.swapTasks+
-    " vị trí nhiệm vụ, "+rule.moveObstacles+" vị trí vật cản. Tổng 7 nhiệm vụ + 3 vật cản.";
-  return;
-}
+ if(t.id==="layout-level"){ui.layoutLevel=t.value;updateRandomRuleLabel();return;}
  if(t.id==="layout-seed"){ui.layoutSeed=t.value;return;}
- if(t.id==="layout-bonus"){ui.layoutBonus=t.checked;return;}
- if(t.id==="layout-wall-mode"){ui.wallMode=t.value;return;}
- if(t.id==="layout-verified-only"){ui.verifiedOnly=t.checked;return;}
- if(t.id==="selected-layout"){ui.layoutId=t.value;const stored=data.layouts.find(l=>l.id===t.value);ui.wallMode=stored?.wallMode||"normal";ui.verifiedOnly=Boolean(stored?.verifiedOnly);refreshRandomResults();const toggle=$("#layout-verified-only");if(toggle)toggle.checked=ui.verifiedOnly;return;}
+ if(t.id==="layout-bonus"){ui.layoutBonus=t.checked;updateRandomRuleLabel();return;}
+ if(t.id==="layout-wall-mode"){ui.wallMode=t.value;updateRandomRuleLabel();return;}
+ if(t.id==="layout-verified-only"){ui.verifiedOnly=t.checked;updateRandomRuleLabel();return;}
+ if(t.id==="selected-layout"){ui.layoutId=t.value;const stored=data.layouts.find(l=>l.id===t.value);ui.wallMode=stored?.wallMode||"normal";ui.verifiedOnly=Boolean(stored?.verifiedOnly);refreshRandomResults();const toggle=$("#layout-verified-only");if(toggle)toggle.checked=ui.verifiedOnly;updateRandomRuleLabel();return;}
  if(t.id==="selected-match"){ui.battleId=t.value;render();return;}
  if(t.dataset.battleField||["battle-time","battle-note"].includes(t.id)){updateBattleFromControl(t);return;}
  if(t.id==="bonus-enabled"){data.bonusEnabled=t.checked;persist();render();notify("Đã cập nhật trạng thái nhiệm vụ thưởng.");return;}
