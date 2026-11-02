@@ -219,8 +219,14 @@ export function buildRandomLayout(options={}){
   approved={},verifiedOnly=false,approvals={}}=options;
  const preset=LEVELS.find(x=>x.id===level);
  if(!preset)throw Error("Bảng thi không hợp lệ.");
- const wallReversed=resolveWallReversed(wallMode,seed);
- const candidates=taskCandidates({preset,wallReversed,includeBonus,approved,verifiedOnly,approvals});
+ let wallReversed=resolveWallReversed(wallMode,seed);
+ let candidates=taskCandidates({preset,wallReversed,includeBonus,approved,verifiedOnly,approvals});
+ // In strict mode, random wall orientation must choose from actually verified
+ // orientations, rather than failing on half of otherwise valid seeds.
+ if(!candidates.length&&wallMode==="random"&&verifiedOnly){
+  const alternate=taskCandidates({preset,wallReversed:!wallReversed,includeBonus,approved,verifiedOnly,approvals});
+  if(alternate.length){wallReversed=!wallReversed;candidates=alternate;}
+ }
  if(!candidates.length)throw Error(verifiedOnly?
   "Chưa có đủ cấu hình vị trí và hướng đã kiểm nghiệm cho đúng số nhiệm vụ cần đổi. Hãy xác nhận thêm cấu hình trên sa bàn thật.":
   "Không tìm được hoán đổi nhiệm vụ hợp lệ. Hãy kiểm tra các hướng/vị trí.");
