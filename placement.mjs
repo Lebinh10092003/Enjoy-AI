@@ -1,3 +1,4 @@
+import {FIELD_CM,MAX_ROBOT_CM,SAFETY_MARGIN_CM,FOOTPRINT_CM,rectangleFromSlot,checkNavigation} from "./route-safety.mjs";
 // Coordinates are measured on the user's marked 2048×1137 field image.
 // Rotation convention: 0°=right, 90°=down, 180°=left, 270°=up.
 // These are APPROACH headings from the field path; not unverified model-actuator orientations.
@@ -14,6 +15,30 @@ export const SLOTS=[
  {id:"I",label:"Góc dưới trái oval",x:67.6,y:91.4,approach:315,edge:"diagonal",path:"diagonal"},
  {id:"J",label:"Góc dưới phải oval",x:94.7,y:91.4,approach:225,edge:"diagonal",path:"diagonal"}
 ];
+// White/outlined locations inferred from the supplied field photograph and
+// annotated positions. Preliminary coordinates, not confirmed referee marks.
+// Obstacle sites and task sites may share physical coordinates: collision
+// validation rejects attempts occupying both.
+export const WHITE_SLOTS=[
+ {id:"W01",label:"Trắng · nhánh dưới phải",x:56.4,y:66.6,approach:180,edge:"white",path:"horizontal"},
+ {id:"W02",label:"Trắng · giao dưới giữa",x:44.1,y:87.2,approach:270,edge:"white",path:"vertical"},
+ {id:"W03",label:"Trắng · giao giữa trái",x:31.8,y:50.0,approach:180,edge:"white",path:"horizontal"},
+ {id:"W04",label:"Trắng · giao giữa",x:44.1,y:50.0,approach:180,edge:"white",path:"horizontal"},
+ {id:"W05",label:"Trắng · giao giữa phải",x:56.4,y:50.0,approach:180,edge:"white",path:"horizontal"},
+ {id:"W06",label:"Trắng · ngang trái",x:19.8,y:50.0,approach:0,edge:"white",path:"horizontal"},
+ {id:"W07",label:"Trắng · nhánh trên phải",x:56.4,y:33.3,approach:180,edge:"white",path:"horizontal"},
+ {id:"W08",label:"Trắng · dọc phải trên",x:56.4,y:24.5,approach:270,edge:"white",path:"vertical"},
+ {id:"W09",label:"Trắng · dọc giữa trên",x:44.1,y:24.5,approach:270,edge:"white",path:"vertical"},
+ {id:"W10",label:"Trắng · dọc trái trên",x:31.8,y:24.5,approach:270,edge:"white",path:"vertical"},
+ {id:"W11",label:"Trắng · dọc ngoài trên",x:19.8,y:24.5,approach:270,edge:"white",path:"vertical"},
+ {id:"W12",label:"Trắng · dưới trái",x:19.8,y:67.7,approach:90,edge:"white",path:"vertical"},
+ {id:"W13",label:"Trắng · giao trái",x:7.1,y:50.0,approach:0,edge:"white",path:"horizontal"},
+ {id:"W14",label:"Trắng · giao dưới trái",x:31.8,y:87.2,approach:270,edge:"white",path:"vertical"},
+ {id:"W15",label:"Trắng · gần Tường Thành",x:56.4,y:87.2,approach:270,edge:"white",path:"vertical"},
+ {id:"W16",label:"Trắng · ngang trên trái",x:19.8,y:12.5,approach:90,edge:"white",path:"vertical"},
+ {id:"W17",label:"Trắng · ngang trên giữa",x:44.1,y:12.5,approach:90,edge:"white",path:"vertical"}
+];
+SLOTS.push(...WHITE_SLOTS);
 // Original figures from published 2026 rules (the same model illustrations supplied by user).
 // CSS crops hide the instructional annotations while preserving the actual model photographs.
 const prefix="https://www.enjoyaigreece.gr/wp-content/uploads/2026/02/";
@@ -30,9 +55,13 @@ export const MODEL_META={
 // The large and wide models are conservative: avoid diagonal frames until physically confirmed.
 // Approval sets are explicitly editable in later competition configurations.
 const DIAGONAL_ONLY=new Set(["printing","compass","seismo"]);
+// White reference marks are only considered for compact models until their
+// physical dimensions and assembly directions are confirmed on the real mat.
+const WHITE_TASK_MODELS=new Set(["compass","printing","seismo","bonus"]);
 export const APPROACH_RULES=Object.fromEntries(Object.entries(MODEL_META).map(([key,meta])=>[
  key,Object.fromEntries(SLOTS.filter(slot=>
-  slot.edge!=="diagonal" || DIAGONAL_ONLY.has(key)
+  (slot.edge==="white"?WHITE_TASK_MODELS.has(key):
+    slot.edge!=="diagonal" || DIAGONAL_ONLY.has(key))
  ).map(slot=>[slot.id,[slot.approach]]))
 ]));
 // Nine small red rectangular locations measured from the user's annotated field image.
@@ -49,6 +78,11 @@ export const OBSTACLE_SLOTS=[
  {id:"O8",x:32.19,y:68.54,w:3.30,h:3.95,type:"horizontal"},
  {id:"O9",x:44.31,y:68.73,w:4.50,h:4.33,type:"horizontal"}
 ];
+OBSTACLE_SLOTS.push(...WHITE_SLOTS.map(slot=>({
+ id:slot.id,x:slot.x,y:slot.y,w:3.9,h:4.8,type:"white"
+})));
+const LEGACY_TASK_SLOTS=SLOTS.filter(x=>x.edge!=="white");
+const LEGACY_OBSTACLE_SLOTS=OBSTACLE_SLOTS.filter(x=>x.id.startsWith("O"));
 export const MAIN_TASK_COUNT=7;
 export const OBSTACLE_COUNT=3;
 // Required V+ event movement rules. The number placed on the board stays unchanged.
@@ -70,6 +104,9 @@ export const BASE_TASK_SLOTS=Object.freeze({
  compass:"G",paper:"A",gun:"B",printing:"H",seismo:"C",pyramid:"D",wall:"E"
 });
 export const BASE_OBSTACLE_SLOTS=Object.freeze(["O1","O5","O8"]);
+// An independent, navigation-safe starting configuration. The historical
+// O1/O5/O8 baseline is preserved for deterministic replay of old layouts.
+export const SAFE_BASE_OBSTACLE_SLOTS=Object.freeze(["O1","O2","O3"]);
 export const WALL_MODES=[
  {id:"normal",label:"Không đảo (mặc định)"},
  {id:"reversed",label:"Luôn đảo Tường Thành 180°"},
@@ -140,14 +177,14 @@ function buildLegacyRandomLayout({level="medium",seed="DEMO",includeBonus=false,
  if(includeBonus){
   // Bonus is not one of the seven mandatory models. Never remove/alter a core model.
   // Choose an empty task frame where it is permitted, or reject explicitly.
-  const bonusCandidates=shuffled(SLOTS.filter(x=>!Object.values(assignment).includes(x.id)&&allowed("bonus",x.id)),rng);
+  const bonusCandidates=shuffled(LEGACY_TASK_SLOTS.filter(x=>!Object.values(assignment).includes(x.id)&&allowed("bonus",x.id)),rng);
   if(!bonusCandidates.length)throw Error("Không còn khung hợp lệ cho Bonus.");
   tasks.push({id:"bonus",slot:bonusCandidates[0].id,angle:bonusCandidates[0].approach});
  }
  // Move exactly N of the 3 baseline obstacles to previously vacant rectangle(s).
  // The position IDs of every unselected obstacle are left unchanged.
  const movable=shuffled([...BASE_OBSTACLE_SLOTS],rng).slice(0,preset.moveObstacles);
- const free=shuffled(OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),rng);
+ const free=shuffled(LEGACY_OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),rng);
  const movedTo=free.slice(0,preset.moveObstacles);
  const obstacleMap=Object.fromEntries(BASE_OBSTACLE_SLOTS.map((id,i)=>[i,id]));
  for(let i=0;i<movable.length;i++){
@@ -187,7 +224,7 @@ function taskCandidates({preset,wallReversed=false,approved={},verifiedOnly=fals
    for(let i=0;i<subset.length;i++)assignment[subset[i]]=BASE_TASK_SLOTS[subset[permutation[i]]];
    if(!NORMAL_MODELS.every(id=>allowed(id,assignment[id])))continue;
    const bonusSlots=includeBonus?
-    SLOTS.filter(slot=>!Object.values(assignment).includes(slot.id)&&allowed("bonus",slot.id)).map(slot=>slot.id):
+    LEGACY_TASK_SLOTS.filter(slot=>!Object.values(assignment).includes(slot.id)&&allowed("bonus",slot.id)).map(slot=>slot.id):
     [null];
    // Each valid bonus location is a separate equiprobable outcome.
    for(const bonusSlot of bonusSlots)candidates.push({subset:[...subset],assignment,bonusSlot});
@@ -198,7 +235,7 @@ function taskCandidates({preset,wallReversed=false,approved={},verifiedOnly=fals
 function obstacleVariantCount(moves){
  // Choose moved baseline obstacle(s), then assign distinct free O slots.
  let choices=1,places=1;
- for(let i=0;i<moves;i++){choices=choices*(BASE_OBSTACLE_SLOTS.length-i)/(i+1);places*=OBSTACLE_SLOTS.length-BASE_OBSTACLE_SLOTS.length-i;}
+ for(let i=0;i<moves;i++){choices=choices*(BASE_OBSTACLE_SLOTS.length-i)/(i+1);places*=LEGACY_OBSTACLE_SLOTS.length-BASE_OBSTACLE_SLOTS.length-i;}
  return Math.round(choices*places);
 }
 /** Count the finite number of possible arrangements under current constraints. */
@@ -215,6 +252,7 @@ export function countLayoutVariants({level="medium",wallMode="normal",includeBon
 /** Same seed + same options always recreates the same board. */
 export function buildRandomLayout(options={}){
  if(options.algorithmVersion===1)return buildLegacyRandomLayout(options);
+ if(options.allowWhiteSlots&&options.algorithmVersion!==2)return buildExpandedLayout(options);
  const {level="medium",seed="DEMO",includeBonus=false,wallMode="normal",
   approved={},verifiedOnly=false,approvals={}}=options;
  const preset=LEVELS.find(x=>x.id===level);
@@ -244,7 +282,7 @@ export function buildRandomLayout(options={}){
   tasks.push({id:"bonus",slot:slot.id,angle:slot.approach});
  }
  const movable=shuffled([...BASE_OBSTACLE_SLOTS],obstacleRng).slice(0,preset.moveObstacles);
- const free=shuffled(OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),obstacleRng);
+ const free=shuffled(LEGACY_OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),obstacleRng);
  const obstacles=[...BASE_OBSTACLE_SLOTS];
  for(let i=0;i<movable.length;i++)obstacles[BASE_OBSTACLE_SLOTS.indexOf(movable[i])]=free[i];
  return {
@@ -257,4 +295,97 @@ export function buildRandomLayout(options={}){
   note:"Quy tắc V+: đổi "+preset.swapTasks+" nhiệm vụ, đổi "+preset.moveObstacles+
    " vị trí vật cản; tổng 7 nhiệm vụ và 3 vật cản. Tường Thành giữ ô gốc khi không đảo. Bản đồ gốc cần được xác nhận trên sa bàn thật."
  };
+}
+
+/**
+ * V3: change precisely N task positions while allowing verified-size compact
+ * tasks at WHITE slots as well as purple slots. Obstacle positions also use
+ * white cells. Refuse geometrically overlapping or route-blocking proposals.
+ */
+export function assessLayoutSafety(layout,{robotCm=MAX_ROBOT_CM,marginCm=SAFETY_MARGIN_CM}={}){
+ const rectangles=[];
+ for(const t of layout.tasks||[]){
+  const slot=SLOTS.find(s=>s.id===t.slot);
+  if(!slot)return {ok:false,reason:"unknown-task-slot",items:[t.slot],reachedGates:[]};
+  const kind=MODEL_META[t.id]?.footprint||"normal";
+  rectangles.push({...rectangleFromSlot(slot,FOOTPRINT_CM[kind]||FOOTPRINT_CM.normal),id:"task:"+t.id});
+ }
+ for(const obstacleId of layout.obstacles||[]){
+  const slot=OBSTACLE_SLOTS.find(s=>s.id===obstacleId);
+  if(!slot)return {ok:false,reason:"unknown-obstacle-slot",items:[obstacleId],reachedGates:[]};
+  rectangles.push({...rectangleFromSlot(slot,FOOTPRINT_CM.obstacle),id:"obstacle:"+obstacleId});
+ }
+ return checkNavigation(rectangles,{robotCm,marginCm});
+}
+function buildExpandedLayout({level="medium",seed="DEMO",includeBonus=false,wallMode="normal",
+ approved={},verifiedOnly=false,approvals={},robotCm=MAX_ROBOT_CM}={}){
+ const preset=LEVELS.find(x=>x.id===level);
+ if(!preset)throw Error("Bảng thi không hợp lệ.");
+ const reversed=resolveWallReversed(wallMode,seed);
+ const base=SLOTS.filter(x=>x.edge!=="white");
+ const allowed=(id,slot)=>{
+  if(!validPlacement(id,slot.id,slot.approach,approved))return false;
+  return !verifiedOnly||approvals[placementKey(id,slot.id,slot.approach,id==="wall"&&reversed)]===true;
+ };
+ const rng=seeded(String(seed)+"|expanded-physical-v3");
+ const pool=NORMAL_MODELS.filter(x=>x!=="wall");
+ const MAX_PLANS=250;
+ for(let attempt=0;attempt<MAX_PLANS;attempt++){
+  const selected=shuffled(pool,rng).slice(0,preset.swapTasks);
+  const assignment={...BASE_TASK_SLOTS};
+  const locked=new Set(NORMAL_MODELS.filter(id=>!selected.includes(id)).map(id=>assignment[id]));
+  let solved=false;
+  // Randomized backtracking for the selected task subset, without replacement.
+  const recurse=(index,used)=>{
+   if(index===selected.length)return true;
+   const id=selected[index];
+   // Compact models can move to white reference marks; wide models remain in
+   // their documented purple-area placement family until physically approved.
+   const positions=shuffled(SLOTS.filter(slot=>slot.id!==BASE_TASK_SLOTS[id]&&
+    !used.has(slot.id)&&allowed(id,slot)),rng);
+   for(const slot of positions){
+    assignment[id]=slot.id;used.add(slot.id);
+    if(recurse(index+1,used))return true;
+    used.delete(slot.id);
+   }
+   assignment[id]=BASE_TASK_SLOTS[id];return false;
+  };
+  solved=recurse(0,new Set(locked));
+  if(!solved)continue;
+  const tasks=NORMAL_MODELS.map(id=>{
+   const slot=SLOTS.find(x=>x.id===assignment[id]);
+   const original={id,slot:slot.id,angle:slot.approach};
+   return id==="wall"?{...original,reversed,modelRotation:reversed?180:0}:original;
+  });
+  if(includeBonus){
+   const occupied=new Set(tasks.map(t=>t.slot));
+   const options=shuffled(SLOTS.filter(slot=>!occupied.has(slot.id)&&allowed("bonus",slot)),rng);
+   if(!options.length)continue;
+   const slot=options[0];tasks.push({id:"bonus",slot:slot.id,angle:slot.approach});
+  }
+  const movable=shuffled([...SAFE_BASE_OBSTACLE_SLOTS],rng).slice(0,preset.moveObstacles);
+  const free=shuffled(OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!SAFE_BASE_OBSTACLE_SLOTS.includes(id)),rng);
+  const obstacles=[...SAFE_BASE_OBSTACLE_SLOTS];
+  for(let i=0;i<movable.length;i++)obstacles[SAFE_BASE_OBSTACLE_SLOTS.indexOf(movable[i])]=free[i];
+  const proposal={tasks,obstacles};
+  const safety=assessLayoutSafety(proposal,{robotCm});
+  if(!safety.ok)continue;
+  return {
+   id:"layout-"+Date.now().toString(36),version:4,generatorVersion:3,
+   level:preset.id,seed:String(seed),wallMode,wallReversed:reversed,tasks,obstacles,
+   changeRules:{swapTasks:preset.swapTasks,moveObstacles:preset.moveObstacles},
+   changedTaskIds:[...selected],movedObstacleFrom:[...movable],
+   created:new Date().toISOString(),official:false,placementStatus:verifiedOnly?"physically-reviewed":"simulation",
+   verifiedOnly,allowWhiteSlots:true,
+   navigation:{robotCm,marginCm:SAFETY_MARGIN_CM,clearanceCheck:"grid-3cm-v1",
+    passed:true,reachedGates:[...safety.reachedGates],path:safety.path},
+   note:"Bản luyện tập trên sa bàn 216 x 120 cm. Bộ lọc lưới 3 cm bảo toàn ít nhất một hành lang cho robot có bề ngang tối đa "+
+     robotCm+" cm (với kích thước mô hình ước lượng). Phải đo kích thước mô hình và thử đường chạy thực tế."
+  };
+ }
+ throw Error(verifiedOnly?
+  "Chưa có đủ cấu hình vị trí/hướng đã kiểm nghiệm để bảo đảm lối đi cho robot "+robotCm+
+   " cm. Hãy xác nhận thêm vị trí hoặc đo lại mô hình trước khi tạo đề.":
+  "Không tìm được đề bảo toàn lối đi cho robot "+robotCm+
+   " cm trong "+MAX_PLANS+" phương án. Không lưu đề thiếu an toàn; cần đo lại mô hình hoặc bổ sung vị trí đặt đã xác minh.");
 }
