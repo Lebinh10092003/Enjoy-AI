@@ -29,6 +29,8 @@ create table app_private.competition_audit (
   unique(competition_id,revision)
 );
 create index competition_audit_recent on app_private.competition_audit(competition_id,updated_at desc);
+create index competition_state_updated_by_idx on public.competition_state(updated_by) where updated_by is not null;
+create index competition_audit_updated_by_idx on app_private.competition_audit(updated_by) where updated_by is not null;
 
 alter table public.competition_members enable row level security;
 alter table public.competition_state enable row level security;
