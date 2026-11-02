@@ -26,8 +26,22 @@ export class CloudSync {
   async parse(response) {
     let body=null;
     try { body=await response.json(); } catch { body=null; }
-    if(!response.ok)throw Error(body?.msg||body?.message||body?.error_description||body?.error||("HTTP "+response.status));
+    if(!response.ok){
+      const error=new Error(body?.msg||body?.message||body?.error_description||body?.error||("HTTP "+response.status));
+      error.code=String(body?.code||body?.error_code||"");
+      error.status=response.status;
+      throw error;
+    }
     return body;
+  }
+  // Does not require an account or access token. This is only an Auth
+  // connectivity check, not proof that a user exists or has RLS membership.
+  async checkConnection(){
+    if(!this.configured)throw Error("Chưa cấu hình Project URL hoặc publishable key.");
+    if(!this.fetcher)throw Error("Trình duyệt không hỗ trợ kết nối mạng.");
+    const response=await this.request("/auth/v1/health",{method:"GET"},false);
+    if(!response||typeof response!=="object")throw Error("Máy chủ Auth không trả dữ liệu hợp lệ.");
+    return {reachable:true,service:"Supabase Auth"};
   }
   async request(path,options={},authenticated=true){
     const headers={"apikey":this.key,...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})};
@@ -43,17 +57,32 @@ export class CloudSync {
   }
   async login(email,password){
     if(!this.configured)throw Error("Chưa cấu hình Cloud trong cloud-config.mjs.");
-    const body=await this.request("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email,password})},false);
+    let body;
+    try {
+      body=await this.request("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email,password})},false);
+    }catch(error){
+      const code=String(error?.code||"").toLowerCase();
+      if(code==="invalid_credentials"||/invalid login credentials/i.test(error.message))
+        throw Error("Không đăng nhập được: email hoặc mật khẩu không đúng, hoặc tài khoản Auth chưa được tạo.");
+      if(code==="email_not_confirmed"||/email not confirmed/i.test(error.message))
+        throw Error("Email chưa được xác nhận trong Supabase Authentication > Users.");
+      if(error?.status===429)
+        throw Error("Đăng nhập quá nhiều lần. Vui lòng thử lại sau khi hết giới hạn.");
+      throw error;
+    }
+    if(!body?.access_token||!body?.user?.id)throw Error("Supabase không trả về phiên đăng nhập hợp lệ.");
     this.storeSession({...body,expires_at:Date.now()+Number(body.expires_in||3600)*1000});
     return this.load();
   }
   async load(){
     if(!this.session)throw Error("Chưa đăng nhập Cloud.");
+    const memberships=await this.request("/rest/v1/competition_members?select=role&user_id=eq."+encodeURIComponent(this.session.user.id)+"&limit=1");
+    if(!Array.isArray(memberships)||!["admin","referee","viewer"].includes(memberships[0]?.role))
+      throw Error("Đăng nhập Auth thành công nhưng tài khoản chưa được cấp quyền trong bảng competition_members. Quản trị viên cần chạy SQL cấp quyền.");
     const path="/rest/v1/competition_state?select=data,revision,updated_at&id=eq."+encodeURIComponent(this.workspace)+"&limit=1";
     const result=await this.request(path);
-    if(!Array.isArray(result)||result.length!==1)throw Error("Tài khoản chưa được cấp quyền hoặc chưa tạo competition_state trên Supabase.");
-    const memberships=await this.request("/rest/v1/competition_members?select=role&user_id=eq."+encodeURIComponent(this.session.user.id)+"&limit=1");
-    if(!Array.isArray(memberships)||!["admin","referee","viewer"].includes(memberships[0]?.role))throw Error("Tài khoản chưa có quyền thành viên hợp lệ.");
+    if(!Array.isArray(result)||result.length!==1)
+      throw Error("Đã đăng nhập và có vai trò, nhưng không đọc được competition_state. Kiểm tra workspaceId và chính sách RLS.");
     this.role=memberships[0].role;
     this.revision=Number(result[0].revision);
     this.ready=true;this.blocked=false;this.pending=null;

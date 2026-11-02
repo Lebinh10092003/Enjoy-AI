@@ -1,5 +1,16 @@
 # Enjoy-AI — cấu hình Supabase PostgreSQL (02/11/2026)
 
+## Kiểm tra thực tế ngày 02/11/2026
+- Project **Enjoy-AI** đang ở trạng thái **ACTIVE_HEALTHY**.
+- Truy vấn trực tiếp Supabase cho thấy **0 user** ở `auth.users`, **0 thành viên** ở `competition_members`, dữ liệu workspace `main` ở revision **0** và chưa có đội. Vì vậy website hiển thị **Cloud · Chưa đăng nhập** là đúng; chưa có tài khoản để đăng nhập. Kết nối Supabase với ChatGPT không thay thế việc tạo tài khoản của web.
+- **Không cần chạy lại schema.sql, không cần project mới.**
+- Người quản trị chủ động tạo tài khoản trong [Authentication → Users](https://supabase.com/dashboard/project/oooiaqnzqcvodjuwnagh/auth/users), chọn **Add user → Create new user** (hoặc **Send invitation** nếu muốn người được mời tự thiết lập mật khẩu). Các email/lời mời chỉ được gửi khi quản trị viên chủ động thực hiện trên Supabase.
+- Trong web, vào **Dữ liệu & cài đặt → Database Cloud**; điền email đã tạo, chọn vai trò, bấm **Sao chép SQL cấp quyền**; kiểm tra nội dung và chạy trong [SQL Editor](https://supabase.com/dashboard/project/oooiaqnzqcvodjuwnagh/sql/new). Sau đó đăng nhập trên website.
+- Để khởi tạo quản trị, chọn **admin** cho đúng tài khoản của mình. Chỉ cấp **referee** hoặc **viewer** cho tài khoản khác; không dùng chung thông tin đăng nhập.
+- **Trước lần đăng nhập đầu tiên**, xuất JSON để giữ dữ liệu đang lưu trên máy; website có tự sao lưu cục bộ trước khi thay thế bởi Cloud nhưng vẫn nên lưu một bản JSON độc lập.
+- Nút **Kiểm tra kết nối Auth** chỉ xác minh khả năng truy cập dịch vụ Auth; không xác nhận tài khoản có tồn tại hoặc được phân quyền.
+- Sau khi tạo và cấp quyền thành công, kiểm tra `Cloud · Đã lưu`. Không nhập ngược JSON cũ nếu không chắc Cloud chưa có dữ liệu mới.
+
 ## Trạng thái đã triển khai
 - **Project**: Enjoy-AI / `oooiaqnzqcvodjuwnagh`, Singapore.
 - **Project URL**: `https://oooiaqnzqcvodjuwnagh.supabase.co`

@@ -70,3 +70,41 @@ test("Cloud rejects concurrent write rather than overwriting another referee",as
   assert.rejects(()=>sync.retry(),CloudConflictError);
   sync.signOut();
 });
+
+test("Cloud connection diagnostic uses Auth health endpoint without login or secret",async()=>{
+ const calls=[];
+ const sync=new CloudSync(config,{storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}},
+  fetchImpl:async(url,options={})=>{
+   calls.push({url,options});
+   return {ok:true,json:async()=>({version:"2.0",name:"GoTrue"})};
+  }});
+ assert.deepEqual(await sync.checkConnection(),{reachable:true,service:"Supabase Auth"});
+ assert.equal(calls.length,1);
+ assert.ok(calls[0].url.endsWith("/auth/v1/health"));
+ assert.ok(calls[0].options.headers.apikey);
+ assert.equal(calls[0].options.headers.Authorization,undefined);
+ assert.equal(sync.ready,false);
+});
+test("Cloud detects valid Auth user missing competition membership",async()=>{
+ const fake=makeFakeBackend();
+ const sync=new CloudSync(config,{fetchImpl:async(url,options)=>{
+   if(url.includes("/rest/v1/competition_members"))return {ok:true,json:async()=>[]};
+   return fake.fetchImpl(url,options);
+  },storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}});
+ await assert.rejects(sync.login("judge@example.org","test-password"),/chưa được cấp quyền/);
+ assert.equal(sync.ready,false);
+ assert.equal(sync.revision,null);
+ sync.signOut();
+});
+test("Cloud provides useful error for invalid credentials and unconfirmed email",async()=>{
+ const cases=[
+  [{code:"invalid_credentials",message:"Invalid login credentials"},"email hoặc mật khẩu không đúng"],
+  [{code:"email_not_confirmed",message:"Email not confirmed"},"Email chưa được xác nhận"]
+ ];
+ for(const [body,expected] of cases){
+  const sync=new CloudSync(config,{fetchImpl:async()=>({ok:false,status:400,json:async()=>body}),
+   storage:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}});
+  await assert.rejects(sync.login("judge@example.org","invalid"),new RegExp(expected));
+  assert.equal(sync.session,null);
+ }
+});
