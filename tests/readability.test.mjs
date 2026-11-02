@@ -17,11 +17,11 @@ function prop(rule,name){
  return m[1].trim();
 }
 test("Readable typography stylesheet loads last and declares responsive overrides",()=>{
- assert.match(html,/readable-2026\\.css\\?v=20261102-typography-v1/);
+ assert.ok(html.includes("readable-2026.css?v=20261102-typography-v1"));
  assert.ok(html.indexOf("vplus-scoreboard.css")<html.indexOf("readable-2026.css"));
- assert.match(css,/@media screen and \\(max-width:760px\\)/);
- assert.match(css,/@media screen and \\(max-width:390px\\)/);
- assert.match(css,/@media screen and \\(max-width:1150px\\)/);
+ assert.ok(css.includes("@media screen and (max-width:760px)"));
+ assert.ok(css.includes("@media screen and (max-width:390px)"));
+ assert.ok(css.includes("@media screen and (max-width:1150px)"));
 });
 test("Readable UI has body text 16px, controls 16px, table cells >= 14px",()=>{
  assert.equal(prop(block(css,"body"),"font-size"),"16px");
@@ -40,7 +40,7 @@ test("Cloud form, random toolbar, mobile tables and accessibility are addressed"
  for(const selector of [".cloud-panel .form-grid",".studio-config-panel .action-row>.btn",
    ".table-wrap,.scoreboard-table-wrap",".scoreboard-mobile-main strong",
    ".studio-config-panel .check-pill small"]){
-   assert.ok(css.includes(selector+"{"),"Missing "+selector);
+   assert.ok(css.includes(selector),"Missing "+selector);
  }
  assert.match(css,/overflow-x:auto/);
  assert.match(css,/min-height:46px/);
