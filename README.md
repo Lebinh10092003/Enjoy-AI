@@ -244,3 +244,14 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 - Nút Tạo đề mới ưu tiên phương án chưa dùng trong lịch sử cùng cấp lớp, chế độ Tường Thành, Bonus và tùy chọn xác nhận. Khi đã hết phương án mới, công cụ thông báo bắt đầu chu kỳ lặp.
 - Nhập seed tái tạo đề theo cùng cấu hình. Những seed cũ còn trong lịch sử sẽ sử dụng thuật toán cũ; đề mới có generatorVersion = 2, giữ version = 4 để tương thích tệp JSON trước đó.
 - Đây là **bộ sinh đề luyện tập**, không phải bố trí được BTC xác thực. Phải đối chiếu sa bàn thật, hướng tác động mô hình và quy định của BTC trước khi dùng chính thức.
+
+
+## Bộ random mở rộng ô trắng và kiểm tra hành lang robot 30 cm (02/11/2026)
+
+- Luật ENJOY AI 2026 xác nhận sa bàn Inventions Trail **216 × 120 cm**, đường line đen khoảng **2,5 cm**. Đây là thông số dùng để quy đổi tọa độ % sang centimet. Kích thước 30 cm được coi là bề ngang dự phòng theo yêu cầu vận hành; trường hợp robot vươn rộng hơn sau xuất phát phải tính lại.
+- Thêm **17 vị trí trắng W01–W17** được xác định sơ bộ từ ảnh sa bàn và các điểm đỏ được người dùng đánh dấu. Danh sách O1–O9 vẫn tồn tại. Vị trí mới không phải danh mục đã được BTC xác nhận; cần đo/kiểm nghiệm trước khi dùng thi chính thức.
+- **7 nhiệm vụ chính** vẫn giữ nguyên; 2/3 nhiệm vụ đổi vị trí theo cấp lớp, Tường Thành ở ô gốc. Các mô hình nhỏ có thể đổi sang ô trắng, mô hình lớn chưa được tự động đưa sang đó để tránh thiếu thông tin kích thước. **3 vật cản** chọn trong O/W và giữ số lần di chuyển 0/1/1/2 theo quy tắc V+.
+- Mỗi bố trí mới phải đi qua phép kiểm tra **không chồng mô hình** và **khả năng thông hành**: mô hình/vật cản được chuyển thành hình chữ nhật ước tính, nở thêm 15 cm mỗi phía (robot 30 cm) và 1 cm đệm; BFS trên lưới 3 cm từ vùng xuất phát đến ít nhất một cổng gần các nhánh line phía phải. Có thể đi qua khoảng trống ngoài line; đây là phép kiểm tra hành lang hình học, không phải chứng minh robot bám line liên tục.
+- Nếu không tìm được đề vượt qua phép kiểm tra, hệ thống **từ chối lưu**, không tạo bố trí không an toàn. Sơ đồ hiện đường xanh nét đứt là đường thông thoáng tham khảo. Đề cũ được giữ và dán nhãn chưa qua kiểm tra 30 cm.
+- **Tách bộ sinh V3** (generatorVersion 3) khỏi hai thuật toán trước nhằm không phá seed lịch sử. Bộ sinh cũ dùng lại danh sách vị trí O1–O9 và tập khung tím gốc, kể cả khi bản mới mở rộng W.
+- **Quan trọng:** kích thước mô hình/biên dạng robot thực tế, vùng vươn cơ cấu chấp hành, khả năng cua và bám line chưa được đo và không thể chứng nhận tuyệt đối chỉ bằng ảnh. Trước khi dùng đề để chạy robot, đo các kích thước thực, đối chiếu các điểm W, chạy thử trên sân.
