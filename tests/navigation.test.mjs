@@ -70,5 +70,11 @@ test("Legacy generation remains unchanged when allowWhiteSlots is absent",()=>{
 });
 test("Verified-only V3 rejects unconfirmed placement rather than silently relaxing safety",()=>{
  assert.throws(()=>generateLayout({level:"easy",seed:"NONE",allowWhiteSlots:true,
-  verifiedOnly:true,approvals:{}}),/Không tìm được đề bảo toàn lối đi/);
+  verifiedOnly:true,approvals:{}}),/Chưa có đủ cấu hình/);
+});
+
+test("A barrier isolating the actual starting base is never accepted",()=>{
+ const result=checkNavigation([{id:"start-barrier",x:26,y:100,w:30,h:25}]);
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,"start-blocked");
 });
