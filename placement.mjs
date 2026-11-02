@@ -103,7 +103,7 @@ function combinations(source,n,start=0,chosen=[],out=[]){
  }
  return out;
 }
-export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false,
+function buildLegacyRandomLayout({level="medium",seed="DEMO",includeBonus=false,
  wallMode="normal",approved={},verifiedOnly=false,approvals={}}={}){
  const preset=LEVELS.find(x=>x.id===level);
  if(!preset)throw Error("Bảng thi không hợp lệ.");
@@ -160,6 +160,92 @@ export function buildRandomLayout({level="medium",seed="DEMO",includeBonus=false
   wallMode,wallReversed,tasks,obstacles,
   changeRules:{swapTasks:preset.swapTasks,moveObstacles:preset.moveObstacles},
   changedTaskIds:[...selectedTasks],movedObstacleFrom:[...movable],
+  created:new Date().toISOString(),official:false,
+  placementStatus:verifiedOnly?"physically-reviewed":"simulation",verifiedOnly,
+  note:"Quy tắc V+: đổi "+preset.swapTasks+" nhiệm vụ, đổi "+preset.moveObstacles+
+   " vị trí vật cản; tổng 7 nhiệm vụ và 3 vật cản. Tường Thành giữ ô gốc khi không đảo. Bản đồ gốc cần được xác nhận trên sa bàn thật."
+ };
+}
+
+/**
+ * Random Engine V2: sample uniformly from ALL valid task permutations, not the
+ * first valid subset found in a shuffled list. Keep the legacy implementation
+ * available for exact replay of previously saved V4 seeds.
+ */
+function taskCandidates({preset,wallReversed=false,approved={},verifiedOnly=false,approvals={},includeBonus=false}){
+ const allowed=(id,slot)=>{
+  const angle=SLOTS.find(x=>x.id===slot)?.approach;
+  return validPlacement(id,slot,angle,approved)&&
+   (!verifiedOnly||approvals[placementKey(id,slot,angle,id==="wall"&&wallReversed)]===true);
+ };
+ const pool=NORMAL_MODELS.filter(id=>id!=="wall");
+ const candidates=[];
+ for(const subset of combinations(pool,preset.swapTasks)){
+  const directions=subset.length===2?[[1,0]]:[[1,2,0],[2,0,1]];
+  for(const permutation of directions){
+   const assignment={...BASE_TASK_SLOTS};
+   for(let i=0;i<subset.length;i++)assignment[subset[i]]=BASE_TASK_SLOTS[subset[permutation[i]]];
+   if(!NORMAL_MODELS.every(id=>allowed(id,assignment[id])))continue;
+   const bonusSlots=includeBonus?
+    SLOTS.filter(slot=>!Object.values(assignment).includes(slot.id)&&allowed("bonus",slot.id)).map(slot=>slot.id):
+    [null];
+   // Each valid bonus location is a separate equiprobable outcome.
+   for(const bonusSlot of bonusSlots)candidates.push({subset:[...subset],assignment,bonusSlot});
+  }
+ }
+ return candidates;
+}
+function obstacleVariantCount(moves){
+ // Choose moved baseline obstacle(s), then assign distinct free O slots.
+ let choices=1,places=1;
+ for(let i=0;i<moves;i++){choices=choices*(BASE_OBSTACLE_SLOTS.length-i)/(i+1);places*=OBSTACLE_SLOTS.length-BASE_OBSTACLE_SLOTS.length-i;}
+ return Math.round(choices*places);
+}
+/** Count the finite number of possible arrangements under current constraints. */
+export function countLayoutVariants({level="medium",wallMode="normal",includeBonus=false,approved={},verifiedOnly=false,approvals={}}={}){
+ const preset=LEVELS.find(x=>x.id===level);
+ if(!preset)throw Error("Bảng thi không hợp lệ.");
+ if(!WALL_MODES.some(x=>x.id===wallMode))throw Error("Chế độ đảo Tường Thành không hợp lệ.");
+ const wallStates=wallMode==="random"?[false,true]:[wallMode==="reversed"];
+ const taskCount=wallStates.reduce((sum,wallReversed)=>sum+taskCandidates({
+  preset,wallReversed,includeBonus,approved,verifiedOnly,approvals
+ }).length,0);
+ return taskCount*obstacleVariantCount(preset.moveObstacles);
+}
+/** Same seed + same options always recreates the same board. */
+export function buildRandomLayout(options={}){
+ if(options.algorithmVersion===1)return buildLegacyRandomLayout(options);
+ const {level="medium",seed="DEMO",includeBonus=false,wallMode="normal",
+  approved={},verifiedOnly=false,approvals={}}=options;
+ const preset=LEVELS.find(x=>x.id===level);
+ if(!preset)throw Error("Bảng thi không hợp lệ.");
+ const wallReversed=resolveWallReversed(wallMode,seed);
+ const candidates=taskCandidates({preset,wallReversed,includeBonus,approved,verifiedOnly,approvals});
+ if(!candidates.length)throw Error(verifiedOnly?
+  "Chưa có đủ cấu hình vị trí và hướng đã kiểm nghiệm cho đúng số nhiệm vụ cần đổi. Hãy xác nhận thêm cấu hình trên sa bàn thật.":
+  "Không tìm được hoán đổi nhiệm vụ hợp lệ. Hãy kiểm tra các hướng/vị trí.");
+ // Independently seeded streams: mission filtering never skews obstacle choices.
+ const taskRng=seeded(String(seed)+"|missions-v2");
+ const obstacleRng=seeded(String(seed)+"|obstacles-v2");
+ const selected=candidates[Math.floor(taskRng()*candidates.length)];
+ const {subset,assignment,bonusSlot}=selected;
+ const tasks=NORMAL_MODELS.map(id=>{
+  const slot=assignment[id],angle=SLOTS.find(x=>x.id===slot).approach;
+  return id==="wall"?{id,slot,angle,reversed:wallReversed,modelRotation:wallReversed?180:0}:{id,slot,angle};
+ });
+ if(includeBonus){
+  const slot=SLOTS.find(x=>x.id===bonusSlot);
+  tasks.push({id:"bonus",slot:slot.id,angle:slot.approach});
+ }
+ const movable=shuffled([...BASE_OBSTACLE_SLOTS],obstacleRng).slice(0,preset.moveObstacles);
+ const free=shuffled(OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),obstacleRng);
+ const obstacles=[...BASE_OBSTACLE_SLOTS];
+ for(let i=0;i<movable.length;i++)obstacles[BASE_OBSTACLE_SLOTS.indexOf(movable[i])]=free[i];
+ return {
+  id:"layout-"+Date.now().toString(36),version:4,generatorVersion:2,
+  level:preset.id,seed:String(seed),wallMode,wallReversed,tasks,obstacles,
+  changeRules:{swapTasks:preset.swapTasks,moveObstacles:preset.moveObstacles},
+  changedTaskIds:[...subset],movedObstacleFrom:[...movable],
   created:new Date().toISOString(),official:false,
   placementStatus:verifiedOnly?"physically-reviewed":"simulation",verifiedOnly,
   note:"Quy tắc V+: đổi "+preset.swapTasks+" nhiệm vụ, đổi "+preset.moveObstacles+
