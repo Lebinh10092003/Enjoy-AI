@@ -28,6 +28,13 @@ export const SLOTS=PHYSICAL_SLOTS;
 export const LEVELS=PRACTICE_LEVELS;
 export function initialData(){return {version:VERSION,rounds:2,teams:[],invention:[],battles:[],layouts:[],placementApprovals:{},bonusEnabled:false,bonusDescription:""};}
 export function normInt(value,min=0,max=99999){const v=Number(value);return Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;}
+// Lượt mới tích sẵn 40 điểm robot chạy liên tục; dữ liệu cũ không bị thay đổi.
+export function newInventionAttempt(id,teamId,round){
+  return {id,teamId,round,tasks:{},retries:0,smooth:true,time:"",status:"draft",note:""};
+}
+export function newBattleSide(){
+  return {tower:false,blocks:0,bins:[0,0,0,0],retries:0,fouls:0,smooth:true,instant:false,status:"draft"};
+}
 export function scoreRetry(retries,smooth=true){
   const r=normInt(retries,0,1000);
   return r===0 ? (smooth?40:0) : Math.max(0,40-r*10);

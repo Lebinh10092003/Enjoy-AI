@@ -1,15 +1,20 @@
 import {renderDashboard} from "./dashboard-ui.mjs";
+import {CloudSync} from "./cloud-sync.mjs";
+import {CLOUD_CONFIG} from "./cloud-config.mjs";
 import {parseSeconds,displaySeconds} from "./time-utils.mjs";
 import {teamImportTemplate,validateTeamImport} from "./team-import.mjs";
 import {renderInventionLeaderboard,renderBattleLeaderboard} from "./leaderboard-ui.mjs?v=20261012-leaderboard-v3";
 import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261012-grade-v4";
 import {teamUi,readTeamFields} from "./teams-ui.mjs?v=20261012-leaderboard-v3";
 import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261012-grade-v4";
-import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261012-grade-v4";
+import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261012-grade-v4";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
 const V=escapeHtml;
+const CLOUD_BACKUP_KEY=KEY+"-precloud-migration";
 let data=readData();
+let cloudMessage="";
+const cloud=new CloudSync(CLOUD_CONFIG,{onStatus:updateCloudStatus});
 let page="overview";
 let autoSeedSequence=0;
 const ui={teamImportFeedback:{invention:"",battle:""},editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleGroup:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
@@ -18,7 +23,31 @@ const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
 const el=$('#content');
 function readData(){try{const saved=localStorage.getItem(KEY);return saved?normalizeData(JSON.parse(saved)):initialData();}catch(e){console.warn("Cannot load stored data",e);return initialData();}}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){notify("Không thể lưu dữ liệu trên trình duyệt. Hãy xuất JSON và kiểm tra bộ nhớ.",true);}}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){notify("Không thể lưu dữ liệu trên trình duyệt. Hãy xuất JSON và kiểm tra bộ nhớ.",true);}}
+function persist(){saveLocal();cloud.queue(data);}
+function updateCloudStatus(event){
+  cloudMessage=event.message||"";
+  const label=document.querySelector(".workspace-pill");
+  if(label)label.textContent=cloud.configured?(event.status==="saved"?"Cloud · Đã lưu":event.status==="pending"?"Cloud · Chờ lưu":event.status==="syncing"?"Cloud · Đang lưu":event.status==="conflict"?"Cloud · XUNG ĐỘT":event.status==="error"?"Cloud · LỖI":"Cloud · Chưa đăng nhập"):"Dữ liệu cục bộ";
+  const footer=document.querySelector(".sidebar-status span:last-child");
+  if(footer)footer.textContent=cloud.configured?(event.status==="saved"?"Đã đồng bộ lên Cloud":event.status==="pending"?"Đang chờ đồng bộ":event.status==="syncing"?"Đang đồng bộ":event.status==="conflict"?"Xung đột dữ liệu Cloud":event.status==="error"?"Cloud chưa lưu thành công":"Đang lưu trên thiết bị"):"Đang lưu trên thiết bị";
+  const message=document.querySelector("#cloud-status");
+  if(message)message.textContent=cloudMessage||"Trạng thái: "+event.status;
+}
+function applyCloudSnapshot(snapshot){
+  const imported=normalizeData(snapshot);
+  const local=JSON.stringify(data);
+  if(local!==JSON.stringify(imported)&&local!==JSON.stringify(initialData())){
+    try{localStorage.setItem(CLOUD_BACKUP_KEY,local);}catch(error){throw Error("Không thể sao lưu dữ liệu cục bộ trước khi tải Cloud: "+error.message);}
+  }
+  data=imported;ui.invTeam="";ui.battleId="";ui.layoutId="";saveLocal();
+  updateCloudStatus({status:"saved",message:"Đã tải dữ liệu Cloud. Các thay đổi tiếp theo sẽ đồng bộ.",ready:true});
+}
+async function restoreCloudSession(){
+  if(!cloud.configured||!cloud.session)return;
+  try{const snapshot=await cloud.load();applyCloudSnapshot(snapshot);render();}
+  catch(error){updateCloudStatus({status:"error",message:error.message});}
+}
 function notify(message,error=false){$('#alert').innerHTML='<div class="toast'+(error?' error':'')+'">'+V(message)+'</div>';window.scrollTo({top:0,behavior:"smooth"});}
 function field(id,label,value,kind="text",attrs=""){return '<div class="field"><label for="'+V(id)+'">'+V(label)+'</label><input id="'+V(id)+'" type="'+V(kind)+'" value="'+V(value??"")+'" '+attrs+'></div>';}
 function selectField(id,label,choices,selected,attrs=""){return '<div class="field"><label for="'+V(id)+'">'+V(label)+'</label><select id="'+V(id)+'" '+attrs+'>'+choices.map(c=>'<option value="'+V(c.id)+'"'+(String(c.id)===String(selected)?' selected':'')+'>'+V(c.label)+'</option>').join("")+'</select></div>';}
@@ -42,7 +71,7 @@ function render(){
 }
 function renderOverview(){return renderDashboard(data);}
 function renderTeams(type="invention"){return teamUi(data.teams,type,ui.editTeam,ui.teamImportFeedback[type]||"");}
-function invDefault(team,round){return {id:uid("inv"),teamId:team,round,tasks:{},retries:0,smooth:false,time:"",status:"draft",note:""};}
+function invDefault(team,round){return newInventionAttempt(uid("inv"),team,round);}
 function getInv(team,round){return data.invention.find(e=>e.teamId===team&&e.round===round)||invDefault(team,round);}
 function ensureInv(team,round){let x=data.invention.find(e=>e.teamId===team&&e.round===round);if(!x){x=invDefault(team,round);data.invention.push(x);}return x;}
 function renderInvention(){
@@ -50,17 +79,17 @@ function renderInvention(){
   if(teams.length&&!teams.some(t=>t.id===ui.invTeam))ui.invTeam=teams[0].id;
   const t=findTeam(ui.invTeam);
   const e=t?getInv(ui.invTeam,ui.invRound):null;
-  let s=title("Phiếu chấm Invention","Mỗi đội có từ 1 đến 20 lượt. Lưu nháp tự động; không nhập nhiệm vụ tức là 0 điểm.",'<button class="btn btn-outline" data-go="ranking">Bảng xếp hạng →</button>');
+  let s=title("Phiếu chấm Invention","Mỗi đội có từ 1 đến 20 lượt. Lưu nháp tự động; robot chạy mượt mà được tích sẵn +40 điểm khi 0 retry, mỗi lần thử lại trừ 10 điểm.",'<button class="btn btn-outline" data-go="ranking">Bảng xếp hạng →</button>');
   s+='<div class="panel"><div class="form-grid">'+selectField("inv-team","Chọn đội",teams.map(x=>({id:x.id,label:x.name})),ui.invTeam)+selectField("inv-round","Lượt thi",Array.from({length:data.rounds},(_,i)=>({id:i+1,label:"Lượt "+(i+1)})),ui.invRound)+field("round-count","Số lượt thi (1–20)",data.rounds,"number","min=1 max=20")+'<div class="field"><label>Trạng thái</label><div style="padding-top:11px">'+(e?prettyStatus(data.invention.find(x=>x.teamId===e.teamId&&x.round===e.round)?.status):badge("Chưa chấm"))+'</div></div></div></div>';
   if(!t)return s+'<div class="panel empty"><strong>Chưa có đội Invention</strong>Thêm đội tại Quản lý đội thi trước khi chấm.<p><button class="btn" data-go="teams-invention">Thêm đội</button></p></div>';
   s+='<div class="panel"><div class="panel-top"><h3>Kiểm tra nhiệm vụ – '+V(t.name)+'</h3>'+badge("Tối đa "+(data.bonusEnabled?"530":"430")+" điểm")+'</div>'+
    '<div class="task-grid">'+TASKS.filter(task=>!task.optional||data.bonusEnabled).map(task=>'<label class="check-pill"><input type="checkbox" data-inv-task="'+task.id+'" '+(e.tasks[task.id]?"checked":"")+'><span><strong>'+V(task.name)+'</strong><small>'+V(task.detail)+'</small></span><b>+'+task.points+'</b></label>').join("")+'</div>'+
    '<div class="form-grid">'+field("inv-retries","Số lần chạy lại (trống = 0)",e.retries,"number","min=0 max=999 step=1")+field("inv-time","Thời gian thực tế (giây) *",e.time,"text","inputmode=decimal autocomplete=off placeholder='13.5 hoặc 13,5s'")+
-   '<div class="field"><label>Thưởng 0 lần chạy lại</label><label class="check-pill" style="min-height:41px;padding:8px 12px"><input id="inv-smooth" type="checkbox" '+(e.smooth?"checked":"")+'><span><strong>Robot chạy trơn tru, liên tục</strong></span></label></div>'+
+   '<div class="field"><label>Thưởng robot chạy mượt mà (mặc định +40)</label><label class="check-pill" style="min-height:41px;padding:8px 12px"><input id="inv-smooth" type="checkbox" '+(e.smooth?"checked":"")+'><span><strong>Robot chạy trơn tru, liên tục</strong></span></label></div>'+
    '<div class="field"><label>Thưởng chạy lại tự động</label><strong style="font-size:23px;color:#7452c7;padding:8px">'+(e.retries===0?(e.smooth?40:0):Math.max(0,40-10*e.retries))+' điểm</strong></div></div>'+
    '<div class="field"><label for="inv-note">Ghi chú trọng tài</label><textarea id="inv-note" rows="2">'+V(e.note||"")+'</textarea></div>'+
    '<div class="score-summary"><div><small>Tổng điểm tạm tính</small><strong>'+invScore(e,data.bonusEnabled)+' <span style="font-size:14px">điểm</span></strong></div><div><small>'+V(t.name)+'</small><strong style="font-size:15px">Lượt '+e.round+' / '+data.rounds+'</strong></div></div>'+
-   '<div class="action-row"><button class="btn" data-final-inv="done">HOÀN TẤT CHẤM</button><button class="btn btn-outline" data-final-inv="draft">Lưu nháp</button><button class="btn btn-danger" data-final-inv="invalid">Hủy điểm lượt</button><button class="btn btn-outline" data-final-inv="withdrawn">Bỏ cuộc</button><button class="btn btn-outline" data-print>In phiếu</button></div>'+'<div class="print-signatures"><h3>XÁC NHẬN ĐIỂM / SCORE CONFIRMATION</h3><p>Tôi xác nhận các điểm số ghi trên là chính xác, hợp lệ và phản ánh đúng kết quả của trận đấu.</p><div class="signature-grid"><div>Thành viên đội thi / Team members<br><br><br>Ký tên: ____________________</div><div>Trọng tài / Referee<br><br><br>Ký tên: ____________________</div><div>Trọng tài trưởng / Chief referee<br><br><br>Ký tên: ____________________</div><div>Thư ký / Scorekeeper<br><br><br>Ký tên: ____________________</div></div></div>'+'<div class="panel-note">Theo Mục 6.3: không chạy lại và hoạt động trơn tru = 40 điểm; 1/2/3 lần chạy lại = 30/20/10 điểm; từ 4 lần = 0 điểm. Dù không hoàn thành nhiệm vụ, vẫn cần thời gian để xác nhận một lượt đã chấm.</div></div>';
+   '<div class="action-row"><button class="btn" data-final-inv="done">HOÀN TẤT CHẤM</button><button class="btn btn-outline" data-final-inv="draft">Lưu nháp</button><button class="btn btn-danger" data-final-inv="invalid">Hủy điểm lượt</button><button class="btn btn-outline" data-final-inv="withdrawn">Bỏ cuộc</button><button class="btn btn-outline" data-print>In phiếu</button></div>'+'<div class="print-signatures"><h3>XÁC NHẬN ĐIỂM / SCORE CONFIRMATION</h3><p>Tôi xác nhận các điểm số ghi trên là chính xác, hợp lệ và phản ánh đúng kết quả của trận đấu.</p><div class="signature-grid"><div>Thành viên đội thi / Team members<br><br><br>Ký tên: ____________________</div><div>Trọng tài / Referee<br><br><br>Ký tên: ____________________</div><div>Trọng tài trưởng / Chief referee<br><br><br>Ký tên: ____________________</div><div>Thư ký / Scorekeeper<br><br><br>Ký tên: ____________________</div></div></div>'+'<div class="panel-note">Theo Mục 6.3: mặc định tích điều kiện chạy mượt mà, 0 lần chạy lại = 40 điểm (trọng tài bỏ tích nếu không đạt); 1/2/3 lần chạy lại = 30/20/10 điểm; từ 4 lần = 0 điểm. Dù không hoàn thành nhiệm vụ, vẫn cần thời gian để xác nhận một lượt đã chấm.</div></div>';
   return s;
 }
 function renderRanking(){
@@ -117,7 +146,7 @@ function refreshRandomResults(message="",error=false){
   const status=$('#random-status');
   if(status){status.textContent=message;status.classList.toggle("error",error);}
 }
-function defaultSide(){return {tower:false,blocks:0,bins:[0,0,0,0],retries:0,fouls:0,smooth:false,instant:false,status:"draft"};}
+function defaultSide(){return newBattleSide();}
 function getBattle(id){return data.battles.find(m=>m.id===id);}
 function battleTeamOptions(div){return data.teams.filter(t=>t.type==="battle"&&t.division===div).map(t=>({id:t.id,label:t.name+" · Nhóm "+(t.group||"A")}));}
 function renderBattleSide(m,key,color){
@@ -128,7 +157,7 @@ function renderBattleSide(m,key,color){
    '<div class="form-grid">'+field(key+"-blocks","Khối phòng thủ (0–8)",side.blocks,"number",'min=0 max=8 data-battle-field="'+key+'.blocks"')+
    field(key+"-retry","Lần chạy lại (gồm vi phạm)",side.retries,"number",'min=0 max=999 data-battle-field="'+key+'.retries"')+
    field(key+"-fouls","Lỗi 7.4: trừ 10đ/lỗi",side.fouls,"number",'min=0 max=999 data-battle-field="'+key+'.fouls"')+
-   '<div class="field"><label>Thưởng 0 lần chạy lại</label><label class="check-pill" style="min-height:41px;padding:8px"><input type="checkbox" data-battle-field="'+key+'.smooth" '+(side.smooth?"checked":"")+'><span><strong>Chạy liên tục</strong></span></label></div></div>'+
+   '<div class="field"><label>Thưởng robot chạy mượt mà (mặc định +40)</label><label class="check-pill" style="min-height:41px;padding:8px"><input type="checkbox" data-battle-field="'+key+'.smooth" '+(side.smooth?"checked":"")+'><span><strong>Chạy liên tục</strong></span></label></div></div>'+
    '<p class="muted" style="margin-bottom:3px">Full Firepower: số bóng đội đưa vào từng hộp giữa sân (tổng tối đa 8).</p>'+
    '<div class="bins">'+[0,1,2,3].map(i=>field(key+"-bin-"+i,"Hộp "+(i+1),side.bins?.[i]??0,"number",'min=0 max=8 data-battle-field="'+key+'.bins.'+i+'"')).join("")+'</div>'+
    '<div class="panel-note">'+(battleEligible(side)?'<span class="success">Đã đạt ba điều kiện để lấy bóng vàng.</span>':'Chưa đủ điều kiện lấy bóng vàng (cần tháp + ≥5 khối + ≥2 hộp, mỗi hộp ≥2 bóng của đội).')+'</div>'+
@@ -169,9 +198,18 @@ function renderBattleRanking(){
  return '<div class="scoreboard-actions"><span>THÀNH TÍCH THI ĐẤU · BATTLE OF STARS</span><button type="button" class="btn btn-outline" data-export-battle-ranking>↓ Xuất CSV</button></div>'+
  renderBattleLeaderboard(data,ui.battleDivision,ui.battleGroup);
 }
+function cloudPanel(){
+  let body='<div class="panel"><div class="panel-top"><h3>Database Cloud · Supabase</h3>'+badge(cloud.ready?"Đã kết nối":cloud.configured?"Chưa đăng nhập":"Chưa cấu hình",cloud.ready?"green":"amber")+'</div>';
+  if(!cloud.configured)body+='<p class="muted">Chưa cấu hình Project URL và publishable key trong file cloud-config.mjs. Chạy supabase/schema.sql theo hướng dẫn supabase/SETUP.md rồi nhập cấu hình để bật lưu Cloud. Website vẫn lưu cục bộ bình thường.</p>';
+  else if(!cloud.ready)body+='<p class="muted">Đăng nhập bằng tài khoản được quản trị viên cấp quyền. Sau đăng nhập, dữ liệu Cloud là nguồn chính; dữ liệu cục bộ khác biệt được sao lưu riêng.</p><div class="form-grid">'+field("cloud-email","Email trọng tài","","email",'autocomplete="username"')+field("cloud-password","Mật khẩu","","password",'autocomplete="current-password"')+'</div><div class="action-row"><button type="button" class="btn" data-cloud-login>Đăng nhập & tải dữ liệu Cloud</button></div>';
+  else body+='<p class="muted">Tài khoản: <strong>'+V(cloud.session?.user?.email||"")+'</strong> · Phiên bản dữ liệu: <strong>'+cloud.revision+'</strong>. Dữ liệu được ghi lên máy chủ và không âm thầm ghi đè khi phiên bản thay đổi.</p><div class="action-row"><button type="button" class="btn btn-outline" data-cloud-retry>Đồng bộ lại khi lỗi</button><button type="button" class="btn btn-outline" data-cloud-refresh>Tải lại Cloud</button><button type="button" class="btn btn-outline" data-cloud-logout>Đăng xuất</button></div>';
+  body+='<p id="cloud-status" class="panel-note" role="status" aria-live="polite">'+V(cloudMessage||"Lưu cục bộ đang hoạt động.")+'</p>';
+  if(localStorage.getItem(CLOUD_BACKUP_KEY))body+='<div class="action-row"><button class="btn btn-outline" type="button" data-cloud-backup>↓ Tải bản dữ liệu cục bộ trước khi kết nối Cloud</button></div>';
+  return body+'</div>';
+}
 function renderSettings(){
-  return title("Dữ liệu & quy định","Chấm điểm trên GitHub Pages chạy ở phía trình duyệt, không có tài khoản trọng tài hoặc đồng bộ liên thiết bị.")+
-   '<div class="grid-equal"><div class="panel"><h3>Sao lưu và khôi phục</h3><p class="muted">Tự lưu dữ liệu sau mỗi thay đổi bằng localStorage trên máy hiện tại. Hãy sao lưu JSON định kỳ, đặc biệt trước khi xóa lịch sử trình duyệt.</p><div class="action-row"><button class="btn" data-backup>↓ Xuất dữ liệu JSON</button><label class="btn btn-outline" style="cursor:pointer">↑ Nhập JSON<input type="file" id="import-json" accept=".json,application/json" style="display:none"></label></div><div class="panel-note warning">Không sử dụng cùng lúc nhiều thiết bị/trọng tài để chấm chính thức nếu chưa có hệ thống đồng bộ máy chủ. Nhập JSON sẽ thay thế toàn bộ dữ liệu đang có (cần xác nhận).</div></div>'+
+  return title("Dữ liệu & quy định","Hỗ trợ localStorage và Cloud Supabase có tài khoản, phân quyền, chống ghi đè.")+cloudPanel()+
+   '<div class="grid-equal"><div class="panel"><h3>Sao lưu và khôi phục</h3><p class="muted">Lưu cục bộ sau mỗi thay đổi; khi đăng nhập Cloud, hệ thống đồng bộ lên database. Hãy sao lưu JSON định kỳ, kể cả khi bật Cloud.</p><div class="action-row"><button class="btn" data-backup>↓ Xuất dữ liệu JSON</button><label class="btn btn-outline" style="cursor:pointer">↑ Nhập JSON<input type="file" id="import-json" accept=".json,application/json" style="display:none"></label></div><div class="panel-note warning">Khi chưa bật Cloud, tuyệt đối không dùng nhiều máy chấm chung. Khi bật Cloud, xung đột phải đối soát thủ công. Nhập JSON có thể ghi đè dữ liệu Cloud nên phải có xác nhận.</div></div>'+
    '<div class="panel"><h3>Nhiệm vụ thưởng Invention</h3><label class="check-pill"><input id="bonus-enabled" type="checkbox" '+(data.bonusEnabled?"checked":"")+'><span><strong>BTC đã công bố nhiệm vụ thưởng</strong><small>100 điểm nếu hoàn thành, không bật mặc định.</small></span></label><div class="field" style="margin-top:12px"><label for="bonus-description">Nội dung / điều kiện nhiệm vụ Bonus</label><textarea id="bonus-description" placeholder="Chỉ ghi quy định BTC đã công bố">'+V(data.bonusDescription||"")+'</textarea></div></div></div>'+
    '<div class="panel"><h3>Cơ sở tính điểm</h3><div class="table-wrap"><table class="table"><thead><tr><th>Invention</th><th class="num">Điểm</th><th>Battle</th><th>Điều kiện</th></tr></thead><tbody>'+
    [['La bàn','50','Meteorite Tower','100 / tháp hợp lệ'],['Làm giấy','60','Energy Defense','10 / khối (≤8)'],['Thuốc súng','40','Full Firepower','15 / bóng (≤8)'],['In chữ rời','40 + 40','Final Fortress','Thắng ngay nếu đạt 3 điều kiện'],['Máy đo địa chấn','40','Bonus không retry','0–40 tùy điều kiện'],['Kim tự tháp','60','Lỗi 7.4','−10 / lỗi, tính retry'],['Vạn Lý Trường Thành','60','Thời gian','180 giây / trận'],['Bonus (nếu áp dụng)','100','Thể thức','Vòng bảng + loại trực tiếp']].map(row=>'<tr>'+row.map((cell,i)=>'<td'+(i===1?' class="num"':'')+'>'+V(cell)+'</td>').join("")+'</tr>').join("")+'</tbody></table></div></div>'+
@@ -469,6 +507,22 @@ el.addEventListener("click",e=>{
   else ready();
   return;
  }
+ if(t.hasAttribute("data-cloud-login")){
+   const email=$('#cloud-email')?.value.trim(),password=$('#cloud-password')?.value;
+   if(!email||!password)return notify("Vui lòng nhập email và mật khẩu.",true);
+   t.disabled=true;
+   void cloud.login(email,password).then(snapshot=>{applyCloudSnapshot(snapshot);go("settings");notify("Đã kết nối Cloud. Kiểm tra trạng thái đồng bộ trước khi chấm.");})
+    .catch(error=>notify("Không thể đăng nhập/tải Cloud: "+error.message,true)).finally(()=>{t.disabled=false;});
+   return;
+ }
+ if(t.hasAttribute("data-cloud-logout")){if(cloud.pending||cloud.inFlight)return notify("Còn dữ liệu chưa đồng bộ. Hãy sao lưu JSON trước khi đăng xuất.",true);cloud.signOut();render();return;}
+ if(t.hasAttribute("data-cloud-backup")){const saved=localStorage.getItem(CLOUD_BACKUP_KEY);if(saved)download("enjoy-ai-precloud-backup.json",saved,"application/json");return;}
+ if(t.hasAttribute("data-cloud-retry")){void cloud.retry().then(ok=>{if(ok)notify("Đã kiểm tra đồng bộ Cloud.");else notify("Chưa đồng bộ được. "+cloudMessage,true);}).catch(error=>notify(error.message,true));return;}
+ if(t.hasAttribute("data-cloud-refresh")){
+   return showConfirm("Tải lại Cloud sẽ thay thế dữ liệu đang hiển thị trên thiết bị. Hãy xuất JSON nếu cần đối chiếu.",()=>{
+     void cloud.refresh().then(snapshot=>{applyCloudSnapshot(snapshot);render();notify("Đã tải lại dữ liệu Cloud.");}).catch(error=>notify(error.message,true));
+   });
+ }
  if(t.hasAttribute("data-preview-teams"))return previewBulkTeams();
  if(t.hasAttribute("data-import-teams"))return importBulkTeams();
  if(t.hasAttribute("data-export-teams"))return exportCsv([["Mã","Tên đội","Nội dung","Trường","Bảng thi","Nhóm","Học sinh 1","Học sinh 2","HLV","Ghi chú"],...data.teams.filter(x=>x.type===(page==="teams-battle"?"battle":"invention")).map(x=>[x.code,x.name,x.type,x.school,x.division,x.group,x.member1,x.member2,x.coach,x.note])],"enjoy-ai-teams.csv");
@@ -543,3 +597,5 @@ el.addEventListener("click",e=>{
 $('#navigation').addEventListener("click",e=>{const t=e.target.closest("[data-page]");if(t)go(t.dataset.page);});
 $('#export-top').addEventListener("click",exportJson);
 render();
+updateCloudStatus({status:"local",message:cloud.configured?"Chưa đăng nhập Cloud. Đang lưu cục bộ.":"Đang lưu cục bộ."});
+void restoreCloudSession();
