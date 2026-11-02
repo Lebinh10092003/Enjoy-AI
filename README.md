@@ -8,14 +8,14 @@ Website chấm điểm và tạo đề luyện tập **Inventions Trail** + **Ba
 ## Tính năng
 
 - Quản lý đội thi Invention (4 bảng theo tài liệu luật **tiếng Việt do người dùng cung cấp**) và Battle (Tiểu học / THCS theo luật Battle).
-- **Invention**: 1–20 lượt (mặc định 2), 7 nhóm nhiệm vụ; In chữ rời ENJ/YAI mỗi khối +40; Bonus +100 chỉ khi bật sau thông báo BTC; thưởng theo 0/1/2/3/4+ retry; 0 retry phải xác nhận robot hoạt động trơn tru/liên tục.
+- **Invention**: 1–20 lượt (mặc định 2), 7 nhóm nhiệm vụ; In chữ rời ENJ/YAI mỗi khối +40; Bonus +100 chỉ khi bật sau thông báo BTC; thưởng theo 0/1/2/3/4+ retry; mặc định tích điều kiện robot trơn tru/liên tục cho lượt mới (+40 khi 0 retry), trọng tài có thể bỏ tích khi không đạt; mỗi retry trừ 10 điểm, tối thiểu 0.
 - Nhiệm vụ **không tích** = **0 điểm**, retry bỏ trống = 0. Thời gian **bắt buộc để hoàn tất**; 1–150 giây/lượt. Lưu nháp / Đã chấm / Hủy kết quả / Bỏ cuộc.
 - Xếp hạng Invention cộng **mọi lượt** theo thứ tự: tổng điểm giảm dần → tổng thời gian tăng dần → tổng retry tăng dần → điểm cao nhất một lượt giảm dần. Tổng điểm 0 không được xếp hạng.
 - **Battle**: 2 đội Đỏ / Xanh, Meteorite Tower (+100), Energy Defense (+10/khối, tối đa 8), Full Firepower (+15/bóng, tối đa 8), Final Fortress thắng ngay khi đủ ba điều kiện và rời khung; điểm thưởng retry và phạt lỗi 7.4.
 - **Battle vòng bảng**: 3–1–0; so điểm trong trận, sau đó hoàn thành Tower khi hòa. Thống kê thắng thua, tính thắng đối đầu, điểm nhiệm vụ, số lần Tower, tổng retry. Nút tạo lịch vòng tròn tránh trùng cặp.
 - **Battle loại trực tiếp**: trận có thắng ngay được xử lý ưu tiên; nếu chưa có thắng ngay sẽ phân định lần lượt điểm trận → điểm Full Firepower → Tower → retry; nếu vẫn hòa yêu cầu trận phân định.
 - **Random Invention**: mỗi đề luôn có 7 mô hình nhiệm vụ chính và 3 vật cản; tùy chọn Bonus chỉ khi BTC công bố. Mô hình đặt tại khung A–J không trùng nhau; vật cản đặt riêng tại 3/9 ô chữ nhật nhỏ O1–O9, theo dấu trên ảnh sa bàn do người dùng cung cấp. Mũi tên chỉ hướng tiếp cận theo đường dẫn; seed tái lập kết quả; lưu đề / sao chép / xuất JSON / in.
-- Tự động lưu trên localStorage; nhập/xuất JSON; xuất danh sách và bảng xếp hạng CSV (UTF-8 BOM hỗ trợ Excel); giao diện responsive laptop/điện thoại; không cần server.
+- Tự động lưu localStorage; có tùy chọn đồng bộ **Supabase PostgreSQL** (đăng nhập, RLS, chống ghi đè bằng revision và audit metadata); nhập/xuất JSON; xuất CSV; giao diện responsive. Xem `supabase/SETUP.md` để cấu hình Cloud.
 
 ## Quy tắc quan trọng
 
@@ -34,7 +34,7 @@ Website chấm điểm và tạo đề luyện tập **Inventions Trail** + **Ba
 | Thưởng không chạy lại, liên tục | 40 |
 | Bonus BTC (nếu công bố) | 100 |
 
-Tối đa **430** không có Bonus, **530** có Bonus. Robot 0 retry nhưng không liên tục/trơn tru **không tự động được 40 điểm**.
+Tối đa **430** không có Bonus, **530** có Bonus. Robot 0 retry được **tích sẵn +40 điểm khi tạo lượt mới**; nếu thực tế không liên tục/trơn tru, trọng tài **bỏ tích** và thưởng về 0. Lượt chấm cũ giữ nguyên dữ liệu và điểm.
 
 ### Battle of Stars
 
@@ -44,7 +44,7 @@ Với mỗi đội:
 - Energy Defense +10/khối, tối đa 8 khối.
 - Full Firepower +15/bóng vào hộp, tối đa 8 bóng. Cần nhập **4 ô hộp** để có thể đối chiếu điều kiện thắng ngay.
 - Điều kiện **thắng ngay**: hoàn thành Tower **và** có ít nhất 5 khối phòng thủ **và** có ít nhất 2 hộp, *mỗi hộp* chứa ít nhất 2 bóng của đội; sau đó robot lấy bóng vàng rời hẳn khung.
-- Thưởng số lần retry: không retry và liên tục +40; 1/2/3 lần +30/+20/+10, từ 4 lần 0.
+- Thưởng số lần retry: mặc định tích điều kiện chạy liên tục cho lượt mới, 0 retry +40; 1/2/3 lần +30/+20/+10, từ 4 lần 0. Nếu 0 retry nhưng robot không liên tục, trọng tài bỏ tích.
 - Mỗi vi phạm Điều 7.4 trừ 10 điểm **và** tính một retry. Ô "Retry" là **tổng**, bao gồm retry do vi phạm; ô "Vi phạm" được trừ riêng 10 điểm theo luật.
 - Không tự động công nhận 2 đội cùng thắng ngay. Trận loại trực tiếp chưa phân định bằng bốn tiêu chí **phải đá/thi đấu thêm**.
 
@@ -55,7 +55,7 @@ Với mỗi đội:
 1. Luật quốc tế Invention (tiếng Anh) có mô tả 3 nhóm, còn bản luật Việt ngữ người dùng cung cấp có **4 bảng lớp**. Phần mềm sử dụng **4 bảng theo tài liệu Việt ngữ**; BTC có thể áp dụng phân nhóm khác tại một giải cụ thể.
 2. Luật Invention quy định thay đổi vị trí/hướng mô hình theo thông báo BTC, **không** xác định số nhiệm vụ/độ khó bắt buộc theo từng lớp. Các cấp độ random và vị trí A–J trong phần mềm là **mẫu luyện tập**, **không phải sơ đồ được xác nhận để bố trí sa bàn thật**. Mô hình còn phụ thuộc khung đặt, hướng lắp và vật cản thực tế.
 3. Bonus Invention chỉ bật khi BTC thông báo. Trọng tài phải xác nhận trạng thái hợp lệ theo luật (mô hình hư hỏng, can thiệp, khiếu nại...).
-4. GitHub Pages chỉ lưu trên **trình duyệt hiện tại**, không tự chia sẻ điểm giữa các máy. Không sử dụng nhiều máy cùng chấm chính thức khi chưa bổ sung backend, đồng bộ và phân quyền. JSON là bản sao lưu **thủ công**.
+4. GitHub Pages mặc định lưu trên **trình duyệt hiện tại**. Có thể kết nối Supabase để dùng chung dữ liệu nhiều thiết bị (phải cấu hình dự án, SQL, tài khoản và quyền). Phiên bản Cloud sử dụng snapshot và CAS revision: xung đột phải đối soát thủ công. JSON là bản sao lưu **thủ công**, chưa đủ để chấm giải chính thức nếu chưa triển khai kiểm tra điểm phía server.
 5. Trong mọi trường hợp, **bản luật/điều chỉnh của BTC hiện hành và Trọng tài trưởng** quyết định cuối cùng.
 
 ## Nguồn
@@ -231,3 +231,7 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 - Mobile leaderboard design: https://www.kylegarzia.com/project-CFcustomleaderboard.html
 
 Để kiểm tra: `node --test tests/*.test.mjs`; tập trung thử mở/đóng popup bằng bàn phím, nhập đội không trùng, lọc bảng/nhóm và bảng xếp hạng trên màn hình nhỏ.
+
+## Tích hợp Cloud (02/11/2026)
+
+Đã bổ sung `cloud-sync.mjs`, `cloud-config.mjs`, migration `supabase/schema.sql` và hướng dẫn `supabase/SETUP.md`. Đã tạo database tại project Enjoy-AI (Singapore) và cấu hình publishable key; cần cấp tài khoản tại Supabase Auth trước khi đăng nhập; không đưa secret/service-role key lên GitHub Pages. Chức năng lưu localStorage vẫn dùng được khi chưa cấu hình Cloud.

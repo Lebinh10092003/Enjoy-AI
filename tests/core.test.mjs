@@ -170,3 +170,9 @@ test("Obstacle positions are fixed for classes 1–3 regardless of seed",()=>{
  for(let i=0;i<100;i++)
   assert.deepEqual(generateLayout({seed:"low-"+i,level:"easy"}).obstacles,[...BASE_OBSTACLE_SLOTS]);
 });
+
+test("Default smooth running award is 40, each retry costs 10 and old explicit false remains unchanged",()=>{
+  const {scoreRetry:newScore}= {scoreRetry};
+  assert.deepEqual([0,1,2,3,4,5].map(r=>newScore(r,true)),[40,30,20,10,0,0]);
+  assert.equal(newScore(0,false),0);
+});
