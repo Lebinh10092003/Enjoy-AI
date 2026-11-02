@@ -383,6 +383,9 @@ function buildExpandedLayout({level="medium",seed="DEMO",includeBonus=false,wall
      robotCm+" cm (với kích thước mô hình ước lượng). Phải đo kích thước mô hình và thử đường chạy thực tế."
   };
  }
- throw Error("Không tìm được đề bảo toàn lối đi cho robot "+robotCm+
-  " cm trong "+MAX_PLANS+" phương án. Không lưu đề thiếu an toàn; cần đo lại mô hình hoặc bổ sung vị trí đặt đã xác minh.");
+ throw Error(verifiedOnly?
+  "Chưa có đủ cấu hình vị trí/hướng đã kiểm nghiệm để bảo đảm lối đi cho robot "+robotCm+
+   " cm. Hãy xác nhận thêm vị trí hoặc đo lại mô hình trước khi tạo đề.":
+  "Không tìm được đề bảo toàn lối đi cho robot "+robotCm+
+   " cm trong "+MAX_PLANS+" phương án. Không lưu đề thiếu an toàn; cần đo lại mô hình hoặc bổ sung vị trí đặt đã xác minh.");
 }
