@@ -44,7 +44,8 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).invention[0].time,13.5);
  assert.match(q("#content").textContent,/HOÀN TẤT CHẤM/);
  click('[data-page="ranking"]');
- assert.match(q("#content").textContent,/50/);
+ assert.match(q("#content").textContent,/90/); // 50 nhiệm vụ + 40 robot mượt mà mặc định
+ assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).invention[0].smooth,true);
  assert.ok(q('[data-inv-tab="p13"]'));
  click('[data-inv-tab="p13"]');
  assert.equal(q('[data-inv-tab="p13"]').getAttribute("aria-selected"),"true");
