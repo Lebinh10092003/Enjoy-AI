@@ -216,3 +216,13 @@ test("Strict mode counts only tested task assignments and legacy seeds remain re
  assert.equal(legacy.generatorVersion,undefined);
  assert.deepEqual(legacy.tasks,generateLayout({...opts,algorithmVersion:1}).tasks);
 });
+
+test("Strict random wall mode reuses the verified normal orientation when reverse is untested",()=>{
+ const baseline=generateLayout({level:"medium",seed:"physical-v2",wallMode:"normal"});
+ const approvals=Object.fromEntries(baseline.tasks.map(t=>[t.id+"|"+t.slot+"|"+t.angle+"|normal",true]));
+ for(let i=0;i<100;i++){
+  const layout=generateLayout({level:"medium",seed:"wall-strict-"+i,wallMode:"random",verifiedOnly:true,approvals});
+  assert.equal(layout.tasks.find(t=>t.id==="wall").reversed,false);
+ }
+ assert.equal(countLayoutVariants({level:"medium",wallMode:"random",verifiedOnly:true,approvals}),18);
+});
