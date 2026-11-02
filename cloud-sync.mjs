@@ -12,7 +12,7 @@ export class CloudSync {
     this.fetcher=options.fetchImpl||globalThis.fetch?.bind(globalThis);
     this.storage=options.storage||(typeof sessionStorage!=="undefined"?sessionStorage:null);
     this.onStatus=options.onStatus||(()=>{});
-    this.session=null; this.revision=null; this.ready=false; this.pending=null;
+    this.session=null; this.revision=null; this.role=null; this.ready=false; this.pending=null;
     this.inFlight=null; this.timer=null; this.blocked=false; this.status="local";
     if(this.configured&&this.storage) {
       try { this.session=JSON.parse(this.storage.getItem("enjoy-ai-cloud-session-v1")||"null"); } catch { this.session=null; }
@@ -52,6 +52,9 @@ export class CloudSync {
     const path="/rest/v1/competition_state?select=data,revision,updated_at&id=eq."+encodeURIComponent(this.workspace)+"&limit=1";
     const result=await this.request(path);
     if(!Array.isArray(result)||result.length!==1)throw Error("Tài khoản chưa được cấp quyền hoặc chưa tạo competition_state trên Supabase.");
+    const memberships=await this.request("/rest/v1/competition_members?select=role&user_id=eq."+encodeURIComponent(this.session.user.id)+"&limit=1");
+    if(!Array.isArray(memberships)||!["admin","referee","viewer"].includes(memberships[0]?.role))throw Error("Tài khoản chưa có quyền thành viên hợp lệ.");
+    this.role=memberships[0].role;
     this.revision=Number(result[0].revision);
     this.ready=true;this.blocked=false;this.pending=null;
     if(this.timer)clearTimeout(this.timer);this.timer=null;
@@ -60,6 +63,7 @@ export class CloudSync {
   }
   queue(snapshot){
     if(!this.configured||!this.ready||!this.session)return;
+    if(this.role==="viewer"){this.emit("error","Tài khoản chỉ có quyền xem, không thể lưu điểm.");return;}
     this.pending=JSON.parse(JSON.stringify(snapshot));
     this.emit("pending","Có thay đổi chưa đồng bộ.");
     if(!this.blocked)this.schedule();
@@ -105,7 +109,7 @@ export class CloudSync {
   }
   signOut(){
     if(this.timer)clearTimeout(this.timer);
-    this.storeSession(null);this.ready=false;this.pending=null;this.revision=null;this.blocked=false;
+    this.storeSession(null);this.ready=false;this.pending=null;this.revision=null;this.role=null;this.blocked=false;
     this.emit("local","Đã đăng xuất. Mọi thay đổi tiếp theo chỉ lưu trên máy.");
   }
 }
