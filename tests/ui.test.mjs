@@ -197,6 +197,20 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  click("[data-generate]");
  assert.equal(loadLayouts()[0].wallMode,"normal");
  assert.equal(loadLayouts()[0].tasks.find(t=>t.id==="wall").reversed,false);
+ // Sample all unique easy-mode arrangements before allowing a new cycle.
+ change("#layout-level","easy");
+ assert.match(q("#layout-change-rule").textContent,/9 phương án/);
+ const seenEasy=new Set();
+ for(let i=0;i<9;i++){
+  click("[data-generate]");
+  const x=loadLayouts()[0];
+  const key=JSON.stringify({tasks:x.tasks.map(t=>[t.id,t.slot,t.angle,!!t.reversed]),obstacles:[...x.obstacles].sort()});
+  assert.ok(!seenEasy.has(key),"Random repeated easy layout before exhausting pool");
+  seenEasy.add(key);
+ }
+ assert.equal(seenEasy.size,9);
+ click("[data-generate]");
+ assert.match(q("#random-status").textContent,/Đã sử dụng hết 9 phương án/);
  click('[data-page="teams-invention"]');
  assert.ok(q('[data-open-team-form]'));
  click('[data-open-team-form]');

@@ -235,3 +235,12 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 ## Tích hợp Cloud (02/11/2026)
 
 Đã bổ sung `cloud-sync.mjs`, `cloud-config.mjs`, migration `supabase/schema.sql` và hướng dẫn `supabase/SETUP.md`. Đã tạo database tại project Enjoy-AI (Singapore) và cấu hình publishable key; cần cấp tài khoản tại Supabase Auth trước khi đăng nhập; không đưa secret/service-role key lên GitHub Pages. Chức năng lưu localStorage vẫn dùng được khi chưa cấu hình Cloud.
+
+## Nâng cấp bộ sinh đề ngẫu nhiên (02/11/2026)
+
+- **Random Engine V2** duyệt tất cả phép hoán đổi hợp lệ trước khi chọn đồng đều, không ưu tiên phương án hợp lệ đầu tiên trong danh sách xáo trộn như phiên bản cũ.
+- Theo cấu hình V+ hiện tại: lớp 1–3 đổi 2 nhiệm vụ và 0 vật cản; 4–6 đổi 2 và 1; 7–9 đổi 3 và 1; 10–12 đổi 3 và 2. Luôn giữ 7 nhiệm vụ chính, 3 vật cản, không tự ý di chuyển Vạn Lý Trường Thành.
+- Số bố trí hữu hạn khi Tường Thành không đảo, không Bonus, không bật lọc xác nhận: **9 / 162 / 288 / 1.440** phương án theo thứ tự bốn cấp lớp. Các luồng random nhiệm vụ/vật cản được tách riêng.
+- Nút Tạo đề mới ưu tiên phương án chưa dùng trong lịch sử cùng cấp lớp, chế độ Tường Thành, Bonus và tùy chọn xác nhận. Khi đã hết phương án mới, công cụ thông báo bắt đầu chu kỳ lặp.
+- Nhập seed tái tạo đề theo cùng cấu hình. Những seed cũ còn trong lịch sử sẽ sử dụng thuật toán cũ; đề mới có generatorVersion = 2, giữ version = 4 để tương thích tệp JSON trước đó.
+- Đây là **bộ sinh đề luyện tập**, không phải bố trí được BTC xác thực. Phải đối chiếu sa bàn thật, hướng tác động mô hình và quy định của BTC trước khi dùng chính thức.
