@@ -52,12 +52,12 @@ export function checkNavigation(rectangles,{robotCm=MAX_ROBOT_CM,marginCm=SAFETY
  }
  // Start zone: robot may start at several feasible points of the 30x30cm
  // region at the lower-left, rather than forcing one potentially obstructed pixel.
- const seen=new Uint8Array(NX*NY), queue=new Int32Array(NX*NY);
+ const seen=new Uint8Array(NX*NY), queue=new Int32Array(NX*NY),parent=new Int32Array(NX*NY).fill(-1);
  let head=0,tail=0;
  for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){
   const px=(x+.5)*CELL_CM,py=(y+.5)*CELL_CM,id=y*NX+x;
   if(px>=17&&px<=42&&py>=76&&py<=103&&!blocked[id]){
-   seen[id]=1;queue[tail++]=id;
+   seen[id]=1;parent[id]=-2;queue[tail++]=id;
   }
  }
  if(!tail)return {ok:false,reason:"start-blocked",reachedGates:[]};
@@ -68,18 +68,31 @@ export function checkNavigation(rectangles,{robotCm=MAX_ROBOT_CM,marginCm=SAFETY
    if(next<0||next>=NX*NY||seen[next]||blocked[next])continue;
    const nx=next%NX,ny=Math.floor(next/NX);
    if(Math.abs(nx-x)+Math.abs(ny-y)!==1)continue;
-   seen[next]=1;queue[tail++]=next;
+   seen[next]=1;parent[next]=at;queue[tail++]=next;
   }
  }
+ let pathIndex=-1;
  const reachedGates=GATE_POINTS.filter(point=>{
   for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){
    const id=y*NX+x;
    if(!seen[id])continue;
    const px=(x+.5)*CELL_CM,py=(y+.5)*CELL_CM;
-   if(Math.hypot(px-point.x,py-point.y)<=12)return true;
+   if(Math.hypot(px-point.x,py-point.y)<=12){if(pathIndex<0)pathIndex=id;return true;}
   }
   return false;
  }).map(g=>g.id);
+ const path=[];
+ if(pathIndex>=0){
+  const trace=[];let current=pathIndex;
+  while(current>=0){trace.push(current);current=parent[current];}
+  trace.reverse();
+  for(let i=0;i<trace.length;i++){
+   if(i%3!==0&&i!==trace.length-1)continue;
+   const index=trace[i];
+   path.push({x:Number((((index%NX+.5)*CELL_CM)/FIELD_CM.width*100).toFixed(2)),
+    y:Number((((Math.floor(index/NX)+.5)*CELL_CM)/FIELD_CM.height*100).toFixed(2))});
+  }
+ }
  return {ok:reachedGates.length>0,reason:reachedGates.length?"pass":"right-side-line-isolated",
-  reachedGates,robotCm,marginCm,visitedCells:tail};
+  reachedGates,robotCm,marginCm,visitedCells:tail,path};
 }
