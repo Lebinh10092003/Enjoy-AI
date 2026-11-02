@@ -376,7 +376,7 @@ function buildExpandedLayout({level="medium",seed="DEMO",includeBonus=false,wall
    created:new Date().toISOString(),official:false,placementStatus:verifiedOnly?"physically-reviewed":"simulation",
    verifiedOnly,allowWhiteSlots:true,
    navigation:{robotCm,marginCm:SAFETY_MARGIN_CM,clearanceCheck:"grid-3cm-v1",
-    passed:true,reachedGates:[...safety.reachedGates]},
+    passed:true,reachedGates:[...safety.reachedGates],path:safety.path},
    note:"Bản luyện tập trên sa bàn 216 x 120 cm. Bộ lọc lưới 3 cm bảo toàn ít nhất một hành lang cho robot có bề ngang tối đa "+
      robotCm+" cm (với kích thước mô hình ước lượng). Phải đo kích thước mô hình và thử đường chạy thực tế."
   };
