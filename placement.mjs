@@ -81,6 +81,8 @@ export const OBSTACLE_SLOTS=[
 OBSTACLE_SLOTS.push(...WHITE_SLOTS.map(slot=>({
  id:slot.id,x:slot.x,y:slot.y,w:3.9,h:4.8,type:"white"
 })));
+const LEGACY_TASK_SLOTS=SLOTS.filter(x=>x.edge!=="white");
+const LEGACY_OBSTACLE_SLOTS=OBSTACLE_SLOTS.filter(x=>x.id.startsWith("O"));
 export const MAIN_TASK_COUNT=7;
 export const OBSTACLE_COUNT=3;
 // Required V+ event movement rules. The number placed on the board stays unchanged.
@@ -175,14 +177,14 @@ function buildLegacyRandomLayout({level="medium",seed="DEMO",includeBonus=false,
  if(includeBonus){
   // Bonus is not one of the seven mandatory models. Never remove/alter a core model.
   // Choose an empty task frame where it is permitted, or reject explicitly.
-  const bonusCandidates=shuffled(SLOTS.filter(x=>!Object.values(assignment).includes(x.id)&&allowed("bonus",x.id)),rng);
+  const bonusCandidates=shuffled(LEGACY_TASK_SLOTS.filter(x=>!Object.values(assignment).includes(x.id)&&allowed("bonus",x.id)),rng);
   if(!bonusCandidates.length)throw Error("Không còn khung hợp lệ cho Bonus.");
   tasks.push({id:"bonus",slot:bonusCandidates[0].id,angle:bonusCandidates[0].approach});
  }
  // Move exactly N of the 3 baseline obstacles to previously vacant rectangle(s).
  // The position IDs of every unselected obstacle are left unchanged.
  const movable=shuffled([...BASE_OBSTACLE_SLOTS],rng).slice(0,preset.moveObstacles);
- const free=shuffled(OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),rng);
+ const free=shuffled(LEGACY_OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),rng);
  const movedTo=free.slice(0,preset.moveObstacles);
  const obstacleMap=Object.fromEntries(BASE_OBSTACLE_SLOTS.map((id,i)=>[i,id]));
  for(let i=0;i<movable.length;i++){
@@ -222,7 +224,7 @@ function taskCandidates({preset,wallReversed=false,approved={},verifiedOnly=fals
    for(let i=0;i<subset.length;i++)assignment[subset[i]]=BASE_TASK_SLOTS[subset[permutation[i]]];
    if(!NORMAL_MODELS.every(id=>allowed(id,assignment[id])))continue;
    const bonusSlots=includeBonus?
-    SLOTS.filter(slot=>!Object.values(assignment).includes(slot.id)&&allowed("bonus",slot.id)).map(slot=>slot.id):
+    LEGACY_TASK_SLOTS.filter(slot=>!Object.values(assignment).includes(slot.id)&&allowed("bonus",slot.id)).map(slot=>slot.id):
     [null];
    // Each valid bonus location is a separate equiprobable outcome.
    for(const bonusSlot of bonusSlots)candidates.push({subset:[...subset],assignment,bonusSlot});
@@ -233,7 +235,7 @@ function taskCandidates({preset,wallReversed=false,approved={},verifiedOnly=fals
 function obstacleVariantCount(moves){
  // Choose moved baseline obstacle(s), then assign distinct free O slots.
  let choices=1,places=1;
- for(let i=0;i<moves;i++){choices=choices*(BASE_OBSTACLE_SLOTS.length-i)/(i+1);places*=OBSTACLE_SLOTS.length-BASE_OBSTACLE_SLOTS.length-i;}
+ for(let i=0;i<moves;i++){choices=choices*(BASE_OBSTACLE_SLOTS.length-i)/(i+1);places*=LEGACY_OBSTACLE_SLOTS.length-BASE_OBSTACLE_SLOTS.length-i;}
  return Math.round(choices*places);
 }
 /** Count the finite number of possible arrangements under current constraints. */
@@ -280,7 +282,7 @@ export function buildRandomLayout(options={}){
   tasks.push({id:"bonus",slot:slot.id,angle:slot.approach});
  }
  const movable=shuffled([...BASE_OBSTACLE_SLOTS],obstacleRng).slice(0,preset.moveObstacles);
- const free=shuffled(OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),obstacleRng);
+ const free=shuffled(LEGACY_OBSTACLE_SLOTS.map(x=>x.id).filter(id=>!BASE_OBSTACLE_SLOTS.includes(id)),obstacleRng);
  const obstacles=[...BASE_OBSTACLE_SLOTS];
  for(let i=0;i<movable.length;i++)obstacles[BASE_OBSTACLE_SLOTS.indexOf(movable[i])]=free[i];
  return {
