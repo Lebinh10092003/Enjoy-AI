@@ -1,0 +1,254 @@
+/* Enjoy-AI 2026 — Readable UI V1
+ * Loaded LAST after the existing design system. Enlarges text and touch targets
+ * without modifying the physical placement scale of mission/obstacle markers.
+ * Responsive priorities: 16px inputs on mobile (prevents iOS focus zoom),
+ * readable score tables, stacked narrow forms, accessible contrast.
+ */
+@media screen {
+ :root{
+  font-size:16px;
+  --readable-ink:#1b3448;
+  --readable-muted:#465f73;
+ }
+ body{font-size:16px;line-height:1.55;color:var(--readable-ink);text-rendering:optimizeLegibility;}
+ .main{min-width:0;}
+ .brand strong{font-size:18px;line-height:1.3;}
+ .brand small{font-size:13px;color:#c4d5e2!important;}
+ .sidebar .nav-caption{font-size:12px;letter-spacing:.9px;}
+ .sidebar #navigation .nav-button{
+  font-size:16px;min-height:49px;line-height:1.45;
+  padding:11px 13px;gap:11px;
+ }
+ .sidebar #navigation .nav-button .nav-label{
+  font-size:16px;line-height:1.45;min-width:0;max-width:none;
+  text-align:left;white-space:normal;overflow-wrap:break-word;
+ }
+ .sidebar-season{font-size:12px;line-height:1.45;}
+ .sidebar-bottom,.sidebar-status{font-size:13px;}
+ .sidebar-bottom small{font-size:12px;color:#b5c8d5!important;}
+ .breadcrumbs,.topbar .breadcrumbs{font-size:13px;color:#526b7e;}
+ .topbar h1{font-size:clamp(27px,2.3vw,35px);line-height:1.2;letter-spacing:-.6px;}
+ .workspace-pill{font-size:13px;line-height:1.35;}
+ .top-actions .btn{font-size:14px;min-height:45px;}
+ .footer{font-size:13.5px;line-height:1.75;color:#526d80;}
+ .section-heading h2{font-size:clamp(25px,2vw,30px);line-height:1.24;}
+ .muted,.section-heading .muted{
+  font-size:15.5px;line-height:1.7;color:var(--readable-muted);
+ }
+ .hint,.panel-note,.state-message,.empty{font-size:14.5px;line-height:1.65;}
+ .panel-note{padding:15px 17px;border-left-width:4px;color:#35546c;}
+ .panel-note.warning{color:#694a28;}
+ .panel h3{font-size:20px;line-height:1.35;}
+ .panel p{line-height:1.7;}
+ .btn,.team-heading-actions .btn,.scoreboard-actions .btn{
+  font-size:15px;line-height:1.35;min-height:46px;
+  padding:11px 16px;white-space:normal;
+ }
+ .btn-small,.verification-row .btn{font-size:14px;min-height:41px;padding:8px 11px;}
+ .btn-outline{border-color:#bbd0e0;color:#245477;}
+ .field label,.team-form .field label,.single-team-form-body .field label{
+  font-size:15px;line-height:1.4;color:#294d69;
+ }
+ .field input,.field select,.field textarea,.single-team-form-body .field input{
+  font-size:16px;min-height:48px;line-height:1.5;
+  padding:11px 13px;color:#17354a;max-width:100%;
+ }
+ .field textarea{min-height:105px;}
+ .field input::placeholder,.field textarea::placeholder{color:#61788c;opacity:1;}
+ .field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible{
+  outline:2px solid #77add7;outline-offset:1px;
+ }
+ .check-pill{min-height:84px;padding:14px;gap:12px;}
+ .check-pill strong{font-size:15.5px;line-height:1.4;}
+ .check-pill small{font-size:14px;line-height:1.5;color:#4d667d;}
+ .check-pill b{font-size:18px;}
+ .check-pill input{width:19px;height:19px;flex:0 0 19px;}
+ .tag,.scoreboard-status,.scoreboard-category{font-size:12.5px;line-height:1.35;padding:7px 11px;}
+ .table{font-size:15px;line-height:1.55;}
+ .table th{font-size:13px;line-height:1.45;padding:15px 14px;color:#425d72;}
+ .table td{font-size:15px;line-height:1.55;padding:15px 14px;}
+ .table-wrap,.scoreboard-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;}
+ .empty strong{font-size:16px;}
+ .kpi .kpi-label{font-size:15px;}
+ .kpi small{font-size:13.5px;}
+ .kpi strong{font-size:34px;}
+ #alert .toast,.random-inline-status{font-size:14.5px;line-height:1.6;}
+ .result-band{font-size:17px;}
+ .score-summary small{font-size:14px;}
+ .score-summary strong{font-size:34px;}
+ .layout-list div,.layout-model-item{font-size:14px;line-height:1.6;}
+ .layout-model-item small,.code-value{font-size:13px;}
+ .modal-box p{font-size:16px;}
+ .modal-box h3{font-size:23px;}
+ /* Dashboard: remove text downscaling introduced by the workspace revamp. */
+ .dashboard-hero-label,.dash-kicker,.workflow-type{font-size:12.5px;letter-spacing:.8px;}
+ .dashboard-hero h2{font-size:clamp(30px,3vw,44px);}
+ .dashboard-hero p{font-size:16px;line-height:1.65;color:#e1edf5;}
+ .dashboard-hero-actions .btn{font-size:15px;min-height:47px;}
+ .hero-float small{font-size:12px;}
+ .metric-top>span:first-child{font-size:14px;line-height:1.5;}
+ .dashboard-metric>small,.dash-storage-note{font-size:14px;line-height:1.6;color:#4d697e;}
+ .dashboard-metric>strong{font-size:35px;}
+ .dash-division-label,.dash-division-leader,.dash-division-score{font-size:14px;}
+ .dash-progress-top{font-size:14px;}
+ .dash-progress-item small{font-size:13px;}
+ .dashboard-section-heading h3{font-size:23px;}
+ .dashboard-card-head h3{font-size:19px;}
+ .dashboard-workflow h3{font-size:22px;}
+ .dashboard-workflow p{font-size:15.5px;line-height:1.65;}
+ .workflow-link,.workflow-secondary,.text-link{font-size:15px;min-height:28px;}
+ /* The Cloud onboarding has 4 fields; do not squeeze them into 4 tiny columns. */
+ .cloud-panel .form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+ .cloud-panel .form-grid .field{min-width:0;}
+ .cloud-panel .action-row{gap:12px;}
+ .cloud-panel .action-row .btn{min-height:46px;}
+ .cloud-panel a{overflow-wrap:anywhere;}
+ /* Random toolbar gets extra width for explanatory text, not bigger board labels. */
+ .studio-layout{grid-template-columns:minmax(315px,350px) minmax(0,1fr);gap:21px;}
+ .studio-config-panel .field label{font-size:14.5px;}
+ .studio-config-panel .wall-mode-row p,.studio-config-panel .muted{
+  font-size:14.5px;line-height:1.6;
+ }
+ .studio-config-panel .check-pill strong{font-size:15px;line-height:1.4;}
+ .studio-config-panel .check-pill small{font-size:13.5px;line-height:1.55;}
+ .studio-config-panel .action-row>.btn,.studio-config-panel .action-row>label.btn{
+  font-size:14px;min-height:45px;line-height:1.4;padding:10px 11px;
+ }
+ .studio-config-panel .action-row>[data-generate]{font-size:16px;min-height:49px;}
+ .studio-config-panel .random-inline-status{font-size:14px;}
+ .studio-stage .panel-top h3{font-size:19px;}
+ .studio-stage .layout-model-item small{font-size:13.5px;}
+ .studio-stage .btn-small{font-size:13px;min-height:39px;}
+ .arena-legend{font-size:13px;line-height:1.5;gap:11px;}
+ /* Do not enlarge absolute-positioned marker labels: bigger labels would
+    overlap model photos and obscure track lines on the real field image. */
+ /* Leaderboards: emphasize team names, scores, explanations and filters. */
+ .scoreboard-header p{font-size:16px;line-height:1.65;color:#e0eaf0;}
+ .scoreboard-header-tags span,.scoreboard-eyebrow{font-size:12px;letter-spacing:.7px;}
+ .scoreboard-kpi small{font-size:13px;}
+ .scoreboard-kpi-label{font-size:16px!important;}
+ .scoreboard-group-filters>span{font-size:12.5px;}
+ .scoreboard-group-filters button{font-size:14px;min-height:41px;}
+ .scoreboard-shell .lb-tab{font-size:15px;min-height:46px;}
+ .scoreboard-search input{font-size:16px;min-height:48px;}
+ .scoreboard-toolbar-hint,.scoreboard-overview-head p,
+ .scoreboard-ranking-heading p{font-size:14px;color:#506c80;}
+ .scoreboard-overview-head h3,.scoreboard-ranking-heading h3{font-size:23px;}
+ .scoreboard-division-card h3{font-size:19px;}
+ .scoreboard-division-card-head>span:last-child,
+ .scoreboard-division-footer>span,.scoreboard-division-footer button{font-size:14px;}
+ .scoreboard-first-data strong{font-size:15px;}
+ .scoreboard-first-data small,.scoreboard-first-data>span{font-size:13px;}
+ .scoreboard-podium-name{font-size:16px;}
+ .scoreboard-podium-school{font-size:13px;}
+ .scoreboard-podium-score{font-size:23px;}
+ .scoreboard-podium-score small{font-size:12px;}
+ .scoreboard-table{font-size:15px;}
+ .scoreboard-table th{font-size:13px;}
+ .scoreboard-team-cell strong{font-size:15px;}
+ .scoreboard-team-cell small{font-size:13px;}
+ .scoreboard-score-value{font-size:19px;}
+ .scoreboard-mobile-main strong{font-size:16px;}
+ .scoreboard-mobile-main small,.scoreboard-mobile-results{font-size:13px;}
+ .scoreboard-mobile-value strong{font-size:23px;}
+ .scoreboard-mobile-value small{font-size:12px;}
+ .scoreboard-empty p,.scoreboard-no-entries{font-size:14px;}
+ /* Roster and import dialogs — avoid tiny 9px labels and inaccessible actions. */
+ .roster-shortcuts-label,.bulk-import-eyebrow,.scoreboard-kicker{font-size:12px;}
+ .roster-shortcuts-copy small,.bulk-import-intro p{font-size:14px;}
+ .bulk-import-steps span{font-size:13px;}
+ .bulk-import-steps b{font-size:12px;min-width:23px;height:23px;}
+ .bulk-import-dialog .team-import-toolbar .btn,
+ .bulk-import-dialog .action-row .btn{font-size:14px;min-height:46px;}
+ .bulk-import-dialog #team-import-text{font-size:15px;line-height:1.6;}
+ .bulk-import-dialog .team-import-status{font-size:14px;}
+ .verification-state{font-size:13.5px;}
+ .scoreboard-actions>span{font-size:13px;line-height:1.5;}
+}
+@media screen and (max-width:1370px) and (min-width:1151px){
+ .studio-layout{grid-template-columns:minmax(280px,310px) minmax(0,1fr);}
+ .studio-config-panel .action-row{grid-template-columns:1fr;}
+ .studio-config-panel .action-row>.btn,
+ .studio-config-panel .action-row>label.btn{grid-column:1/-1;}
+}
+@media screen and (max-width:1150px){
+ .studio-layout{grid-template-columns:1fr;}
+ .studio-config-panel .action-row{display:flex;flex-wrap:wrap;}
+ .cloud-panel .form-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media screen and (max-width:760px){
+ body{font-size:16px;}
+ .sidebar #navigation .nav-button{font-size:15px;min-height:46px;padding:10px 13px;}
+ .sidebar #navigation .nav-button .nav-label{font-size:15px;white-space:nowrap;}
+ .brand strong{font-size:17px;}
+ .brand small{font-size:12px;}
+ .topbar h1{font-size:24px;}
+ .topbar .breadcrumbs{font-size:12px;}
+ .top-actions .btn{font-size:13px;min-height:44px;}
+ .section-heading h2{font-size:25px;}
+ .section-heading .muted,.muted{font-size:15px;}
+ .panel h3{font-size:19px;}
+ .panel-note{font-size:14.5px;}
+ .btn,.team-heading-actions .btn,.scoreboard-actions .btn{font-size:15px;min-height:46px;}
+ .btn-small{font-size:14px;min-height:42px;}
+ .field label{font-size:14.5px;}
+ .field input,.field select,.field textarea{font-size:16px;min-height:48px;}
+ .check-pill strong{font-size:15px;}
+ .check-pill small{font-size:13.5px;}
+ .table th{font-size:12.5px;}
+ .table td{font-size:14px;}
+ .dashboard-hero-label{font-size:12px;}
+ .dashboard-hero h2{font-size:29px;}
+ .dashboard-hero p{font-size:15px;}
+ .dashboard-hero-actions .btn{font-size:14.5px;min-height:46px;}
+ .metric-top>span:first-child{font-size:13px;}
+ .dashboard-metric>small{font-size:13px;}
+ .dashboard-workflow h3{font-size:20px;}
+ .dashboard-workflow p{font-size:15px;}
+ .dashboard-card-head h3{font-size:17px;}
+ .dash-division-label,.dash-division-leader,.dash-division-score{font-size:13px;}
+ .dash-storage-note{font-size:13.5px;}
+ .studio-config-panel .action-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+ .studio-config-panel .action-row>.btn{font-size:14px;}
+ .studio-config-panel .action-row>[data-generate]{grid-column:1/-1;font-size:16px;}
+ .studio-config-panel .action-row>label.btn{grid-column:1/-1;font-size:14px;}
+ .studio-config-panel>.form-grid{grid-template-columns:1fr;}
+ .studio-stage .panel-top h3{font-size:19px;}
+ .studio-config-panel .check-pill strong{font-size:15px;}
+ .studio-config-panel .check-pill small{font-size:13.5px;}
+ .arena-legend{font-size:12.5px;}
+ .cloud-panel .form-grid{grid-template-columns:1fr;}
+ .cloud-panel .action-row .btn,.cloud-panel .action-row a.btn{width:100%;justify-content:center;}
+ .scoreboard-header p{font-size:15px;}
+ .scoreboard-header-tags span{font-size:12px;}
+ .scoreboard-kpi small{font-size:12px;}
+ .scoreboard-kpi-label{font-size:14px!important;}
+ .scoreboard-shell .lb-tab{font-size:14.5px;min-height:46px;}
+ .scoreboard-toolbar-hint{font-size:13px;}
+ .scoreboard-overview-head h3{font-size:21px;}
+ .scoreboard-ranking-heading h3{font-size:20px;}
+ .scoreboard-ranking-heading p{font-size:14px;}
+ .scoreboard-podium-name{font-size:13px;overflow-wrap:anywhere;line-height:1.35;}
+ .scoreboard-podium-school{font-size:12px;overflow-wrap:anywhere;}
+ .scoreboard-podium-score{font-size:20px;}
+ .scoreboard-podium-step span{font-size:11px;}
+ .scoreboard-podium-score small{font-size:11px;}
+ .scoreboard-mobile-main strong{font-size:16px;}
+ .scoreboard-mobile-main small,.scoreboard-mobile-results{font-size:13px;}
+ .scoreboard-mobile-value strong{font-size:23px;}
+ .bulk-import-steps{flex-wrap:wrap;}
+ .bulk-import-steps span{font-size:12.5px;}
+ .bulk-import-dialog .team-import-toolbar .btn,.bulk-import-dialog .action-row .btn{
+  font-size:14px;min-height:46px;padding:10px 9px;
+ }
+ .bulk-import-dialog #team-import-text{font-size:16px;}
+ .scoreboard-actions>span{font-size:12.5px;}
+}
+@media screen and (max-width:390px){
+ .topbar h1{font-size:22px;}
+ .studio-config-panel .action-row{grid-template-columns:1fr;}
+ .studio-config-panel .action-row>.btn{grid-column:1/-1;}
+ .scoreboard-podium-name{font-size:12.5px;}
+ .scoreboard-podium-school{font-size:11.5px;}
+ .scoreboard-header h2{font-size:27px;}
+}
