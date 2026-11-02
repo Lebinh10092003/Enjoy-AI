@@ -4,10 +4,10 @@ import {CLOUD_CONFIG} from "./cloud-config.mjs";
 import {parseSeconds,displaySeconds} from "./time-utils.mjs";
 import {teamImportTemplate,validateTeamImport} from "./team-import.mjs";
 import {renderInventionLeaderboard,renderBattleLeaderboard} from "./leaderboard-ui.mjs?v=20261012-leaderboard-v3";
-import {MODEL_META,WALL_MODES,placementKey,countLayoutVariants} from "./placement.mjs?v=20261102-random-v2";
+import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261102-grid-clearance-v3";
 import {teamUi,readTeamFields} from "./teams-ui.mjs?v=20261012-leaderboard-v3";
-import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261012-grade-v4";
-import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261102-random-v2";
+import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261102-grid-clearance-v3";
+import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261102-grid-clearance-v3";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
 const V=escapeHtml;
@@ -118,11 +118,8 @@ function renderRanking(){
 function renderMap(layout){return renderArena(layout,data.mapImage||"https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg");}
 function randomRuleText(){
  const preset=LEVELS.find(l=>l.id===ui.layoutLevel)||LEVELS[0];
- const count=countLayoutVariants({level:preset.id,wallMode:ui.wallMode,
-  includeBonus:ui.layoutBonus&&data.bonusEnabled,verifiedOnly:ui.verifiedOnly,
-  approvals:data.placementApprovals||{}});
- return preset.division+": đổi "+preset.swapTasks+" vị trí nhiệm vụ, "+preset.moveObstacles+
-  " vị trí vật cản. Tổng 7 nhiệm vụ + 3 vật cản. Có "+count.toLocaleString("vi-VN")+" phương án hợp lệ theo cấu hình hiện tại.";
+ return preset.division+": đổi đúng "+preset.swapTasks+" nhiệm vụ, "+preset.moveObstacles+
+  " vật cản. Tìm trên cả ô tím và ô trắng; loại phương án chặn mọi lối đi của robot 30 cm. Tổng 7 nhiệm vụ + 3 vật cản.";
 }
 function updateRandomRuleLabel(){
  const element=$('#layout-change-rule');
@@ -131,18 +128,20 @@ function updateRandomRuleLabel(){
 function renderRandom(){
   const layout=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   if(layout)ui.layoutId=layout.id; // Never inherit an old layout's reverse/random mode when opening the page.
-  let s=title("Tạo đề Invention ngẫu nhiên","Áp dụng quy tắc đổi vị trí cố định theo bảng thi của V+. Luôn giữ đủ 7 nhiệm vụ và 3 vật cản.",'<button class="btn btn-outline" data-print>In sơ đồ</button>');
+  let s=title("Tạo đề Invention ngẫu nhiên","Đã mở rộng các ô trắng trên sa bàn 216 × 120 cm; chỉ nhận đề qua kiểm tra khoảng hở 30 cm. Vẫn giữ đủ 7 nhiệm vụ và 3 vật cản.",'<button class="btn btn-outline" data-print>In sơ đồ</button>');
   s+='<div class="studio-layout"><div class="studio-controls"><div class="panel studio-config-panel"><div class="form-grid">'+selectField("layout-level","Cấp độ luyện tập",LEVELS.map(l=>({id:l.id,label:l.name+' · '+l.division})),ui.layoutLevel)+'<div class="panel-note" id="layout-change-rule">'+V(randomRuleText())+'</div>'+field("layout-seed","Seed cố định (tùy chọn)",ui.layoutSeed,"text","placeholder='Dùng nút Tạo lại theo seed'")+'<div class="field"><label>Nhiệm vụ chính</label><strong class="fixed-layout-count">7 nhiệm vụ</strong></div><div class="field"><label>Vật cản</label><strong class="fixed-layout-count">3 vật cản</strong></div>'+'</div><div class="wall-mode-row">'+selectField("layout-wall-mode","Vạn Lý Trường Thành – hướng lắp",WALL_MODES,ui.wallMode)+'<p class="muted">Giữ nguyên, đảo 180° hoặc random hai hướng. Chỉ áp dụng Tường Thành; 6 nhiệm vụ khác và vật cản hoạt động bình thường.</p></div><label class="check-pill" style="max-width:430px;min-height:47px"><input type="checkbox" id="layout-bonus" '+(ui.layoutBonus?"checked":"")+(!data.bonusEnabled?" disabled":"")+'><span><strong>Thêm nhiệm vụ Bonus</strong><small>'+(data.bonusEnabled?"Đã được bật trong phần Dữ liệu & hướng dẫn":"BTC chưa xác nhận nhiệm vụ thưởng")+'</small></span></label>'+
-    '<label class="check-pill verified-only-toggle"><input type="checkbox" id="layout-verified-only" '+(ui.verifiedOnly?"checked":"")+'><span><strong>Chỉ dùng vị trí/hướng nhiệm vụ đã xác nhận (vật cản dùng ô O1–O9)</strong><small>Nếu chưa đủ cấu hình hợp lệ, hệ thống sẽ báo lỗi thay vì tự đặt sai. Xác nhận từng nhiệm vụ sau khi đã thử thực tế.</small></span></label><p class="muted">Nút “Tạo đề ngẫu nhiên mới” ưu tiên phương án chưa xuất hiện trong lịch sử cùng cấu hình. Khi hết phương án, hệ thống thông báo và bắt đầu chu kỳ mới. Nhập seed để tái tạo đề đã tạo.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div><div id="random-status" class="random-inline-status" role="status" aria-live="polite"></div></div>';
+    '<label class="check-pill verified-only-toggle"><input type="checkbox" id="layout-verified-only" '+(ui.verifiedOnly?"checked":"")+'><span><strong>Chỉ dùng vị trí/hướng nhiệm vụ đã xác nhận trên sa bàn thật</strong><small>Nếu chưa đủ cấu hình hợp lệ, hệ thống sẽ báo lỗi thay vì tự đặt sai. Xác nhận từng nhiệm vụ sau khi đã thử thực tế.</small></span></label><p class="muted">Nút “Tạo đề ngẫu nhiên mới” ưu tiên bố trí chưa có trong lịch sử. Ô trắng có mã W; mô hình nhỏ mới được xét đặt ở ô trắng, vật cản có thêm các ô W. Nếu không tìm được hành lang cho robot 30 cm, không lưu đề. Đề cũ được giữ nguyên.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div><div id="random-status" class="random-inline-status" role="status" aria-live="polite"></div></div>';
   return s+'</div><div id="random-results" class="studio-stage">'+renderRandomResults(layout)+'</div></div>';
 }
 function renderRandomResults(layout){
   let s='';
   if(!layout)return '<div class="panel"><div class="empty"><strong>Chưa có đề</strong>Chọn cấp độ, bấm “Tạo đề ngẫu nhiên mới” để sinh đủ 7 nhiệm vụ và 3 vật cản.</div>'+renderMap(null)+'</div>';
   if(layout.version!==4)s+='<div class="panel-note warning">Đề cũ không tuân thủ quy tắc đổi 2/3 nhiệm vụ và 0/1/1/2 vật cản theo lớp. Hãy chọn “Tạo đề mới” để áp dụng chuẩn 7 nhiệm vụ + 3 vật cản tại O1–O9. Dữ liệu đề cũ không bị xóa.</div>';
+  if(layout.generatorVersion!==3)s+='<div class="panel-note warning">Đề lịch sử: chưa qua kiểm tra khoảng hở 30 cm mới. Dữ liệu được giữ nguyên để đối chiếu hoặc tái tạo, không tự xác nhận là an toàn.</div>';
+  else s+='<div class="panel-note">Đã qua bộ lọc hình học: robot 30 cm, sa bàn 216 × 120 cm, có lối thông sang khu vực bên phải. Chỉ là mô phỏng dựa trên kích thước mô hình ước lượng; cần thử thực tế.</div>';
   s+='<div class="panel"><div class="panel-top"><h3>Sa bàn ngẫu nhiên · '+V(LEVELS.find(x=>x.id===layout.level)?.name||layout.level)+'</h3><div class="action-row">'+badge("Seed: "+layout.seed)+badge("Tường Thành: "+(layout.tasks.find(t=>t.id==="wall")?.reversed?"Đảo 180°":"Không đảo"))+(layout.changeRules?badge("Đổi "+layout.changeRules.swapTasks+" nhiệm vụ · "+layout.changeRules.moveObstacles+" vật cản"):"")+'<button class="btn btn-soft btn-small no-print" data-generate-board type="button" title="Random lại và giữ nguyên vị trí xem sa bàn">⟳ Random lại</button></div></div>'+renderMap(layout)+
-     '<div class="panel-note warning">7 nhiệm vụ chính được đặt tại các khung nhiệm vụ A–J; 3 vật cản chỉ xuất hiện trong 9 ô chữ nhật nhỏ O1–O9 mà bạn đã đánh dấu. Mũi tên thể hiện hướng robot tiếp cận. Đây là phương án hình học bảo thủ; cần thử mô hình thật để xác nhận hướng tay gạt, vùng thao tác và khoảng trống. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
-  s+='<div class="grid-2"><div class="panel"><h3>Phân bố mô hình</h3><div class="layout-list">'+layout.tasks.map(t=>'<div class="layout-model-item">'+modelPicture(t.id,false,Boolean(t.reversed))+'<span><b>'+t.slot+' · '+V(LAYOUT_NAMES[t.id])+'</b>'+(layout.version===4&&t.id!=="bonus"?'<span class="layout-change-tag '+(layout.changedTaskIds?.includes(t.id)?"is-changed":"is-fixed")+'">'+(layout.changedTaskIds?.includes(t.id)?"Đổi vị trí":"Giữ vị trí")+'</span>':"")+'<br>Hướng tiếp cận: <b>'+t.angle+'° · '+V(angleName(t.angle))+'</b>'+(t.id==="wall"?'<br><strong class="wall-rotation-label">Hướng lắp: '+(t.reversed?"Đảo 180°":"Giữ nguyên")+'</strong>':"")+'<br><small>'+V(MODEL_META[t.id]?.guide||"")+'</small><span class="verification-row"><span class="verification-state">'+(data.placementApprovals?.[placementKey(t.id,t.slot,t.angle,t.reversed)]?"✓ Đã thử và xác nhận":"Chưa xác nhận thực tế")+'</span><button type="button" class="btn btn-outline btn-small no-print" data-verify-placement="'+V(placementKey(t.id,t.slot,t.angle,t.reversed))+'">'+(data.placementApprovals?.[placementKey(t.id,t.slot,t.angle,t.reversed)]?"Hủy xác nhận":"Xác nhận đã thử")+'</button></span></span></div>').join("")+'</div><p class="muted" style="margin-top:15px">3 vị trí vật cản nhỏ: '+V(layout.obstacles.join(", ")||"Chưa có")+'</p></div>'+
+     '<div class="panel-note warning">7 nhiệm vụ có thể đổi giữa các khung tím A–J và các ô trắng phù hợp W; 3 vật cản được đặt trong các ô O1–O9 hoặc W. Vị trí mới phải qua bộ lọc đường đi 30 cm. Mũi tên thể hiện hướng robot tiếp cận. Đây là phương án hình học bảo thủ; cần thử mô hình thật để xác nhận hướng tay gạt, vùng thao tác và khoảng trống. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
+  s+='<div class="grid-2"><div class="panel"><h3>Phân bố mô hình</h3><div class="layout-list">'+layout.tasks.map(t=>'<div class="layout-model-item">'+modelPicture(t.id,false,Boolean(t.reversed))+'<span><b>'+t.slot+' · '+V(LAYOUT_NAMES[t.id])+'</b>'+(layout.version===4&&t.id!=="bonus"?'<span class="layout-change-tag '+(layout.changedTaskIds?.includes(t.id)?"is-changed":"is-fixed")+'">'+(layout.changedTaskIds?.includes(t.id)?"Đổi vị trí":"Giữ vị trí")+'</span>':"")+'<br>Hướng tiếp cận: <b>'+t.angle+'° · '+V(angleName(t.angle))+'</b>'+(t.id==="wall"?'<br><strong class="wall-rotation-label">Hướng lắp: '+(t.reversed?"Đảo 180°":"Giữ nguyên")+'</strong>':"")+'<br><small>'+V(MODEL_META[t.id]?.guide||"")+'</small><span class="verification-row"><span class="verification-state">'+(data.placementApprovals?.[placementKey(t.id,t.slot,t.angle,t.reversed)]?"✓ Đã thử và xác nhận":"Chưa xác nhận thực tế")+'</span><button type="button" class="btn btn-outline btn-small no-print" data-verify-placement="'+V(placementKey(t.id,t.slot,t.angle,t.reversed))+'">'+(data.placementApprovals?.[placementKey(t.id,t.slot,t.angle,t.reversed)]?"Hủy xác nhận":"Xác nhận đã thử")+'</button></span></span></div>').join("")+'</div><p class="muted" style="margin-top:15px">3 vị trí vật cản: '+V(layout.obstacles.join(", ")||"Chưa có")+'</p></div>'+
     '<div class="panel"><h3>Đề đã tạo</h3><div class="field"><label for="selected-layout">Chọn lại đề đã lưu</label><select id="selected-layout">'+data.layouts.map((l,i)=>'<option value="'+V(l.id)+'"'+(l.id===layout.id?' selected':'')+'>#'+(data.layouts.length-i)+' · '+V(l.seed)+' · '+V(LEVELS.find(x=>x.id===l.level)?.name||l.level)+'</option>').join("")+'</select></div><p class="muted">Đề được lưu tự động trong trình duyệt và trong bản sao lưu JSON.</p><button class="btn btn-danger btn-small" data-delete-layout="'+V(layout.id)+'">Xóa đề này</button></div></div>';
   return s;
 }
@@ -426,30 +425,25 @@ function makeLayout(mode="random"){
   if(mode==="seed"&&!typedSeed){refreshRandomResults("Nhập mã seed trước khi bấm “Tạo lại theo seed”.",true);return;}
   const previous=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   try{
-    const opts={level,includeBonus:bonus,wallMode,verifiedOnly,approvals:data.placementApprovals||{}};
-    const total=countLayoutVariants(opts);
-    if(!total)throw Error("Chưa có đủ cấu hình vị trí và hướng đã kiểm nghiệm cho đúng số nhiệm vụ cần đổi. Hãy xác nhận thêm cấu hình trên sa bàn thật.");
-    const history=data.layouts.filter(l=>l.version===4&&l.level===level&&
+    const opts={level,includeBonus:bonus,wallMode,verifiedOnly,
+      approvals:data.placementApprovals||{},allowWhiteSlots:true,robotCm:30};
+    const history=data.layouts.filter(l=>l.generatorVersion===3&&l.level===level&&
       (l.wallMode||"normal")===wallMode&&Boolean(l.verifiedOnly)===verifiedOnly&&
       l.tasks.some(t=>t.id==="bonus")===bonus);
     const seen=new Set(history.map(layoutSignature));
-    const exhausted=mode==="random"&&seen.size>=total;
-    const previousSignature=previous&&previous.version===4?layoutSignature(previous):null;
     let seed=mode==="seed"?typedSeed:nextRandomSeed();
-    // Recreate historical v4 layouts with the exact legacy algorithm.
-    const legacy=mode==="seed"&&history.find(l=>l.seed===typedSeed&&!l.generatorVersion);
-    let layout=generateLayout({...opts,seed,...(legacy?{algorithmVersion:1}:{})});
+    const saved=mode==="seed"&&data.layouts.find(l=>l.seed===typedSeed&&l.level===level&&
+      (l.wallMode||"normal")===wallMode&&Boolean(l.verifiedOnly)===verifiedOnly&&
+      l.tasks.some(t=>t.id==="bonus")===bonus);
+    const replayVersion=saved?(saved.generatorVersion||1):3;
+    const params={...opts,seed,...(replayVersion<3?{algorithmVersion:replayVersion}:{})};
+    let layout=generateLayout(params);
     if(mode==="random"){
-      const attempts=Math.max(120,Math.min(15000,total*9));
-      for(let i=0;i<attempts;i++){
-        const signature=layoutSignature(layout);
-        if((!exhausted&&!seen.has(signature))||
-           (exhausted&&(total===1||signature!==previousSignature)))break;
-        seed=nextRandomSeed();
-        layout=generateLayout({...opts,seed});
+      for(let i=0;i<100&&seen.has(layoutSignature(layout));i++){
+        seed=nextRandomSeed();layout=generateLayout({...opts,seed});
       }
-      if(!exhausted&&seen.has(layoutSignature(layout)))
-        throw Error("Không tìm được đề chưa từng xuất hiện sau "+attempts+" lần thử. Có thể dùng seed hoặc xóa bớt đề đã lưu.");
+      if(seen.has(layoutSignature(layout)))
+        throw Error("Chưa tìm được đề mới không trùng trong giới hạn thử. Đề cũ được giữ nguyên.");
     }
     layout.id=uid("layout");
     ui.layoutId=layout.id;
@@ -463,7 +457,7 @@ function makeLayout(mode="random"){
     refreshRandomResults((mode==="seed"?"Đã tái tạo đề":"Đã random đề mới")+
       ": đổi "+layout.changeRules.swapTasks+" nhiệm vụ, "+layout.changeRules.moveObstacles+
       " vị trí vật cản; vẫn đủ 7 nhiệm vụ và 3 vật cản. Seed: "+seed+"."+
-      (exhausted?" Đã sử dụng hết "+total+" phương án cùng cấu hình; bắt đầu chu kỳ mới, có thể lặp lại đề cũ.":""));
+      (layout.generatorVersion===3?" Đã qua kiểm tra lối đi cho robot 30 cm.":" Đề lịch sử được tái tạo, chưa qua kiểm tra 30 cm."));
   }catch(error){refreshRandomResults(error?.message||"Không thể tạo đề hợp lệ.",true);}
 }
 function exportLayout(){const l=data.layouts.find(x=>x.id===ui.layoutId);if(l)download("invention-layout-"+l.seed+".json",JSON.stringify(l,null,2),"application/json");}
