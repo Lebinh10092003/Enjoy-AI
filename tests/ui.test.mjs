@@ -257,5 +257,20 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.ok(q('[data-battle-tab="primary"]'));
  click('[data-battle-tab="primary"]');
  assert.equal(q('[data-battle-tab="primary"]').getAttribute("aria-selected"),"true");
+ // Unauthenticated Cloud needs visible setup steps, not a dead-end password form.
+ click('[data-page="settings"]');
+ assert.ok(q('[data-cloud-login]'));
+ assert.ok(q('[data-cloud-test]'));
+ assert.ok(q('[data-cloud-copy-sql]'));
+ assert.ok(q('#cloud-email'));
+ assert.ok(q('#cloud-role'));
+ assert.equal(q('#cloud-role').value,"admin");
+ assert.match(q('#content').textContent,/Supabase Auth/);
+ assert.match(q('#content').textContent,/Authentication/);
+ assert.ok(q('a[href*="/auth/users"]'));
+ assert.ok(q('a[href*="/sql/new"]'));
+ assert.equal(q('#cloud-password').getAttribute('type'),'password');
+ // Account creation and granting must be done in Supabase, not automatically.
+ assert.equal(q('[data-cloud-signup]'),null);
  dom.window.close();
 });
