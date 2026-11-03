@@ -1,5 +1,5 @@
-import {normalizeUserSlots} from "./board-slots.mjs";
-import {SLOTS as PHYSICAL_SLOTS,LEVELS as PRACTICE_LEVELS,buildRandomLayout} from "./placement.mjs?v=20261103-custom-board-v4";
+import {normalizeUserSlots} from "./board-slots.mjs?v=20261103-cross-v5";
+import {SLOTS as PHYSICAL_SLOTS,LEVELS as PRACTICE_LEVELS,buildRandomLayout} from "./placement.mjs?v=20261103-cross-v5";
 // ENJOY AI 2026 — quy tắc tính điểm và lưu trữ độc lập với giao diện.
 export const VERSION = 1;
 export const INV_DIVISIONS = [
