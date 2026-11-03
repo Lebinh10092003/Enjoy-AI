@@ -84,6 +84,35 @@ test("User-drawn slot editor supports mouse/touch drag, adjust, save and delete"
  root.querySelector("#slot-approach").value="225";
  root.querySelector("[data-slot-save]").click();
  assert.equal(items[0].approach,225);
+ // Editing the controls previews geometry, but only Save commits changes.
+ const oldWidth=items[0].widthCm;
+ root.querySelector("#slot-w").value="20";
+ root.querySelector("#slot-w").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+ assert.equal(items[0].widthCm,oldWidth);
+ assert.match(root.querySelector("#slot-editor-feedback").textContent,/Đang xem trước/);
+ const previewCell=root.querySelector(".board-editor-cell");
+ assert.ok(previewCell.style.width.includes(String(20/216*100).slice(0,7)));
+ root.querySelector('[data-slot-adjust="rotate-right"]').click();
+ assert.equal(root.querySelector("#slot-rotation").value,"45");
+ assert.equal(items[0].rotation,30);
+ root.querySelector("[data-slot-save]").click();
+ assert.equal(items[0].widthCm,20);
+ assert.equal(items[0].rotation,45);
+ // Dragging an existing cell moves its center and persists to data.
+ const beforeX=items[0].x;
+ const movingCell=root.querySelector(".board-editor-cell");
+ const pointer=(target,name,x,y)=>{
+  const e=new dom.window.Event(name,{bubbles:true,cancelable:true});
+  Object.defineProperties(e,{pointerId:{value:8},button:{value:0},
+   clientX:{value:x},clientY:{value:y}});
+  target.dispatchEvent(e);
+ };
+ pointer(movingCell,"pointerdown",235,180);
+ pointer(canvas,"pointermove",265,180);
+ pointer(canvas,"pointerup",265,180);
+ assert.ok(items[0].x>beforeX,"Dragging the box should move it on the field.");
+ assert.equal(items[0].x,Number((beforeX+3).toFixed(3)));
+ assert.match(root.querySelector("#slot-editor-feedback").textContent,/Đã di chuyển/);
  dom.window.confirm=()=>true;
  root.querySelector("[data-slot-delete]").click();
  assert.equal(items.length,0);
