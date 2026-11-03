@@ -1,7 +1,7 @@
 import {FIELD_CM} from "./route-safety.mjs";
 import {normalizeUserSlots,userTaskSlots,userObstacleSlots} from "./board-slots.mjs";
-import {MODEL_META,SLOTS,OBSTACLE_SLOTS} from "./placement.mjs?v=20261102-grid-clearance-v3";
-import {escapeHtml as E} from "./core.mjs?v=20261012-grade-v4";
+import {MODEL_META,SLOTS,OBSTACLE_SLOTS} from "./placement.mjs?v=20261103-custom-board-v4";
+import {escapeHtml as E} from "./core.mjs?v=20261103-custom-board-v4";
 const FOCUS={compass:[490,158],paper:[510,170],gun:[308,128],printing:[530,205],seismo:[334,145],pyramid:[495,176],wall:[622,200]};
 export function modelPicture(id,compact=false,reversed=false){
  const m=MODEL_META[id]||MODEL_META.bonus;
