@@ -172,7 +172,7 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
     label:"Ô tự vẽ",x:(a.x+b.x)/2,y:(a.y+b.y)/2,widthCm:width,heightCm:height,
     type,rotation:0,approach:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
    selected="";paint();announce("Ô mới đang ở chế độ xem trước. Chỉnh thông số rồi bấm Lưu ô.");
-  }catch(e){if(moving)paint();announce(e.message,true);}finally{closeDraw();}
+  }catch(e){if(moving)paint();announce(e.message,true);}finally{closeDraw();if(!moving&&draft)previewForm();}
  });
  wrapper.addEventListener("pointercancel",()=>{if(drag?.kind==="move")paint();closeDraw();});
  wrapper.addEventListener("click",event=>{
