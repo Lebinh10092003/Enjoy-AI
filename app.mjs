@@ -4,10 +4,12 @@ import {CLOUD_CONFIG} from "./cloud-config.mjs";
 import {parseSeconds,displaySeconds} from "./time-utils.mjs";
 import {teamImportTemplate,validateTeamImport} from "./team-import.mjs";
 import {renderInventionLeaderboard,renderBattleLeaderboard} from "./leaderboard-ui.mjs?v=20261012-leaderboard-v3";
-import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261102-grid-clearance-v3";
+import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261103-custom-board-v4";
+import {normalizeUserSlots,slotConfigKey} from "./board-slots.mjs";
+import {renderBoardEditor,mountBoardEditor} from "./board-editor.mjs";
 import {teamUi,readTeamFields} from "./teams-ui.mjs?v=20261012-leaderboard-v3";
-import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261102-grid-clearance-v3";
-import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261102-grid-clearance-v3";
+import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261103-custom-board-v4";
+import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261103-custom-board-v4";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
 const V=escapeHtml;
@@ -17,7 +19,7 @@ let cloudMessage="";
 const cloud=new CloudSync(CLOUD_CONFIG,{onStatus:updateCloudStatus});
 let page="overview";
 let autoSeedSequence=0;
-const ui={teamImportFeedback:{invention:"",battle:""},editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleGroup:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
+const ui={settingsView:"general",boardSelectedId:"",teamImportFeedback:{invention:"",battle:""},editTeam:"",invTeam:"",invRound:1,invDivision:"all",battleDivision:"all",battleGroup:"all",battleId:"",layoutId:"",layoutLevel:"medium",layoutSeed:"",layoutBonus:false,wallMode:"normal",verifiedOnly:false};
 const names={overview:"Tổng quan giải đấu",teams:"Đội Invention","teams-invention":"Đội Inventions Trail","teams-battle":"Đội Battle of Stars",invention:"Chấm điểm · Inventions Trail",ranking:"Xếp hạng · Inventions Trail",random:"Random đề Invention",battle:"Chấm điểm · Battle of Stars","battle-ranking":"Xếp hạng · Battle of Stars",settings:"Dữ liệu & hướng dẫn"};
 const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
@@ -83,6 +85,20 @@ function render(){
   const views={overview:renderOverview,teams:()=>renderTeams("invention"),"teams-invention":()=>renderTeams("invention"),"teams-battle":()=>renderTeams("battle"),invention:renderInvention,ranking:renderRanking,random:renderRandom,battle:renderBattle,"battle-ranking":renderBattleRanking,settings:renderSettings};
   el.innerHTML=(views[page]||renderOverview)();
   bindDynamic();
+  if(page==="settings"&&ui.settingsView==="board"){
+    mountBoardEditor(el,{getSlots:()=>data.boardSlots||[],selectedId:ui.boardSelectedId,
+     readOnly:cloud.ready&&cloud.role==="viewer",
+     onChange:(next,selection)=>{
+       const before=normalizeUserSlots(data.boardSlots||[]);
+       const updatedIds=new Set(before.filter(old=>!next.some(n=>n.id===old.id&&JSON.stringify(n)===JSON.stringify(old))).map(o=>o.id));
+       if(updatedIds.size&&data.placementApprovals){
+        for(const key of Object.keys(data.placementApprovals))
+         if([...updatedIds].some(id=>key.includes("|"+id+"|")))delete data.placementApprovals[key];
+       }
+       data.boardSlots=normalizeUserSlots(next);
+       ui.boardSelectedId=selection;persist();
+     }});
+  }
   if(cloud.ready&&cloud.role==="viewer"){
     const allowed='[data-go],[data-inv-tab],[data-battle-tab],[data-battle-group],[data-export-teams],[data-export-ranking],[data-export-battle-ranking],[data-print],[data-backup],[data-cloud-refresh],[data-cloud-logout],[data-cloud-backup],[data-cloud-retry],#scoreboard-search,#inv-team,#inv-round,#selected-match,#selected-layout';
     el.querySelectorAll("button,input,textarea,select").forEach(control=>{if(!control.matches(allowed))control.disabled=true;});
@@ -119,7 +135,7 @@ function renderMap(layout){return renderArena(layout,data.mapImage||"https://d2o
 function randomRuleText(){
  const preset=LEVELS.find(l=>l.id===ui.layoutLevel)||LEVELS[0];
  return preset.division+": đổi đúng "+preset.swapTasks+" nhiệm vụ, "+preset.moveObstacles+
-  " vật cản. Tìm trên cả ô tím và ô trắng; loại phương án chặn mọi lối đi của robot 30 cm. Tổng 7 nhiệm vụ + 3 vật cản.";
+  " vật cản. "+((data.boardSlots||[]).length?"Dùng ô tự vẽ và các vị trí gốc.":"Dùng ô tím và ô trắng tham khảo.")+" Bộ lọc 30 cm vẫn hoạt động. Tổng 7 nhiệm vụ + 3 vật cản." ;
 }
 function updateRandomRuleLabel(){
  const element=$('#layout-change-rule');
@@ -130,17 +146,17 @@ function renderRandom(){
   if(layout)ui.layoutId=layout.id; // Never inherit an old layout's reverse/random mode when opening the page.
   let s=title("Tạo đề Invention ngẫu nhiên","Đã mở rộng các ô trắng trên sa bàn 216 × 120 cm; chỉ nhận đề qua kiểm tra khoảng hở 30 cm. Vẫn giữ đủ 7 nhiệm vụ và 3 vật cản.",'<button class="btn btn-outline" data-print>In sơ đồ</button>');
   s+='<div class="studio-layout"><div class="studio-controls"><div class="panel studio-config-panel"><div class="form-grid">'+selectField("layout-level","Cấp độ luyện tập",LEVELS.map(l=>({id:l.id,label:l.name+' · '+l.division})),ui.layoutLevel)+'<div class="panel-note" id="layout-change-rule">'+V(randomRuleText())+'</div>'+field("layout-seed","Seed cố định (tùy chọn)",ui.layoutSeed,"text","placeholder='Dùng nút Tạo lại theo seed'")+'<div class="field"><label>Nhiệm vụ chính</label><strong class="fixed-layout-count">7 nhiệm vụ</strong></div><div class="field"><label>Vật cản</label><strong class="fixed-layout-count">3 vật cản</strong></div>'+'</div><div class="wall-mode-row">'+selectField("layout-wall-mode","Vạn Lý Trường Thành – hướng lắp",WALL_MODES,ui.wallMode)+'<p class="muted">Giữ nguyên, đảo 180° hoặc random hai hướng. Chỉ áp dụng Tường Thành; 6 nhiệm vụ khác và vật cản hoạt động bình thường.</p></div><label class="check-pill" style="max-width:430px;min-height:47px"><input type="checkbox" id="layout-bonus" '+(ui.layoutBonus?"checked":"")+(!data.bonusEnabled?" disabled":"")+'><span><strong>Thêm nhiệm vụ Bonus</strong><small>'+(data.bonusEnabled?"Đã được bật trong phần Dữ liệu & hướng dẫn":"BTC chưa xác nhận nhiệm vụ thưởng")+'</small></span></label>'+
-    '<label class="check-pill verified-only-toggle"><input type="checkbox" id="layout-verified-only" '+(ui.verifiedOnly?"checked":"")+'><span><strong>Chỉ dùng vị trí/hướng nhiệm vụ đã xác nhận trên sa bàn thật</strong><small>Nếu chưa đủ cấu hình hợp lệ, hệ thống sẽ báo lỗi thay vì tự đặt sai. Xác nhận từng nhiệm vụ sau khi đã thử thực tế.</small></span></label><p class="muted">Nút “Tạo đề ngẫu nhiên mới” ưu tiên bố trí chưa có trong lịch sử. Ô trắng có mã W; mô hình nhỏ mới được xét đặt ở ô trắng, vật cản có thêm các ô W. Nếu không tìm được hành lang cho robot 30 cm, không lưu đề. Đề cũ được giữ nguyên.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div><div id="random-status" class="random-inline-status" role="status" aria-live="polite"></div></div>';
+    '<label class="check-pill verified-only-toggle"><input type="checkbox" id="layout-verified-only" '+(ui.verifiedOnly?"checked":"")+'><span><strong>Chỉ dùng vị trí/hướng nhiệm vụ đã xác nhận trên sa bàn thật</strong><small>Nếu chưa đủ cấu hình hợp lệ, hệ thống sẽ báo lỗi thay vì tự đặt sai. Xác nhận từng nhiệm vụ sau khi đã thử thực tế.</small></span></label><p class="muted">Nút “Tạo đề ngẫu nhiên mới” ưu tiên bố trí chưa có trong lịch sử. Bạn có thể tự vẽ ô nhiệm vụ/vật cản trong Dữ liệu & cài đặt. Có ô tự vẽ thì thay các ô W ước lượng. Các bố trí không có lối đi cho robot 30 cm sẽ không được lưu.</p><div class="action-row" style="margin-top:15px"><button class="btn" data-generate>⟳ Tạo đề ngẫu nhiên mới</button><button class="btn btn-outline" data-open-board-editor>Chỉnh ô trên sa bàn</button><button class="btn btn-soft" data-generate-seed>Tạo lại theo seed</button><button class="btn btn-outline" data-copy-layout '+(layout?"":"disabled")+'>Sao chép đề hiện tại</button><button class="btn btn-outline" data-export-layout '+(layout?"":"disabled")+'>↓ Xuất JSON đề</button><label class="btn btn-outline" style="cursor:pointer">↑ Tải ảnh sa bàn<input type="file" id="upload-map" accept="image/png,image/jpeg,image/webp" style="display:none"></label>'+(data.mapImage?'<button class="btn btn-outline" data-clear-map>Đổi về sơ đồ</button>':'')+'</div><div id="random-status" class="random-inline-status" role="status" aria-live="polite"></div></div>';
   return s+'</div><div id="random-results" class="studio-stage">'+renderRandomResults(layout)+'</div></div>';
 }
 function renderRandomResults(layout){
   let s='';
   if(!layout)return '<div class="panel"><div class="empty"><strong>Chưa có đề</strong>Chọn cấp độ, bấm “Tạo đề ngẫu nhiên mới” để sinh đủ 7 nhiệm vụ và 3 vật cản.</div>'+renderMap(null)+'</div>';
   if(layout.version!==4)s+='<div class="panel-note warning">Đề cũ không tuân thủ quy tắc đổi 2/3 nhiệm vụ và 0/1/1/2 vật cản theo lớp. Hãy chọn “Tạo đề mới” để áp dụng chuẩn 7 nhiệm vụ + 3 vật cản tại O1–O9. Dữ liệu đề cũ không bị xóa.</div>';
-  if(layout.generatorVersion!==3)s+='<div class="panel-note warning">Đề lịch sử: chưa qua kiểm tra khoảng hở 30 cm mới. Dữ liệu được giữ nguyên để đối chiếu hoặc tái tạo, không tự xác nhận là an toàn.</div>';
+  if(![3,4].includes(layout.generatorVersion))s+='<div class="panel-note warning">Đề lịch sử: chưa qua kiểm tra khoảng hở 30 cm mới. Dữ liệu được giữ nguyên để đối chiếu hoặc tái tạo, không tự xác nhận là an toàn.</div>';
   else s+='<div class="panel-note">Đã qua bộ lọc hình học: robot 30 cm, sa bàn 216 × 120 cm, có lối thông sang khu vực bên phải. Chỉ là mô phỏng dựa trên kích thước mô hình ước lượng; cần thử thực tế.</div>';
   s+='<div class="panel"><div class="panel-top"><h3>Sa bàn ngẫu nhiên · '+V(LEVELS.find(x=>x.id===layout.level)?.name||layout.level)+'</h3><div class="action-row">'+badge("Seed: "+layout.seed)+badge("Tường Thành: "+(layout.tasks.find(t=>t.id==="wall")?.reversed?"Đảo 180°":"Không đảo"))+(layout.changeRules?badge("Đổi "+layout.changeRules.swapTasks+" nhiệm vụ · "+layout.changeRules.moveObstacles+" vật cản"):"")+'<button class="btn btn-soft btn-small no-print" data-generate-board type="button" title="Random lại và giữ nguyên vị trí xem sa bàn">⟳ Random lại</button></div></div>'+renderMap(layout)+
-     '<div class="panel-note warning">7 nhiệm vụ có thể đổi giữa các khung tím A–J và các ô trắng phù hợp W; 3 vật cản được đặt trong các ô O1–O9 hoặc W. Vị trí mới phải qua bộ lọc đường đi 30 cm. Mũi tên thể hiện hướng robot tiếp cận. Đây là phương án hình học bảo thủ; cần thử mô hình thật để xác nhận hướng tay gạt, vùng thao tác và khoảng trống. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
+     '<div class="panel-note warning">7 nhiệm vụ có thể đổi giữa các khung tím A–J và ô tự vẽ được cho phép; 3 vật cản có thể đặt vào O1–O9 hoặc các ô tự vẽ. Khi chưa có ô tự vẽ, các ô trắng W vẫn được dùng để luyện tập. Vị trí mới phải qua bộ lọc đường đi 30 cm. Mũi tên thể hiện hướng robot tiếp cận. Đây là phương án hình học bảo thủ; cần thử mô hình thật để xác nhận hướng tay gạt, vùng thao tác và khoảng trống. Luật chỉ quy định BTC công bố vị trí/hướng mô hình và vật cản trước thời gian chạy thử, không ấn định thuật toán phân cấp độ.</div></div>';
   s+='<div class="grid-2"><div class="panel"><h3>Phân bố mô hình</h3><div class="layout-list">'+layout.tasks.map(t=>'<div class="layout-model-item">'+modelPicture(t.id,false,Boolean(t.reversed))+'<span><b>'+t.slot+' · '+V(LAYOUT_NAMES[t.id])+'</b>'+(layout.version===4&&t.id!=="bonus"?'<span class="layout-change-tag '+(layout.changedTaskIds?.includes(t.id)?"is-changed":"is-fixed")+'">'+(layout.changedTaskIds?.includes(t.id)?"Đổi vị trí":"Giữ vị trí")+'</span>':"")+'<br>Hướng tiếp cận: <b>'+t.angle+'° · '+V(angleName(t.angle))+'</b>'+(t.id==="wall"?'<br><strong class="wall-rotation-label">Hướng lắp: '+(t.reversed?"Đảo 180°":"Giữ nguyên")+'</strong>':"")+'<br><small>'+V(MODEL_META[t.id]?.guide||"")+'</small><span class="verification-row"><span class="verification-state">'+(data.placementApprovals?.[placementKey(t.id,t.slot,t.angle,t.reversed)]?"✓ Đã thử và xác nhận":"Chưa xác nhận thực tế")+'</span><button type="button" class="btn btn-outline btn-small no-print" data-verify-placement="'+V(placementKey(t.id,t.slot,t.angle,t.reversed))+'">'+(data.placementApprovals?.[placementKey(t.id,t.slot,t.angle,t.reversed)]?"Hủy xác nhận":"Xác nhận đã thử")+'</button></span></span></div>').join("")+'</div><p class="muted" style="margin-top:15px">3 vị trí vật cản: '+V(layout.obstacles.join(", ")||"Chưa có")+'</p></div>'+
     '<div class="panel"><h3>Đề đã tạo</h3><div class="field"><label for="selected-layout">Chọn lại đề đã lưu</label><select id="selected-layout">'+data.layouts.map((l,i)=>'<option value="'+V(l.id)+'"'+(l.id===layout.id?' selected':'')+'>#'+(data.layouts.length-i)+' · '+V(l.seed)+' · '+V(LEVELS.find(x=>x.id===l.level)?.name||l.level)+'</option>').join("")+'</select></div><p class="muted">Đề được lưu tự động trong trình duyệt và trong bản sao lưu JSON.</p><button class="btn btn-danger btn-small" data-delete-layout="'+V(layout.id)+'">Xóa đề này</button></div></div>';
   return s;
@@ -248,7 +264,14 @@ function cloudPanel(){
   return body+'</div>';
 }
 function renderSettings(){
-  return title("Dữ liệu & quy định","Hỗ trợ localStorage và Cloud Supabase có tài khoản, phân quyền, chống ghi đè.")+cloudPanel()+
+  const tabs='<div class="settings-subnav" role="group" aria-label="Các trang cài đặt">'+
+    '<button class="btn '+(ui.settingsView==="general"?"":"btn-outline")+'" type="button" data-settings-tab="general">Dữ liệu & quy định</button>'+
+    '<button class="btn '+(ui.settingsView==="board"?"":"btn-outline")+'" type="button" data-settings-tab="board">Vị trí trên sa bàn</button></div>';
+  if(ui.settingsView==="board"){
+   return title("Cấu hình vị trí sa bàn","Tự vẽ và quản lý ô đặt nhiệm vụ, vật cản; kích thước và hướng do bạn quyết định.")+
+    tabs+renderBoardEditor(data.boardSlots||[],data.mapImage||undefined);
+  }
+  return title("Dữ liệu & quy định","Hỗ trợ localStorage và Cloud Supabase có tài khoản, phân quyền, chống ghi đè.")+tabs+cloudPanel()+
    '<div class="grid-equal"><div class="panel"><h3>Sao lưu và khôi phục</h3><p class="muted">Lưu cục bộ sau mỗi thay đổi; khi đăng nhập Cloud, hệ thống đồng bộ lên database. Hãy sao lưu JSON định kỳ, kể cả khi bật Cloud.</p><div class="action-row"><button class="btn" data-backup>↓ Xuất dữ liệu JSON</button><label class="btn btn-outline" style="cursor:pointer">↑ Nhập JSON<input type="file" id="import-json" accept=".json,application/json" style="display:none"></label></div><div class="panel-note warning">Khi chưa bật Cloud, tuyệt đối không dùng nhiều máy chấm chung. Khi bật Cloud, xung đột phải đối soát thủ công. Nhập JSON có thể ghi đè dữ liệu Cloud nên phải có xác nhận.</div></div>'+
    '<div class="panel"><h3>Nhiệm vụ thưởng Invention</h3><label class="check-pill"><input id="bonus-enabled" type="checkbox" '+(data.bonusEnabled?"checked":"")+'><span><strong>BTC đã công bố nhiệm vụ thưởng</strong><small>100 điểm nếu hoàn thành, không bật mặc định.</small></span></label><div class="field" style="margin-top:12px"><label for="bonus-description">Nội dung / điều kiện nhiệm vụ Bonus</label><textarea id="bonus-description" placeholder="Chỉ ghi quy định BTC đã công bố">'+V(data.bonusDescription||"")+'</textarea></div></div></div>'+
    '<div class="panel"><h3>Cơ sở tính điểm</h3><div class="table-wrap"><table class="table"><thead><tr><th>Invention</th><th class="num">Điểm</th><th>Battle</th><th>Điều kiện</th></tr></thead><tbody>'+
@@ -435,9 +458,13 @@ function makeLayout(mode="random"){
   if(mode==="seed"&&!typedSeed){refreshRandomResults("Nhập mã seed trước khi bấm “Tạo lại theo seed”.",true);return;}
   const previous=data.layouts.find(l=>l.id===ui.layoutId)||data.layouts[0];
   try{
+    const customSlots=normalizeUserSlots(data.boardSlots||[]);
+    const configKey=slotConfigKey(customSlots);
+    const currentGenerator=customSlots.length?4:3;
     const opts={level,includeBonus:bonus,wallMode,verifiedOnly,
-      approvals:data.placementApprovals||{},allowWhiteSlots:true,robotCm:30};
-    const history=data.layouts.filter(l=>l.generatorVersion===3&&l.level===level&&
+      approvals:data.placementApprovals||{},allowWhiteSlots:true,robotCm:30,customSlots};
+    const history=data.layouts.filter(l=>l.generatorVersion===currentGenerator&&l.level===level&&
+      (currentGenerator!==4||l.slotConfigKey===configKey)&&
       (l.wallMode||"normal")===wallMode&&Boolean(l.verifiedOnly)===verifiedOnly&&
       l.tasks.some(t=>t.id==="bonus")===bonus);
     const seen=new Set(history.map(layoutSignature));
@@ -445,9 +472,11 @@ function makeLayout(mode="random"){
     const saved=mode==="seed"&&data.layouts.find(l=>l.seed===typedSeed&&l.level===level&&
       (l.wallMode||"normal")===wallMode&&Boolean(l.verifiedOnly)===verifiedOnly&&
       l.tasks.some(t=>t.id==="bonus")===bonus);
-    const replayVersion=saved?(saved.generatorVersion||1):3;
-    const params={...opts,seed,...(replayVersion<3?{algorithmVersion:replayVersion}:{})};
-    let layout=generateLayout(params);
+    const replayVersion=saved?(saved.generatorVersion||1):currentGenerator;
+    const replayOptions={...opts,seed,...(replayVersion<=2?{algorithmVersion:replayVersion}:
+      replayVersion===3?{customSlots:[]}:{} )};
+    let layout=saved&&saved.generatorVersion===4?
+      JSON.parse(JSON.stringify(saved)):generateLayout(replayOptions);
     if(mode==="random"){
       for(let i=0;i<100&&seen.has(layoutSignature(layout));i++){
         seed=nextRandomSeed();layout=generateLayout({...opts,seed});
@@ -467,7 +496,7 @@ function makeLayout(mode="random"){
     refreshRandomResults((mode==="seed"?"Đã tái tạo đề":"Đã random đề mới")+
       ": đổi "+layout.changeRules.swapTasks+" nhiệm vụ, "+layout.changeRules.moveObstacles+
       " vị trí vật cản; vẫn đủ 7 nhiệm vụ và 3 vật cản. Seed: "+seed+"."+
-      (layout.generatorVersion===3?" Đã qua kiểm tra lối đi cho robot 30 cm.":" Đề lịch sử được tái tạo, chưa qua kiểm tra 30 cm."));
+      ([3,4].includes(layout.generatorVersion)?" Đã qua kiểm tra lối đi cho robot 30 cm.":" Đề lịch sử được tái tạo, chưa qua kiểm tra 30 cm."));
   }catch(error){refreshRandomResults(error?.message||"Không thể tạo đề hợp lệ.",true);}
 }
 function exportLayout(){const l=data.layouts.find(x=>x.id===ui.layoutId);if(l)download("invention-layout-"+l.seed+".json",JSON.stringify(l,null,2),"application/json");}
@@ -538,6 +567,8 @@ el.addEventListener("click",e=>{
  if(t.hasAttribute("data-open-team-import"))return openBulkImport();
  if(t.hasAttribute("data-close-team-import"))return closeBulkImport();
  if(t.dataset.go){ui.editTeam="";return go(t.dataset.go);}
+ if(t.dataset.settingsTab){ui.settingsView=t.dataset.settingsTab;render();return;}
+ if(t.hasAttribute("data-open-board-editor")){ui.settingsView="board";go("settings");return;}
  if(t.hasAttribute("data-inv-tab")){ui.invDivision=t.dataset.invTab;render();return;}
  if(t.hasAttribute("data-battle-tab")){ui.battleDivision=t.dataset.battleTab;ui.battleGroup="all";render();return;}
  if(t.hasAttribute("data-battle-group")){ui.battleGroup=t.dataset.battleGroup;render();return;}

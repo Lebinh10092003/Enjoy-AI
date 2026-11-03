@@ -1,4 +1,5 @@
 import {FIELD_CM,MAX_ROBOT_CM,SAFETY_MARGIN_CM,FOOTPRINT_CM,rectangleFromSlot,checkNavigation} from "./route-safety.mjs";
+import {normalizeUserSlots,slotConfigKey,userTaskSlots,userObstacleSlots,rotatedBounds,slotHasModel} from "./board-slots.mjs";
 // Coordinates are measured on the user's marked 2048×1137 field image.
 // Rotation convention: 0°=right, 90°=down, 180°=left, 270°=up.
 // These are APPROACH headings from the field path; not unverified model-actuator orientations.
@@ -252,7 +253,10 @@ export function countLayoutVariants({level="medium",wallMode="normal",includeBon
 /** Same seed + same options always recreates the same board. */
 export function buildRandomLayout(options={}){
  if(options.algorithmVersion===1)return buildLegacyRandomLayout(options);
- if(options.allowWhiteSlots&&options.algorithmVersion!==2)return buildExpandedLayout(options);
+ if(options.allowWhiteSlots&&options.algorithmVersion!==2){
+  if(Array.isArray(options.customSlots)&&options.customSlots.length)return buildManualLayout(options);
+  return buildExpandedLayout(options);
+ }
  const {level="medium",seed="DEMO",includeBonus=false,wallMode="normal",
   approved={},verifiedOnly=false,approvals={}}=options;
  const preset=LEVELS.find(x=>x.id===level);
@@ -303,17 +307,25 @@ export function buildRandomLayout(options={}){
  * white cells. Refuse geometrically overlapping or route-blocking proposals.
  */
 export function assessLayoutSafety(layout,{robotCm=MAX_ROBOT_CM,marginCm=SAFETY_MARGIN_CM}={}){
+ const custom=normalizeUserSlots(layout.slotDefinitions||[]);
+ const customMap=new Map(custom.map(c=>[c.id,c]));
  const rectangles=[];
+ const physical=(slot,footprint,id)=>{
+  if(!customMap.has(slot.id))return {...rectangleFromSlot(slot,footprint),id};
+  const bounds=rotatedBounds(slot.widthCm,slot.heightCm,slot.rotation);
+  const center=rectangleFromSlot(slot,{w:Math.max(bounds.w,footprint.w),h:Math.max(bounds.h,footprint.h)});
+  return {...center,id};
+ };
  for(const t of layout.tasks||[]){
-  const slot=SLOTS.find(s=>s.id===t.slot);
+  const slot=customMap.get(t.slot)||SLOTS.find(s=>s.id===t.slot);
   if(!slot)return {ok:false,reason:"unknown-task-slot",items:[t.slot],reachedGates:[]};
   const kind=MODEL_META[t.id]?.footprint||"normal";
-  rectangles.push({...rectangleFromSlot(slot,FOOTPRINT_CM[kind]||FOOTPRINT_CM.normal),id:"task:"+t.id});
+  rectangles.push(physical(slot,FOOTPRINT_CM[kind]||FOOTPRINT_CM.normal,"task:"+t.id));
  }
  for(const obstacleId of layout.obstacles||[]){
-  const slot=OBSTACLE_SLOTS.find(s=>s.id===obstacleId);
+  const slot=customMap.get(obstacleId)||OBSTACLE_SLOTS.find(s=>s.id===obstacleId);
   if(!slot)return {ok:false,reason:"unknown-obstacle-slot",items:[obstacleId],reachedGates:[]};
-  rectangles.push({...rectangleFromSlot(slot,FOOTPRINT_CM.obstacle),id:"obstacle:"+obstacleId});
+  rectangles.push(physical(slot,FOOTPRINT_CM.obstacle,"obstacle:"+obstacleId));
  }
  return checkNavigation(rectangles,{robotCm,marginCm});
 }
@@ -388,4 +400,86 @@ function buildExpandedLayout({level="medium",seed="DEMO",includeBonus=false,wall
    " cm. Hãy xác nhận thêm vị trí hoặc đo lại mô hình trước khi tạo đề.":
   "Không tìm được đề bảo toàn lối đi cho robot "+robotCm+
    " cm trong "+MAX_PLANS+" phương án. Không lưu đề thiếu an toàn; cần đo lại mô hình hoặc bổ sung vị trí đặt đã xác minh.");
+}
+
+/**
+ * V4 is explicit user geometry. Fixed A–J mission frames and O1–O9 obstacle
+ * references remain available, but provisional white Wxx guesses are replaced
+ * by user-drawn Uxxx slots. Saved layouts snapshot the used custom geometry.
+ * Seed sampling stays deterministic for a given board-slot configuration.
+ */
+function buildManualLayout({level="medium",seed="DEMO",includeBonus=false,wallMode="normal",
+ approved={},verifiedOnly=false,approvals={},robotCm=MAX_ROBOT_CM,customSlots=[]}={}){
+ const entries=normalizeUserSlots(customSlots);
+ const preset=LEVELS.find(x=>x.id===level);
+ if(!preset)throw Error("Bảng thi không hợp lệ.");
+ if(!WALL_MODES.some(x=>x.id===wallMode))throw Error("Chế độ Tường Thành không hợp lệ.");
+ const wallReversed=resolveWallReversed(wallMode,seed);
+ const taskSlots=[...LEGACY_TASK_SLOTS,...userTaskSlots(entries)];
+ const obstacleSlots=[...LEGACY_OBSTACLE_SLOTS,...userObstacleSlots(entries)];
+ const taskMap=new Map(taskSlots.map(s=>[s.id,s]));
+ const rng=seeded(String(seed)+"|manual-geometry-v4|"+slotConfigKey(entries));
+ const models=NORMAL_MODELS.filter(id=>id!=="wall");
+ const valid=(id,slot)=>{
+  if(!slot||!slotHasModel(slot,id))return false;
+  if(slot.edge==="custom"){
+   const footprint=FOOTPRINT_CM[MODEL_META[id]?.footprint||"normal"]||FOOTPRINT_CM.normal;
+   if(slot.widthCm<footprint.w||slot.heightCm<footprint.h)return false;
+  }else if(!validPlacement(id,slot.id,slot.approach,approved))return false;
+  return !verifiedOnly||approvals[placementKey(id,slot.id,slot.approach,id==="wall"&&wallReversed)]===true;
+ };
+ for(let attempt=0;attempt<500;attempt++){
+  const moved=shuffled(models,rng).slice(0,preset.swapTasks);
+  const assignment={...BASE_TASK_SLOTS};
+  const fixed=NORMAL_MODELS.filter(id=>!moved.includes(id));
+  if(!fixed.every(id=>valid(id,taskMap.get(assignment[id]))))continue;
+  const occupied=new Set(fixed.map(id=>assignment[id]));
+  const assign=(i)=>{
+   if(i===moved.length)return true;
+   const id=moved[i];
+   const options=shuffled(taskSlots.filter(slot=>slot.id!==BASE_TASK_SLOTS[id]&&!occupied.has(slot.id)&&valid(id,slot)),rng);
+   for(const slot of options){
+    occupied.add(slot.id);assignment[id]=slot.id;
+    if(assign(i+1))return true;
+    occupied.delete(slot.id);
+   }
+   assignment[id]=BASE_TASK_SLOTS[id];
+   return false;
+  };
+  if(!assign(0))continue;
+  const tasks=NORMAL_MODELS.map(id=>{
+   const slot=taskMap.get(assignment[id]);
+   return id==="wall"?{id,slot:slot.id,angle:slot.approach,reversed:wallReversed,modelRotation:wallReversed?180:0}:
+    {id,slot:slot.id,angle:slot.approach};
+  });
+  if(includeBonus){
+   const free=shuffled(taskSlots.filter(slot=>!occupied.has(slot.id)&&valid("bonus",slot)),rng);
+   if(!free.length)continue;
+   const slot=free[0];tasks.push({id:"bonus",slot:slot.id,angle:slot.approach});
+  }
+  const movable=shuffled([...SAFE_BASE_OBSTACLE_SLOTS],rng).slice(0,preset.moveObstacles);
+  const free=shuffled(obstacleSlots.map(s=>s.id).filter(id=>!SAFE_BASE_OBSTACLE_SLOTS.includes(id)),rng);
+  if(free.length<preset.moveObstacles)continue;
+  const obstacles=[...SAFE_BASE_OBSTACLE_SLOTS];
+  for(let i=0;i<movable.length;i++)obstacles[SAFE_BASE_OBSTACLE_SLOTS.indexOf(movable[i])]=free[i];
+  const usedIds=new Set([...tasks.map(t=>t.slot),...obstacles]);
+  const slotDefinitions=entries.filter(s=>usedIds.has(s.id)).map(s=>({...s,allowedModels:[...s.allowedModels]}));
+  const candidate={tasks,obstacles,slotDefinitions};
+  const navigation=assessLayoutSafety(candidate,{robotCm});
+  if(!navigation.ok)continue;
+  return {
+   id:"layout-"+Date.now().toString(36),version:4,generatorVersion:4,
+   level:preset.id,seed:String(seed),wallMode,wallReversed,tasks,obstacles,
+   changeRules:{swapTasks:preset.swapTasks,moveObstacles:preset.moveObstacles},
+   changedTaskIds:[...moved],movedObstacleFrom:[...movable],
+   created:new Date().toISOString(),official:false,
+   placementStatus:verifiedOnly?"physically-reviewed":"simulation",verifiedOnly,
+   allowWhiteSlots:true,slotDefinitions,slotConfigKey:slotConfigKey(entries),
+   navigation:{robotCm,marginCm:SAFETY_MARGIN_CM,clearanceCheck:"grid-3cm-v1",
+    passed:true,reachedGates:[...navigation.reachedGates]},
+   note:"V4: các ô tự vẽ bởi người dùng, theo kích thước và góc do người dùng đặt. Hành lang 30 cm được kiểm tra trên mô phỏng hình học với kích thước mô hình ước lượng, cần kiểm nghiệm trên sa bàn thật."
+  };
+ }
+ throw Error("Không tìm được đề hợp lệ với các ô tự vẽ và hành lang robot "+robotCm+
+  " cm. Hãy kiểm tra kích thước vùng đặt, hướng tiếp cận, khoảng trống và danh sách mô hình cho phép.");
 }

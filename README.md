@@ -255,3 +255,15 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 - Nếu không tìm được đề vượt qua phép kiểm tra, hệ thống **từ chối lưu**, không tạo bố trí không an toàn. Sơ đồ hiện đường xanh nét đứt là đường thông thoáng tham khảo. Đề cũ được giữ và dán nhãn chưa qua kiểm tra 30 cm.
 - **Tách bộ sinh V3** (generatorVersion 3) khỏi hai thuật toán trước nhằm không phá seed lịch sử. Bộ sinh cũ dùng lại danh sách vị trí O1–O9 và tập khung tím gốc, kể cả khi bản mới mở rộng W.
 - **Quan trọng:** kích thước mô hình/biên dạng robot thực tế, vùng vươn cơ cấu chấp hành, khả năng cua và bám line chưa được đo và không thể chứng nhận tuyệt đối chỉ bằng ảnh. Trước khi dùng đề để chạy robot, đo các kích thước thực, đối chiếu các điểm W, chạy thử trên sân.
+
+
+## Trình chỉnh sửa vị trí sa bàn — phiên bản V4 (03/11/2026)
+
+- Mở **Dữ liệu & cài đặt → Vị trí trên sa bàn**, hoặc nhấn **Chỉnh ô trên sa bàn** từ trang Random.
+- **Kéo trực tiếp trên ảnh sa bàn** để vẽ ô chữ nhật; chọn một ô hiện có để đổi tên, loại (nhiệm vụ, vật cản, cả hai), tâm X/Y theo phần trăm, kích thước thật (cm), góc xoay của ô và hướng robot tiếp cận (°).
+- Với ô nhiệm vụ, có thể đánh dấu các mô hình được phép đặt. Tất cả ô tự vẽ được định danh `U001`, `U002`, ...; kiểm tra biên sân cả sau xoay và từ chối dữ liệu sai.
+- Khi tồn tại ít nhất một ô tự vẽ, Random Engine V4 sử dụng **khung nhiệm vụ cố định A–J + các ô nhiệm vụ tự vẽ**, cùng **O1–O9 + ô vật cản tự vẽ**, thay các ứng viên W01–W17 ước lượng. Nếu chưa tạo ô nào, thuật toán V3 được giữ nguyên.
+- Vẫn giữ quy tắc từng cấp lớp: 7 nhiệm vụ, 3 vật cản, đổi 2/2/3/3 nhiệm vụ và 0/1/1/2 vật cản. Giữ **phép kiểm tra va chạm và hành lang robot 30 cm** với biên 1 cm, xem kích thước ô đã xoay là vùng chiếm chỗ dự phòng. Kích thước mô hình hiện vẫn là ước lượng, vì vậy kiểm tra này KHÔNG chứng minh bảo toàn mọi đoạn line hay mọi thao tác robot trên sân thật.
+- Đường nét đứt xanh BFS đã được **xóa khỏi phần hiển thị sơ đồ**; chỉ dùng kết quả kiểm tra ở hậu trường.
+- Thay đổi một ô sẽ hủy xác nhận thực nghiệm của ô đó. Mỗi đề V4 đã lưu có `slotDefinitions` chụp các ô được sử dụng; chỉnh ô sau này không làm dịch chuyển đề cũ. Nhập/xuất JSON và Cloud tiếp tục mang theo `boardSlots` khi Cloud được kết nối.
+- Dữ liệu cấu hình chưa được chia sẻ giữa các máy cho đến khi đăng nhập Supabase và có quyền ghi. Sao lưu JSON trước khi thay đổi bản đồ quan trọng.
