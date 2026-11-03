@@ -79,6 +79,10 @@ test("User-drawn slot editor supports mouse/touch drag, adjust, save and delete"
  assert.equal(items.length,1);
  assert.equal(items[0].type,"obstacle");
  assert.equal(items[0].rotation,30);
+ assert.equal(root.querySelector("[data-slot-save]"),null,"Save closes the property form");
+ assert.equal(root.querySelector(".board-editor-gizmo"),null,"Save deselects the transform gizmo");
+ assert.match(root.querySelector("#slot-editor-form").textContent,/Chưa chọn ô/);
+ assert.match(root.querySelector("#slot-editor-feedback").textContent,/kéo trên sa bàn để vẽ ô mới/);
  assert.ok(root.querySelector('[data-slot-select="U001"]'));
  root.querySelector('[data-slot-select="U001"]').click();
  assert.equal(root.querySelector("#slot-approach"),null);
@@ -97,6 +101,8 @@ test("User-drawn slot editor supports mouse/touch drag, adjust, save and delete"
  root.querySelector("[data-slot-save]").click();
  assert.equal(items[0].widthCm,20);
  assert.equal(items[0].rotation,45);
+ assert.equal(root.querySelector("[data-slot-save]"),null);
+ assert.equal(root.querySelector(".board-editor-gizmo"),null);
  // Dragging an existing cell moves its center and persists to data.
  const beforeX=items[0].x;
  const movingCell=root.querySelector(".board-editor-cell");
@@ -113,6 +119,7 @@ test("User-drawn slot editor supports mouse/touch drag, adjust, save and delete"
  assert.equal(items[0].x,Number((beforeX+3).toFixed(3)));
  assert.match(root.querySelector("#slot-editor-feedback").textContent,/Đã di chuyển/);
  dom.window.confirm=()=>true;
+ root.querySelector('[data-slot-select="U001"]').click();
  root.querySelector("[data-slot-delete]").click();
  assert.equal(items.length,0);
  dom.window.close();
@@ -170,6 +177,8 @@ test("Angle sliders sync both ways with exact numeric value and sticky top Save"
  root.querySelector("[data-slot-save]").click();
  assert.equal(items[0].rotation,240);
  assert.equal(items[0].approach,undefined);
+ assert.equal(q("slot-rotation-slider"),null);
+ assert.equal(root.querySelector(".board-editor-gizmo"),null);
  dom.window.close();
 });
 
@@ -288,4 +297,40 @@ test("Custom slot generation uses no inferred approach heading",()=>{
   }
  }
  assert.ok(used,"At least one valid random layout should exercise a custom slot");
+});
+
+test("After saving a drawn slot, the editor is immediately ready to draw another",()=>{
+ const dom=new JSDOM('<main id="root"></main>',{url:"https://example.test"});
+ const root=dom.window.document.querySelector("#root");
+ let items=[],selection="not-set";
+ root.innerHTML=renderBoardEditor(items);
+ mountBoardEditor(root,{getSlots:()=>items,onChange:(next,id)=>{items=next;selection=id;}});
+ const canvas=root.querySelector("#slot-editor-canvas");
+ canvas.getBoundingClientRect=()=>({left:0,top:0,width:1000,height:600});
+ const fire=(type,x,y)=>{
+  const event=new dom.window.Event(type,{bubbles:true,cancelable:true});
+  Object.defineProperties(event,{pointerId:{value:31},button:{value:0},
+   clientX:{value:x},clientY:{value:y}});
+  canvas.dispatchEvent(event);
+ };
+ fire("pointerdown",200,140);
+ fire("pointermove",270,200);
+ fire("pointerup",270,200);
+ assert.ok(root.querySelector("[data-slot-save]"));
+ root.querySelector("[data-slot-save]").click();
+ assert.equal(items.length,1);
+ assert.equal(selection,"","Selected ID is cleared in persisted UI state");
+ assert.equal(root.querySelector("[data-slot-save]"),null);
+ assert.equal(root.querySelector(".board-editor-gizmo"),null);
+ assert.match(root.querySelector("#slot-editor-form").textContent,/Chưa chọn ô/);
+ fire("pointerdown",360,260);
+ fire("pointermove",435,330);
+ fire("pointerup",435,330);
+ assert.match(root.querySelector("#slot-editor-form").textContent,/Ô mới/);
+ assert.ok(root.querySelector("[data-slot-save]"));
+ root.querySelector("[data-slot-save]").click();
+ assert.equal(items.length,2,"Drawing a second box does not overwrite the first");
+ assert.equal(selection,"");
+ assert.equal(root.querySelector("[data-slot-save]"),null);
+ dom.window.close();
 });
