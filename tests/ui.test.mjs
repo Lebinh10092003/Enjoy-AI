@@ -259,6 +259,20 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(q('[data-battle-tab="primary"]').getAttribute("aria-selected"),"true");
  // Unauthenticated Cloud needs visible setup steps, not a dead-end password form.
  click('[data-page="settings"]');
+ assert.ok(q('[data-settings-tab="board"]'));
+ click('[data-settings-tab="board"]');
+ assert.ok(q("#slot-editor-canvas"));
+ assert.ok(q("#slot-draw-type"));
+ assert.ok(q("#slot-editor-list"));
+ assert.match(q("#content").textContent,/Kéo trên ảnh để vẽ/);
+ assert.equal(q(".clearance-route-overlay"),null);
+ click('[data-slot-add]');
+ assert.ok(q("#slot-editor-form #slot-rotation"));
+ assert.ok(q("#slot-editor-form #slot-approach"));
+ q("#slot-name").value="Ô tự vẽ UI test";
+ click('[data-slot-save]');
+ assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).boardSlots.length,1);
+ click('[data-settings-tab="general"]');
  assert.ok(q('[data-cloud-login]'));
  assert.ok(q('[data-cloud-test]'));
  assert.ok(q('[data-cloud-copy-sql]'));
