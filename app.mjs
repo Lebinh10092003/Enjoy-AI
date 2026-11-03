@@ -8,8 +8,8 @@ import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261103-cus
 import {normalizeUserSlots,slotConfigKey} from "./board-slots.mjs";
 import {renderBoardEditor,mountBoardEditor} from "./board-editor.mjs";
 import {teamUi,readTeamFields} from "./teams-ui.mjs?v=20261012-leaderboard-v3";
-import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261102-grid-clearance-v3";
-import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261102-grid-clearance-v3";
+import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261103-custom-board-v4";
+import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261103-custom-board-v4";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
 const V=escapeHtml;
