@@ -10,13 +10,13 @@ const input=(id,title,value,min,max,step)=>'<label class="board-editor-field">'+
 export function renderBoardEditor(slots=[],image=MAP_FALLBACK){
  return '<section id="slot-editor" class="panel board-editor-panel" aria-label="Trình chỉnh sửa vị trí sa bàn">'+
  '<h3>Vẽ và cấu hình ô đặt trên sa bàn</h3>'+
- '<p class="muted">Kéo trên ảnh để vẽ hình chữ nhật. Bấm vào ô đã tạo để sửa tọa độ, kích thước thật (cm), góc xoay hoặc hướng robot tiếp cận. Ô màu xanh dành cho nhiệm vụ; màu cam dành cho vật cản; màu tím dùng chung. Không vẽ trực tiếp lên ảnh gốc.</p>'+
+ '<p class="muted">Kéo trên ảnh để vẽ hình chữ nhật; kéo ô đã tạo để di chuyển trực tiếp. Chọn ô để thay đổi kích thước (cm), góc xoay và hướng robot tiếp cận, xem trước rồi bấm Lưu ô. Ô màu xanh dành cho nhiệm vụ; màu cam dành cho vật cản; màu tím dùng chung. Không vẽ trực tiếp lên ảnh gốc.</p>'+
  '<p class="panel-note">Sa bàn '+FIELD_CM.width+' × '+FIELD_CM.height+' cm. Khi có ô tự vẽ, Random thay các ô trắng W01–W17 ước lượng bằng ô của bạn; vẫn giữ các vị trí nền A–J và O1–O9. Chỉ những đề tạo mới dùng cấu hình mới. Mỗi đề đã lưu giữ bản chụp vị trí của nó.</p>'+
  '<div class="board-editor-layout"><div class="board-editor-map-wrap">'+
  '<div class="board-editor-canvas" id="slot-editor-canvas" data-slot-canvas>'+
  '<img class="board-editor-image" src="'+escape(image)+'" alt="Sa bàn dùng để vẽ ô nhiệm vụ và vật cản" draggable="false">'+
  '<div id="slot-editor-overlays"></div><div id="slot-editor-draft" class="board-editor-draft" hidden></div></div>'+
- '<div class="board-editor-hint">Giữ chuột hoặc chạm rồi kéo để vẽ. Có thể chỉnh chính xác tọa độ, kích thước và góc ở bảng bên phải.</div>'+
+ '<div class="board-editor-hint">Giữ chuột hoặc chạm rồi kéo vùng trống để vẽ; kéo ô hiện có để di chuyển. Bảng bên phải cho phép nhập và xem trước kích thước, hướng xoay.</div>'+
  '</div><div class="board-editor-aside">'+
  '<label class="board-editor-field" for="slot-draw-type">Loại ô khi vẽ<select id="slot-draw-type"><option value="task">Nhiệm vụ</option><option value="obstacle">Vật cản</option><option value="both">Cả hai</option></select></label>'+
  '<div id="slot-editor-form"></div>'+
@@ -47,6 +47,12 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
    input("slot-w","Rộng (cm)",slot.widthCm,2,216,.1)+input("slot-h","Cao (cm)",slot.heightCm,2,120,.1)+
    input("slot-rotation","Góc xoay ô (°)",slot.rotation,0,359.99,1)+
    input("slot-approach","Hướng tiếp cận (°)",slot.approach,0,359.99,1)+'</div>'+
+    '<div class="board-editor-quick-actions" role="group" aria-label="Điều chỉnh nhanh ô đang chọn">'+
+    '<button type="button" class="btn btn-outline btn-small" data-slot-adjust="rotate-left">↶ Xoay −15°</button>'+
+    '<button type="button" class="btn btn-outline btn-small" data-slot-adjust="rotate-right">↷ Xoay +15°</button>'+
+    '<button type="button" class="btn btn-outline btn-small" data-slot-adjust="shrink">− Thu nhỏ</button>'+
+    '<button type="button" class="btn btn-outline btn-small" data-slot-adjust="grow">+ Phóng to</button></div>'+
+    '<p class="board-editor-unsaved-hint">Thay đổi được xem trước trên sa bàn, chỉ lưu khi bấm Lưu ô.</p>'+
    '<fieldset class="board-editor-models"><legend>Cho phép đặt mô hình nhiệm vụ</legend>'+
     CUSTOM_SLOT_MODELS.map(id=>'<label><input type="checkbox" data-slot-model="'+id+'"'+(slot.allowedModels.includes(id)?" checked":"")+
     '> '+MODEL_LABELS[id]+'</label>').join("")+'</fieldset>'+
@@ -88,28 +94,77 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
  const drawPreview=(a,b)=>{
   const left=Math.min(a.x,b.x),top=Math.min(a.y,b.y);
   const div=q("#slot-editor-draft");
-  div.hidden=false;
+  div.hidden=false;div.classList.remove("is-form-preview");div.style.transform="none";
   div.style.left=left+"%";div.style.top=top+"%";
   div.style.width=Math.abs(b.x-a.x)+"%";div.style.height=Math.abs(b.y-a.y)+"%";
  };
  const closeDraw=()=>{
-  drag=null;const div=q("#slot-editor-draft");if(div)div.hidden=true;
+  drag=null;const div=q("#slot-editor-draft");
+  if(div){div.hidden=true;div.classList.remove("is-form-preview");div.style.transform="none";}
  };
+ // Only previews are changed until Save. Invalid geometry remains unsaved.
+ const previewForm=()=>{
+  try{
+   const next=gather();
+   const cell=[...wrapper.querySelectorAll(".board-editor-cell")].find(n=>n.dataset.slotSelect===next.id);
+   const width=next.widthCm/FIELD_CM.width*100+"%",height=next.heightCm/FIELD_CM.height*100+"%";
+   const transform="translate(-50%,-50%) rotate("+next.rotation+"deg)";
+   if(cell)Object.assign(cell.style,{left:next.x+"%",top:next.y+"%",width,height,transform});
+   else if(draft){
+    const preview=q("#slot-editor-draft");
+    preview.hidden=false;preview.classList.add("is-form-preview");
+    Object.assign(preview.style,{left:next.x+"%",top:next.y+"%",width,height,transform});
+   }
+   announce("Đang xem trước — bấm Lưu ô để áp dụng.");
+  }catch(e){announce("Vùng xem trước chưa hợp lệ: "+e.message,true);}
+ };
+ wrapper.addEventListener("input",event=>{
+  if(readOnly||!event.target.closest("#slot-editor-form"))return;
+  previewForm();
+ });
  wrapper.addEventListener("pointerdown",event=>{
-  if(readOnly||event.button!==0||event.target.closest("[data-slot-select]"))return;
-  if(!event.target.closest("[data-slot-canvas]"))return;
-  try{drag={start:at(event),id:event.pointerId};drawPreview(drag.start,drag.start);
+  if(readOnly||event.button!==0||!event.target.closest("[data-slot-canvas]"))return;
+  const canvas=q("#slot-editor-canvas");
+  const clicked=event.target.closest(".board-editor-cell[data-slot-select]");
+  try{
+   if(clicked){
+    const slot=slots().find(x=>x.id===clicked.dataset.slotSelect);
+    if(!slot)return;
+    selected=slot.id;draft=null;
+    drag={kind:"move",id:event.pointerId,start:at(event),slot,preview:slot,moved:false,cell:clicked};
+   }else{
+    drag={kind:"draw",start:at(event),id:event.pointerId};
+    drawPreview(drag.start,drag.start);
+   }
    event.preventDefault();
-   const surface=q("#slot-editor-canvas");surface.setPointerCapture?.(event.pointerId);
-  }catch(e){announce(e.message,true);}
+   canvas.setPointerCapture?.(event.pointerId);
+  }catch(e){announce(e.message,true);closeDraw();}
  });
  wrapper.addEventListener("pointermove",event=>{
   if(!drag||event.pointerId!==drag.id)return;
-  try{drawPreview(drag.start,at(event));}catch(e){closeDraw();}
+  try{
+   const point=at(event);
+   if(drag.kind==="draw"){drawPreview(drag.start,point);return;}
+   const dx=point.x-drag.start.x,dy=point.y-drag.start.y;
+   if(Math.hypot(dx,dy)<.2&&!drag.moved)return;
+   const candidate=normalizeUserSlots([{...drag.slot,x:drag.slot.x+dx,y:drag.slot.y+dy}])[0];
+   drag.preview=candidate;drag.moved=true;
+   drag.cell.style.left=candidate.x+"%";
+   drag.cell.style.top=candidate.y+"%";
+  }catch(e){announce("Không thể di chuyển ô ra ngoài biên sa bàn.",true);}
  });
  wrapper.addEventListener("pointerup",event=>{
   if(!drag||event.pointerId!==drag.id)return;
+  const moving=drag.kind==="move";
   try{
+   if(moving){
+    if(drag.moved){
+     const changed=drag.preview;
+     onChange(normalizeUserSlots([...slots().filter(x=>x.id!==changed.id),changed]),changed.id);
+     announce("Đã di chuyển và lưu ô "+changed.id+". Vị trí mới dùng cho các đề Random tiếp theo.");
+    }else announce("Đã chọn ô "+drag.slot.id+". Chỉnh kích thước và hướng ở bảng bên phải.");
+    draft=null;selected=drag.slot.id;paint();return;
+   }
    const a=drag.start,b=at(event),width=Math.abs(a.x-b.x)/100*FIELD_CM.width,height=Math.abs(a.y-b.y)/100*FIELD_CM.height;
    if(width<2||height<2){announce("Ô phải có chiều rộng và chiều cao tối thiểu 2 cm.",true);return;}
    const type=q("#slot-draw-type")?.value||"task";
@@ -117,9 +172,9 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
     label:"Ô tự vẽ",x:(a.x+b.x)/2,y:(a.y+b.y)/2,widthCm:width,heightCm:height,
     type,rotation:0,approach:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
    selected="";paint();announce("Ô mới đang ở chế độ xem trước. Chỉnh thông số rồi bấm Lưu ô.");
-  }catch(e){announce(e.message,true);}finally{closeDraw();}
+  }catch(e){if(moving)paint();announce(e.message,true);}finally{closeDraw();if(!moving&&draft)previewForm();}
  });
- wrapper.addEventListener("pointercancel",closeDraw);
+ wrapper.addEventListener("pointercancel",()=>{if(drag?.kind==="move")paint();closeDraw();});
  wrapper.addEventListener("click",event=>{
   const target=event.target.closest("button");if(!target||readOnly)return;
   if(target.dataset.slotSelect){
@@ -130,7 +185,21 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
      x:50,y:50,widthCm:12,heightCm:10,rotation:0,approach:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
     selected="";paint();announce("Điều chỉnh ô mới rồi chọn Lưu ô.");}catch(e){announce(e.message,true);}return;
   }
-  if(target.hasAttribute("data-slot-cancel")){draft=null;selected="";paint();announce("Đã hủy chọn ô.");return;}
+  if(target.dataset.slotAdjust){
+   const action=target.dataset.slotAdjust;
+   const rotate=q("#slot-rotation"),width=q("#slot-w"),height=q("#slot-h");
+   if(!rotate||!width||!height)return;
+   if(action==="rotate-left"||action==="rotate-right"){
+    const delta=action==="rotate-left"?-15:15;
+    rotate.value=((Number(rotate.value)+delta)%360+360)%360;
+   }else if(action==="grow"||action==="shrink"){
+    const step=action==="grow"?2:-2;
+    width.value=Math.max(2,Math.min(FIELD_CM.width,Number(width.value)+step));
+    height.value=Math.max(2,Math.min(FIELD_CM.height,Number(height.value)+step));
+   }
+   previewForm();return;
+  }
+  if(target.hasAttribute("data-slot-cancel")){draft=null;selected="";paint();closeDraw();announce("Đã hủy chọn ô.");return;}
   if(target.hasAttribute("data-slot-save")){
    try{const next=gather(),all=slots().filter(s=>s.id!==next.id);
     const updated=normalizeUserSlots([...all,next]);
