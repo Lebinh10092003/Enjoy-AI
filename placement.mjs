@@ -439,7 +439,7 @@ function buildManualLayout({level="medium",seed="DEMO",includeBonus=false,wallMo
    const footprint=FOOTPRINT_CM[MODEL_META[id]?.footprint||"normal"]||FOOTPRINT_CM.normal;
    if(slot.widthCm<footprint.w||slot.heightCm<footprint.h)return false;
   }else if(!validPlacement(id,slot.id,slot.approach,approved))return false;
-  return !verifiedOnly||approvals[placementKey(id,slot.id,slot.approach,id==="wall"&&wallReversed)]===true;
+  return !verifiedOnly||approvals[placementKey(id,slot.id,slot.edge==="custom"?null:slot.approach,id==="wall"&&wallReversed)]===true;
  };
  for(let attempt=0;attempt<500;attempt++){
   const moved=shuffled(models,rng).slice(0,preset.swapTasks);
@@ -463,14 +463,15 @@ function buildManualLayout({level="medium",seed="DEMO",includeBonus=false,wallMo
   if(!assign(0))continue;
   const tasks=NORMAL_MODELS.map(id=>{
    const slot=taskMap.get(assignment[id]);
-   return id==="wall"?{id,slot:slot.id,angle:slot.approach,reversed:wallReversed,modelRotation:wallReversed?180:0}:
-    {id,slot:slot.id,angle:slot.approach};
+   const angle=slot.edge==="custom"?null:slot.approach;
+   return id==="wall"?{id,slot:slot.id,angle,reversed:wallReversed,modelRotation:wallReversed?180:0}:
+    {id,slot:slot.id,angle};
   });
   if(includeBonus){
    const free=shuffled(taskSlots.filter(slot=>!occupied.has(slot.id)&&
     !crossesUsed(slot.id,occupied)&&valid("bonus",slot)),rng);
    if(!free.length)continue;
-   const slot=free[0];tasks.push({id:"bonus",slot:slot.id,angle:slot.approach});
+   const slot=free[0];tasks.push({id:"bonus",slot:slot.id,angle:slot.edge==="custom"?null:slot.approach});
    occupied.add(slot.id);
   }
   const movable=shuffled([...SAFE_BASE_OBSTACLE_SLOTS],rng).slice(0,preset.moveObstacles);
@@ -506,5 +507,5 @@ function buildManualLayout({level="medium",seed="DEMO",includeBonus=false,wallMo
   };
  }
  throw Error("Không tìm được đề hợp lệ với các ô tự vẽ và hành lang robot "+robotCm+
-  " cm. Hãy kiểm tra kích thước vùng đặt, hướng tiếp cận, khoảng trống và danh sách mô hình cho phép.");
+  " cm. Hãy kiểm tra kích thước vùng đặt, góc xoay, khoảng trống và danh sách mô hình cho phép.");
 }
