@@ -267,3 +267,11 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 - Đường nét đứt xanh BFS đã được **xóa khỏi phần hiển thị sơ đồ**; chỉ dùng kết quả kiểm tra ở hậu trường.
 - Thay đổi một ô sẽ hủy xác nhận thực nghiệm của ô đó. Mỗi đề V4 đã lưu có `slotDefinitions` chụp các ô được sử dụng; chỉnh ô sau này không làm dịch chuyển đề cũ. Nhập/xuất JSON và Cloud tiếp tục mang theo `boardSlots` khi Cloud được kết nối.
 - Dữ liệu cấu hình chưa được chia sẻ giữa các máy cho đến khi đăng nhập Supabase và có quyền ghi. Sao lưu JSON trước khi thay đổi bản đồ quan trọng.
+
+
+### Trình vẽ ô V5 — thanh trượt góc và ô dấu cộng (03/11/2026)
+- Nút **Lưu ô** được đưa lên đầu bảng chỉnh sửa và bám theo vùng chỉnh sửa khi cuộn; không cần kéo xuống cuối danh sách mô hình.
+- Có thanh trượt góc xoay ô **0–359°** và hướng tiếp cận robot **0–359°**; đồng bộ hai chiều với ô nhập số chính xác đến 0,01°. Kéo trượt chỉ cập nhật bản xem trước, bấm **Lưu ô** mới ghi dữ liệu.
+- Cho phép hai hoặc nhiều ô do người dùng vẽ **giao nhau theo hình dấu +**; không tự xoá hoặc gộp các ô đó. Trình chỉnh sửa hiển thị những ô đang giao nhau.
+- Bộ Random V4 dùng phép giao cắt hai hình chữ nhật có góc xoay tự do (SAT). Mỗi đề **chỉ được chọn tối đa một ô trong các ô giao nhau**, tính chung cả nhiệm vụ và vật cản. Các ô chạm cạnh nhưng không chồng diện tích không bị xem là giao nhau.
+- Bộ lọc an toàn hành lang cho robot rộng 30 cm tiếp tục chạy **sau** kiểm tra xung đột vị trí. Các đề cũ và seed đã lưu giữ nguyên.
