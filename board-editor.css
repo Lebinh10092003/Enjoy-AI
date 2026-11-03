@@ -86,3 +86,10 @@
 .user-placement-zone{border-color:#687886;background:rgba(80,103,121,.10);}
 .user-placement-zone.zone-obstacle{border-color:#bf6d3d;background:rgba(206,120,55,.09);}
 @media(max-width:760px){.board-editor-quick-actions .btn{font-size:13px;min-height:45px;}}
+
+/* No blue stroke lines over the field, including editable slot outlines.
+ * Fill colors still distinguish task / obstacle / shared slots. */
+.board-editor-cell{border-color:#526372;}
+.board-editor-cell.obstacle{border-color:#ae643c;}
+.board-editor-cell.both{border-color:#6d6677;}
+.board-editor-draft{border-color:#596a79;}
