@@ -275,3 +275,10 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 - Cho phép hai hoặc nhiều ô do người dùng vẽ **giao nhau theo hình dấu +**; không tự xoá hoặc gộp các ô đó. Trình chỉnh sửa hiển thị những ô đang giao nhau.
 - Bộ Random V4 dùng phép giao cắt hai hình chữ nhật có góc xoay tự do (SAT). Mỗi đề **chỉ được chọn tối đa một ô trong các ô giao nhau**, tính chung cả nhiệm vụ và vật cản. Các ô chạm cạnh nhưng không chồng diện tích không bị xem là giao nhau.
 - Bộ lọc an toàn hành lang cho robot rộng 30 cm tiếp tục chạy **sau** kiểm tra xung đột vị trí. Các đề cũ và seed đã lưu giữ nguyên.
+
+
+### Trình chỉnh sửa ô V6 — Move/Rotate gizmo (03/11/2026)
+- Chọn ô để xuất hiện tay nắm giống phần mềm 3D: **tâm ✥** tịnh tiến tự do, **X đỏ** kéo dọc theo hướng ô, **Y xanh** kéo vuông góc với X, **↻** quay ô quanh tâm. Hai trục luôn xoay cùng ô.
+- Hướng chuẩn của ô là trục **+X** tại góc xoay đang đặt. **Không tự xác định hướng robot tiếp cận** từ hình học; trường `approach` không còn thuộc cấu hình ô tự vẽ mới. Đề lịch sử giữ thông tin cũ cho mục đích đối chiếu.
+- Kéo tay nắm trên ô đã lưu sẽ tự lưu vị trí hoặc góc mới khi thả; ô đang tạo mới chỉ ghi lại sau khi bấm **Lưu ô**. Các thay đổi bằng biểu mẫu hoặc thanh trượt góc chỉ được xem trước cho đến khi bấm Lưu.
+- Chuyển động dùng centimet, trục X/Y cục bộ sau xoay và giới hạn trong biên sa bàn 216 × 120 cm, tính cả kích thước góc quay của ô. Nút Lưu vẫn ở đầu form. Hai ô cắt nhau vẫn loại trừ lẫn nhau trong cùng đề Random và bộ lọc hành lang robot 30 cm tiếp tục có hiệu lực.
