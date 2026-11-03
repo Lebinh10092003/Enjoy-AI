@@ -1,5 +1,5 @@
 import {FIELD_CM,MAX_ROBOT_CM,SAFETY_MARGIN_CM,FOOTPRINT_CM,rectangleFromSlot,checkNavigation} from "./route-safety.mjs";
-import {normalizeUserSlots,slotConfigKey,userTaskSlots,userObstacleSlots,rotatedBounds,slotHasModel} from "./board-slots.mjs";
+import {normalizeUserSlots,slotConfigKey,userTaskSlots,userObstacleSlots,rotatedBounds,slotHasModel,overlappingUserSlotPairs} from "./board-slots.mjs";
 // Coordinates are measured on the user's marked 2048×1137 field image.
 // Rotation convention: 0°=right, 90°=down, 180°=left, 270°=up.
 // These are APPROACH headings from the field path; not unverified model-actuator orientations.
@@ -309,6 +309,12 @@ export function buildRandomLayout(options={}){
 export function assessLayoutSafety(layout,{robotCm=MAX_ROBOT_CM,marginCm=SAFETY_MARGIN_CM}={}){
  const custom=normalizeUserSlots(layout.slotDefinitions||[]);
  const customMap=new Map(custom.map(c=>[c.id,c]));
+ const usedIds=[...(layout.tasks||[]).map(t=>t.slot),...(layout.obstacles||[])];
+ const customUsed=custom.filter(s=>usedIds.includes(s.id));
+ const intersections=overlappingUserSlotPairs(customUsed);
+ if(intersections.length)return {ok:false,reason:"overlapping-custom-slots",items:intersections[0],reachedGates:[]};
+ if(new Set(usedIds).size!==usedIds.length)
+  return {ok:false,reason:"duplicate-slot",items:usedIds,reachedGates:[]};
  const rectangles=[];
  const physical=(slot,footprint,id)=>{
   if(!customMap.has(slot.id))return {...rectangleFromSlot(slot,footprint),id};
@@ -411,6 +417,13 @@ function buildExpandedLayout({level="medium",seed="DEMO",includeBonus=false,wall
 function buildManualLayout({level="medium",seed="DEMO",includeBonus=false,wallMode="normal",
  approved={},verifiedOnly=false,approvals={},robotCm=MAX_ROBOT_CM,customSlots=[]}={}){
  const entries=normalizeUserSlots(customSlots);
+ // A pair of crossing drawn rectangles forms an exclusive-placement group.
+ // Both remain in the editor; a single layout can choose at most one.
+ const excluded=new Map(entries.map(slot=>[slot.id,new Set()]));
+ for(const [a,b] of overlappingUserSlotPairs(entries)){
+  excluded.get(a).add(b);excluded.get(b).add(a);
+ }
+ const crossesUsed=(id,used)=>[...(excluded.get(id)||[])].some(other=>used.has(other));
  const preset=LEVELS.find(x=>x.id===level);
  if(!preset)throw Error("Bảng thi không hợp lệ.");
  if(!WALL_MODES.some(x=>x.id===wallMode))throw Error("Chế độ Tường Thành không hợp lệ.");
@@ -437,7 +450,8 @@ function buildManualLayout({level="medium",seed="DEMO",includeBonus=false,wallMo
   const assign=(i)=>{
    if(i===moved.length)return true;
    const id=moved[i];
-   const options=shuffled(taskSlots.filter(slot=>slot.id!==BASE_TASK_SLOTS[id]&&!occupied.has(slot.id)&&valid(id,slot)),rng);
+   const options=shuffled(taskSlots.filter(slot=>slot.id!==BASE_TASK_SLOTS[id]&&
+    !occupied.has(slot.id)&&!crossesUsed(slot.id,occupied)&&valid(id,slot)),rng);
    for(const slot of options){
     occupied.add(slot.id);assignment[id]=slot.id;
     if(assign(i+1))return true;
@@ -453,15 +467,26 @@ function buildManualLayout({level="medium",seed="DEMO",includeBonus=false,wallMo
     {id,slot:slot.id,angle:slot.approach};
   });
   if(includeBonus){
-   const free=shuffled(taskSlots.filter(slot=>!occupied.has(slot.id)&&valid("bonus",slot)),rng);
+   const free=shuffled(taskSlots.filter(slot=>!occupied.has(slot.id)&&
+    !crossesUsed(slot.id,occupied)&&valid("bonus",slot)),rng);
    if(!free.length)continue;
    const slot=free[0];tasks.push({id:"bonus",slot:slot.id,angle:slot.approach});
+   occupied.add(slot.id);
   }
   const movable=shuffled([...SAFE_BASE_OBSTACLE_SLOTS],rng).slice(0,preset.moveObstacles);
-  const free=shuffled(obstacleSlots.map(s=>s.id).filter(id=>!SAFE_BASE_OBSTACLE_SLOTS.includes(id)),rng);
-  if(free.length<preset.moveObstacles)continue;
   const obstacles=[...SAFE_BASE_OBSTACLE_SLOTS];
-  for(let i=0;i<movable.length;i++)obstacles[SAFE_BASE_OBSTACLE_SLOTS.indexOf(movable[i])]=free[i];
+  const used=new Set([...tasks.map(t=>t.slot),
+   ...SAFE_BASE_OBSTACLE_SLOTS.filter(id=>!movable.includes(id))]);
+  let canPlace=true;
+  for(const origin of movable){
+   const candidates=shuffled(obstacleSlots.map(s=>s.id).filter(id=>
+    !SAFE_BASE_OBSTACLE_SLOTS.includes(id)&&
+    !used.has(id)&&!crossesUsed(id,used)),rng);
+   if(!candidates.length){canPlace=false;break;}
+   obstacles[SAFE_BASE_OBSTACLE_SLOTS.indexOf(origin)]=candidates[0];
+   used.add(candidates[0]);
+  }
+  if(!canPlace)continue;
   const usedIds=new Set([...tasks.map(t=>t.slot),...obstacles]);
   const slotDefinitions=entries.filter(s=>usedIds.has(s.id)).map(s=>({...s,allowedModels:[...s.allowedModels]}));
   const candidate={tasks,obstacles,slotDefinitions};
