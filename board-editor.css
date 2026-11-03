@@ -8,7 +8,7 @@
 .board-editor-map-wrap{min-width:0;}
 .board-editor-canvas{
  position:relative;width:100%;aspect-ratio:2048/1137;overflow:hidden;
- border:2px solid #82a9c8;border-radius:13px;background:#e6ebf1;
+ border:1px solid #c7cbd1;border-radius:13px;background:#e6ebf1;
  touch-action:none;user-select:none;cursor:crosshair;isolation:isolate;
 }
 .board-editor-image{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none;}
@@ -75,3 +75,14 @@
  .board-editor-models{grid-template-columns:1fr;}
 }
 @media print{.board-editor-panel,.settings-subnav{display:none!important;}}
+
+/* Editable geometry controls; neutral map frame (no blue perimeter). */
+.board-editor-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.board-editor-quick-actions .btn{min-width:0;min-height:43px;font-size:13.5px;white-space:normal;padding:9px;}
+.board-editor-unsaved-hint{margin:0;color:#4c6578;font-size:13px;line-height:1.6;}
+.board-editor-cell{touch-action:none;cursor:grab;}
+.board-editor-cell:active{cursor:grabbing;}
+.board-editor-draft.is-form-preview{border:2px dashed #5a6875;background:rgba(94,115,130,.17);pointer-events:none;}
+.user-placement-zone{border-color:#687886;background:rgba(80,103,121,.10);}
+.user-placement-zone.zone-obstacle{border-color:#bf6d3d;background:rgba(206,120,55,.09);}
+@media(max-width:760px){.board-editor-quick-actions .btn{font-size:13px;min-height:45px;}}
