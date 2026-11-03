@@ -1,3 +1,4 @@
+import {normalizeUserSlots} from "./board-slots.mjs";
 import {SLOTS as PHYSICAL_SLOTS,LEVELS as PRACTICE_LEVELS,buildRandomLayout} from "./placement.mjs?v=20261102-grid-clearance-v3";
 // ENJOY AI 2026 — quy tắc tính điểm và lưu trữ độc lập với giao diện.
 export const VERSION = 1;
@@ -26,7 +27,7 @@ export const LAYOUT_NAMES = {compass:"La bàn",paper:"Làm giấy",gun:"Thuốc 
 // Các mốc minh họa trên sa bàn, không phải tọa độ lắp đặt do BTC chứng nhận.
 export const SLOTS=PHYSICAL_SLOTS;
 export const LEVELS=PRACTICE_LEVELS;
-export function initialData(){return {version:VERSION,rounds:2,teams:[],invention:[],battles:[],layouts:[],placementApprovals:{},bonusEnabled:false,bonusDescription:""};}
+export function initialData(){return {version:VERSION,rounds:2,teams:[],invention:[],battles:[],layouts:[],boardSlots:[],placementApprovals:{},bonusEnabled:false,bonusDescription:""};}
 export function normInt(value,min=0,max=99999){const v=Number(value);return Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;}
 // Lượt mới tích sẵn 40 điểm robot chạy liên tục; dữ liệu cũ không bị thay đổi.
 export function newInventionAttempt(id,teamId,round){
@@ -143,5 +144,5 @@ export function generateLayout(options={}){return buildRandomLayout(options);}
 export function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 export function normalizeData(data){
   if(!data||typeof data!=="object"||data.version!==VERSION||!Array.isArray(data.teams)||!Array.isArray(data.invention)||!Array.isArray(data.battles)||!Array.isArray(data.layouts))throw Error("File JSON không đúng định dạng dữ liệu ENJOY AI v1.");
-  return {...initialData(),...data,rounds:normInt(data.rounds,1,20),bonusEnabled:!!data.bonusEnabled};
+  return {...initialData(),...data,boardSlots:normalizeUserSlots(data.boardSlots||[]),rounds:normInt(data.rounds,1,20),bonusEnabled:!!data.bonusEnabled};
 }
