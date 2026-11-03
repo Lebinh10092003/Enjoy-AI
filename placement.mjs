@@ -1,5 +1,5 @@
 import {FIELD_CM,MAX_ROBOT_CM,SAFETY_MARGIN_CM,FOOTPRINT_CM,rectangleFromSlot,checkNavigation} from "./route-safety.mjs";
-import {normalizeUserSlots,slotConfigKey,userTaskSlots,userObstacleSlots,rotatedBounds,slotHasModel,overlappingUserSlotPairs} from "./board-slots.mjs?v=20261103-cross-v5";
+import {normalizeUserSlots,slotConfigKey,userTaskSlots,userObstacleSlots,rotatedBounds,slotHasModel,overlappingUserSlotPairs} from "./board-slots.mjs?v=20261103-gizmo-v6";
 // Coordinates are measured on the user's marked 2048×1137 field image.
 // Rotation convention: 0°=right, 90°=down, 180°=left, 270°=up.
 // These are APPROACH headings from the field path; not unverified model-actuator orientations.
