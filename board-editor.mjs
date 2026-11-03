@@ -17,7 +17,7 @@ const angleSlider=(key,title,value)=>{
 export function renderBoardEditor(slots=[],image=MAP_FALLBACK){
  return '<section id="slot-editor" class="panel board-editor-panel" aria-label="Trình chỉnh sửa vị trí sa bàn">'+
  '<h3>Vẽ và cấu hình ô đặt trên sa bàn</h3>'+
- '<p class="muted">Kéo trên ảnh để vẽ ô. Chọn ô để hiện bộ điều khiển như phần mềm 3D: tay nắm giữa di chuyển tự do, trục X và Y tịnh tiến theo hướng đã xoay của ô, nút tròn để xoay. Hai ô giao nhau thành dấu + vẫn được lưu, nhưng Random chỉ chọn tối đa một ô. Ô màu xanh dành cho nhiệm vụ; màu cam dành cho vật cản; màu tím dùng chung. Không vẽ trực tiếp lên ảnh gốc.</p>'+
+ '<p class="muted">Kéo trên ảnh để vẽ ô. Chọn ô để hiện bộ điều khiển như phần mềm 3D: tay nắm giữa di chuyển tự do, trục X và Y tịnh tiến theo hướng đã xoay của ô, nút tròn để xoay. Chọn một ô và bấm Nhân bản ô để tạo bản sao, kéo bản sao sang vị trí mới rồi Lưu ô. Hai ô giao nhau thành dấu + vẫn được lưu, nhưng Random chỉ chọn tối đa một ô. Ô màu xanh dành cho nhiệm vụ; màu cam dành cho vật cản; màu tím dùng chung. Không vẽ trực tiếp lên ảnh gốc.</p>'+
  '<p class="panel-note">Sa bàn '+FIELD_CM.width+' × '+FIELD_CM.height+' cm. Khi có ô tự vẽ, Random thay các ô trắng W01–W17 ước lượng bằng ô của bạn; vẫn giữ các vị trí nền A–J và O1–O9. Chỉ những đề tạo mới dùng cấu hình mới. Mỗi đề đã lưu giữ bản chụp vị trí của nó.</p>'+
  '<div class="board-editor-layout"><div class="board-editor-map-wrap">'+
  '<div class="board-editor-canvas" id="slot-editor-canvas" data-slot-canvas>'+
