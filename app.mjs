@@ -4,12 +4,12 @@ import {CLOUD_CONFIG} from "./cloud-config.mjs";
 import {parseSeconds,displaySeconds} from "./time-utils.mjs";
 import {teamImportTemplate,validateTeamImport} from "./team-import.mjs";
 import {renderInventionLeaderboard,renderBattleLeaderboard} from "./leaderboard-ui.mjs?v=20261012-leaderboard-v3";
-import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261103-cross-v5";
-import {normalizeUserSlots,slotConfigKey} from "./board-slots.mjs?v=20261103-cross-v5";
-import {renderBoardEditor,mountBoardEditor} from "./board-editor.mjs?v=20261103-cross-v5";
+import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261103-gizmo-v6";
+import {normalizeUserSlots,slotConfigKey} from "./board-slots.mjs?v=20261103-gizmo-v6";
+import {renderBoardEditor,mountBoardEditor} from "./board-editor.mjs?v=20261103-gizmo-v6";
 import {teamUi,readTeamFields} from "./teams-ui.mjs?v=20261012-leaderboard-v3";
-import {renderArena,modelPicture,modelPopup} from "./arena-ui.mjs?v=20261103-cross-v5";
-import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261103-cross-v5";
+import {renderArena,modelPicture,modelPopup} from "./arena-ui.mjs?v=20261103-gizmo-v6";
+import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261103-gizmo-v6";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
 const V=escapeHtml;
