@@ -1,5 +1,5 @@
 import {FIELD_CM} from "./route-safety.mjs";
-import {CUSTOM_SLOT_MODELS,normalizeUserSlots,nextUserSlotId,SLOT_TYPES,overlappingUserSlotPairs} from "./board-slots.mjs";
+import {CUSTOM_SLOT_MODELS,normalizeUserSlots,nextUserSlotId,SLOT_TYPES,overlappingUserSlotPairs} from "./board-slots.mjs?v=20261103-cross-v5";
 const MAP_FALLBACK="https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg";
 const MODEL_LABELS={compass:"La bàn",paper:"Làm giấy",gun:"Thuốc súng",printing:"In chữ rời",seismo:"Địa chấn",pyramid:"Kim tự tháp",bonus:"Bonus"};
 const escape=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
