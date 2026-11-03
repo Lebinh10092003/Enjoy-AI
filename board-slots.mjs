@@ -73,3 +73,37 @@ export function userObstacleSlots(items=[]){
 export function slotHasModel(slot,id){
  return slot.edge!=="custom"||slot.allowedModels?.includes(id)===true;
 }
+
+
+/**
+ * True physical intersection of two drawn, arbitrarily rotated rectangles.
+ * Touching an edge is allowed; a positive-area cross (+) is an intersection.
+ * SAT avoids falsely grouping slots whose axis-aligned bounding boxes merely
+ * overlap because of a rotation.
+ */
+export function userSlotsIntersect(a,b){
+ const center=slot=>({x:slot.x*FIELD_CM.width/100,y:slot.y*FIELD_CM.height/100});
+ const ca=center(a),cb=center(b);
+ const radiansA=a.rotation*Math.PI/180,radiansB=b.rotation*Math.PI/180;
+ const basis=r=>[[Math.cos(r),Math.sin(r)],[-Math.sin(r),Math.cos(r)]];
+ const axesA=basis(radiansA),axesB=basis(radiansB);
+ for(const axis of [...axesA,...axesB]){
+  const dot=(x,y)=>x[0]*y[0]+x[1]*y[1];
+  const distance=Math.abs((cb.x-ca.x)*axis[0]+(cb.y-ca.y)*axis[1]);
+  const reachA=(Math.abs(dot(axesA[0],axis))*a.widthCm+
+   Math.abs(dot(axesA[1],axis))*a.heightCm)/2;
+  const reachB=(Math.abs(dot(axesB[0],axis))*b.widthCm+
+   Math.abs(dot(axesB[1],axis))*b.heightCm)/2;
+  if(distance>=reachA+reachB-1e-7)return false;
+ }
+ return true;
+}
+
+/** User-defined overlapping slots remain editable; never use both together. */
+export function overlappingUserSlotPairs(input=[]){
+ const slots=normalizeUserSlots(input),pairs=[];
+ for(let i=0;i<slots.length;i++)for(let j=i+1;j<slots.length;j++){
+  if(userSlotsIntersect(slots[i],slots[j]))pairs.push([slots[i].id,slots[j].id]);
+ }
+ return pairs;
+}

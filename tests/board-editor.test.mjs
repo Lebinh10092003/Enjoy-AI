@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {JSDOM} from "jsdom";
-import {normalizeUserSlots,nextUserSlotId,userTaskSlots,userObstacleSlots,rotatedBounds,slotConfigKey} from "../board-slots.mjs";
+import {normalizeUserSlots,nextUserSlotId,userTaskSlots,userObstacleSlots,rotatedBounds,slotConfigKey,userSlotsIntersect,overlappingUserSlotPairs} from "../board-slots.mjs";
 import {renderBoardEditor,mountBoardEditor} from "../board-editor.mjs";
 import {generateLayout,initialData,normalizeData} from "../core.mjs";
 import {renderArena} from "../arena-ui.mjs";
@@ -144,4 +144,86 @@ test("Custom slots integrate into Random V4 and preserve safety when generated",
  }
  assert.ok(valid>0,"At least one custom board should have a safe arrangement.");
  assert.ok(usesCustom,"Custom locations must be eligible in the generator.");
+});
+
+test("Angle sliders sync both ways with exact numeric value and sticky top Save",()=>{
+ const dom=new JSDOM('<main id="root"></main>',{url:"https://example.test"});
+ const document=dom.window.document,root=document.querySelector("#root");
+ let items=[{...one}];
+ root.innerHTML=renderBoardEditor(items);
+ mountBoardEditor(root,{getSlots:()=>items,onChange:updated=>{items=updated;},selectedId:"U001"});
+ const q=id=>root.querySelector("#"+id);
+ assert.ok(root.querySelector(".board-editor-form-top [data-slot-save]"),"Save is near the top of the form");
+ assert.equal(root.querySelectorAll("[data-slot-save]").length,1);
+ assert.equal(q("slot-rotation-slider").type,"range");
+ assert.equal(q("slot-approach-slider").type,"range");
+ assert.equal(q("slot-rotation-slider").min,"0");
+ assert.equal(q("slot-rotation-slider").max,"359");
+ q("slot-rotation-slider").value="225";
+ q("slot-rotation-slider").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+ assert.equal(q("slot-rotation").value,"225");
+ assert.equal(q("slot-rotation-readout").textContent,"225°");
+ assert.equal(items[0].rotation,20,"Drag/slider preview never saves automatically");
+ q("slot-approach-slider").value="150";
+ q("slot-approach-slider").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+ assert.equal(q("slot-approach").value,"150");
+ q("slot-approach").value="42.5";
+ q("slot-approach").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+ assert.equal(q("slot-approach-slider").value,"43");
+ assert.equal(q("slot-approach-readout").textContent,"42.5°");
+ root.querySelector('[data-slot-adjust="rotate-right"]').click();
+ assert.equal(q("slot-rotation").value,"240");
+ assert.equal(q("slot-rotation-slider").value,"240");
+ root.querySelector("[data-slot-save]").click();
+ assert.equal(items[0].rotation,240);
+ assert.equal(items[0].approach,42.5);
+ dom.window.close();
+});
+
+test("Crossing + slots are legal to draw but mutually exclusive in a Random layout",()=>{
+ const h={...one,id:"U010",label:"Thanh ngang",x:46,y:40,
+  widthCm:52,heightCm:6,rotation:0,approach:0,type:"both"};
+ const v={...one,id:"U011",label:"Thanh dọc",x:52,y:40,
+  widthCm:6,heightCm:46,rotation:0,approach:90,type:"both"};
+ assert.equal(userSlotsIntersect(h,v),true);
+ assert.deepEqual(overlappingUserSlotPairs([h,v]),[["U010","U011"]]);
+ assert.equal(userSlotsIntersect(h,{...v,x:90}),false);
+ assert.equal(userSlotsIntersect(h,{...v,x:h.x+((h.widthCm+v.widthCm)/2)/216*100}),false,
+  "Just touching rectangle boundaries does not create a collision");
+ const safe=assessLayoutSafety({
+  tasks:[{id:"compass",slot:"U010",angle:0}],obstacles:["U011"],
+  slotDefinitions:[h,v]
+ });
+ assert.equal(safe.ok,false);
+ assert.equal(safe.reason,"overlapping-custom-slots");
+ assert.deepEqual(safe.items,["U010","U011"]);
+ const dom=new JSDOM('<main id="root"></main>',{url:"https://example.test"});
+ const document=dom.window.document,root=document.querySelector("#root");
+ root.innerHTML=renderBoardEditor([h,v]);
+ mountBoardEditor(root,{getSlots:()=>[h,v],onChange:()=>{},selectedId:"U010"});
+ assert.equal(root.querySelectorAll('[data-crossing="true"]').length,2);
+ assert.match(root.querySelector("#slot-editor-form").textContent,/Giao với U011/);
+ assert.match(root.querySelector("#slot-editor-list").textContent,/chọn 1 khi Random/);
+ dom.window.close();
+});
+
+test("Random V4 never places two intersecting user-defined slots simultaneously",()=>{
+ const h={...one,id:"U010",label:"Thanh ngang",x:46,y:40,
+  widthCm:52,heightCm:6,rotation:0,approach:0,type:"both"};
+ const v={...one,id:"U011",label:"Thanh dọc",x:52,y:40,
+  widthCm:6,heightCm:46,rotation:0,approach:90,type:"both"};
+ let accepted=0;
+ for(let i=0;i<25;i++){
+  try{
+   const layout=generateLayout({level:"medium",seed:"CROSS-PLUS-"+i,
+    allowWhiteSlots:true,customSlots:[h,v],robotCm:30});
+   const used=new Set([...layout.tasks.map(t=>t.slot),...layout.obstacles]);
+   assert.ok(!(used.has("U010")&&used.has("U011")));
+   assert.equal(assessLayoutSafety(layout).ok,true);
+   accepted++;
+  }catch(error){
+   if(!/Không tìm được đề hợp lệ/.test(error.message))throw error;
+  }
+ }
+ assert.ok(accepted>0,"Crossed slots must not prevent all otherwise safe arrangements");
 });
