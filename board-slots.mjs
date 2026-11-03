@@ -32,7 +32,6 @@ export function normalizeUserSlots(input=[]){
   const x=numeric("x",0,100),y=numeric("y",0,100);
   const widthCm=numeric("widthCm",2,FIELD_CM.width),heightCm=numeric("heightCm",2,FIELD_CM.height);
   const rotation=numeric("rotation",0,359.99);
-  const approach=numeric("approach",0,359.99);
   const footprint=rotatedBounds(widthCm,heightCm,rotation);
   const px=x*FIELD_CM.width/100,py=y*FIELD_CM.height/100;
   if(px-footprint.w/2<0||px+footprint.w/2>FIELD_CM.width||
@@ -46,7 +45,7 @@ export function normalizeUserSlots(input=[]){
    throw Error("Ô nhiệm vụ "+id+" phải cho phép ít nhất một mô hình.");
   return {id,label,x:round(x,3),y:round(y,3),
    widthCm:round(widthCm),heightCm:round(heightCm),
-   rotation:round(rotation,2),approach:round(approach,2),
+   rotation:round(rotation,2),
    type,allowedModels:models};
  });
 }
@@ -106,4 +105,17 @@ export function overlappingUserSlotPairs(input=[]){
   if(userSlotsIntersect(slots[i],slots[j]))pairs.push([slots[i].id,slots[j].id]);
  }
  return pairs;
+}
+
+/** Slider limits in percentage: the full rotated rectangle remains on the mat. */
+export function slotTranslationBounds(slot){
+ const {w,h}=rotatedBounds(Number(slot.widthCm),Number(slot.heightCm),Number(slot.rotation));
+ if(!Number.isFinite(w)||!Number.isFinite(h)||w>FIELD_CM.width||h>FIELD_CM.height||w<=0||h<=0)
+  throw Error("Kích thước hoặc góc xoay không cho phép đặt ô trong sa bàn.");
+ const axis=(extent,total)=>{
+  const low=extent/(2*total)*100;
+  return {min:Number((Math.ceil((low-1e-8)*1000)/1000).toFixed(3)),
+   max:Number((Math.floor((100-low+1e-8)*1000)/1000).toFixed(3))};
+ };
+ return {x:axis(w,FIELD_CM.width),y:axis(h,FIELD_CM.height)};
 }
