@@ -35,8 +35,8 @@ export function renderArena(layout,image="https://d2ol7oe51mr4n9.cloudfront.net/
   if(!p&&slot.edge==="white")return "";
   if(!p&&slot.edge==="custom")return "";
   if(!p)return '<span class="slot-marker empty-slot" style="left:'+slot.x+'%;top:'+slot.y+'%" title="Khung nhiệm vụ '+E(slot.id)+'">'+E(slot.id)+'</span>';
-  return '<button class="mission-marker" data-map-slot="'+E(slot.id)+'" type="button" style="left:'+slot.x+'%;top:'+slot.y+'%" title="'+E(MODEL_META[p.id]?.name||p.id)+' / ô '+E(slot.id)+' / hướng tiếp cận '+p.angle+'°">'+
-   modelPicture(p.id,true,Boolean(p.reversed))+'<span class="marker-info"><strong>'+E(slot.id)+' · '+E(MODEL_META[p.id]?.name||p.id)+(p.id==="wall"&&p.reversed?'<span class="wall-reverse-mark"> ↻ Đảo</span>':"")+'</strong><span class="marker-arrow" style="transform:rotate('+p.angle+'deg)">➜</span><small>'+E(angleName(p.angle))+' · '+p.angle+'°</small></span></button>';
+  return '<button class="mission-marker" data-map-slot="'+E(slot.id)+'" type="button" style="left:'+slot.x+'%;top:'+slot.y+'%" title="'+E(MODEL_META[p.id]?.name||p.id)+' / ô '+E(slot.id)+'">'+
+   modelPicture(p.id,true,Boolean(p.reversed))+'<span class="marker-info"><strong>'+E(slot.id)+' · '+E(MODEL_META[p.id]?.name||p.id)+(p.id==="wall"&&p.reversed?'<span class="wall-reverse-mark"> ↻ Đảo</span>':"")+'</strong></span></button>';
  }).join("")+
  obstacles.filter(slot=>obstacleIds.has(slot.id)).map(slot=>
   '<span class="obstacle-rect" style="left:'+slot.x+'%;top:'+slot.y+'%;width:'+slot.w+'%;height:'+slot.h+
@@ -47,7 +47,7 @@ export function renderArena(layout,image="https://d2ol7oe51mr4n9.cloudfront.net/
 export function modelPopup(p){
  const meta=MODEL_META[p.id]||MODEL_META.bonus;
  return '<div class="modal-box" role="dialog" aria-modal="true"><h3>'+E(meta.name)+' — ô '+E(p.slot)+'</h3><div class="popup-model">'+modelPicture(p.id,false,Boolean(p.reversed))+'</div>'+
- '<p><strong>Hướng tiếp cận:</strong> '+E(angleName(p.angle))+' · '+p.angle+'°.</p>'+(p.id==="wall"?'<p><strong>Hướng lắp Tường Thành:</strong> '+(p.reversed?"Đảo mô hình 180°":"Giữ nguyên")+'.</p>':"")+
- '<p>'+E(meta.guide||"")+'</p><p class="muted">Mũi tên là hướng tiếp cận trên sa bàn. Mô hình thật cần kiểm tra hướng tay gạt, đầu nhận vật, khung cố định và độ rộng robot để xác nhận có thể thực hiện.</p>'+
+ (p.id==="wall"?'<p><strong>Hướng lắp Tường Thành:</strong> '+(p.reversed?"Đảo mô hình 180°":"Giữ nguyên")+'.</p>':"")+
+ '<p>'+E(meta.guide||"")+'</p><p class="muted">Hướng robot tiếp cận do người dùng tự quyết định; hãy kiểm tra cách bố trí và khoảng trống trên sa bàn thực tế.</p>'+
  '<button class="btn" id="close-model-popup">Đóng</button></div>';
 }
