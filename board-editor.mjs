@@ -278,7 +278,7 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
   if(target.hasAttribute("data-slot-save")){
    try{const next=gather(),all=slots().filter(s=>s.id!==next.id);
     const updated=normalizeUserSlots([...all,next]);
-    onChange(updated,next.id);draft=null;selected=next.id;paint();announce("Đã lưu ô "+next.id+". Những đề đã tạo trước đây không bị thay đổi.");
+    onChange(updated,"");draft=null;selected="";closeDraw();paint();announce("Đã lưu ô "+next.id+". Bảng thông số đã đóng; kéo trên sa bàn để vẽ ô mới hoặc chọn ô cũ để chỉnh sửa.");
    }catch(e){announce(e.message,true);}return;
   }
   if(target.hasAttribute("data-slot-delete")){
