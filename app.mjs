@@ -8,7 +8,7 @@ import {MODEL_META,WALL_MODES,placementKey} from "./placement.mjs?v=20261103-cro
 import {normalizeUserSlots,slotConfigKey} from "./board-slots.mjs?v=20261103-cross-v5";
 import {renderBoardEditor,mountBoardEditor} from "./board-editor.mjs?v=20261103-cross-v5";
 import {teamUi,readTeamFields} from "./teams-ui.mjs?v=20261012-leaderboard-v3";
-import {renderArena,modelPicture,angleName,modelPopup} from "./arena-ui.mjs?v=20261103-cross-v5";
+import {renderArena,modelPicture,modelPopup} from "./arena-ui.mjs?v=20261103-cross-v5";
 import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261103-cross-v5";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
@@ -662,7 +662,7 @@ el.addEventListener("click",e=>{
   const key=t.dataset.verifyPlacement;
   const approvals=data.placementApprovals||{};
   if(approvals[key]){delete approvals[key];data.placementApprovals=approvals;persist();refreshRandomResults("Đã hủy xác nhận cho "+LAYOUT_NAMES[p.id]+" tại ô "+p.slot+".");return;}
-  return showConfirm("Bạn đã kiểm tra mô hình "+LAYOUT_NAMES[p.id]+" tại ô "+p.slot+" trên sa bàn"+
+  return showConfirm("Bạn đã kiểm tra mô hình "+LAYOUT_NAMES[p.id]+" tại ô "+p.slot+""+
     (p.id==="wall"?(p.reversed?", Tường Thành đảo 180°":", Tường Thành không đảo"):"")+" trên sa bàn và robot thật? Chỉ đánh dấu khi đã thử nghiệm thành công.",()=>{
       data.placementApprovals={...(data.placementApprovals||{}),[key]:true};persist();
       refreshRandomResults("Đã xác nhận thực tế "+LAYOUT_NAMES[p.id]+" tại ô "+p.slot+".");
