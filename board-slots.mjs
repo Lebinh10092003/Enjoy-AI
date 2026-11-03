@@ -119,3 +119,45 @@ export function slotTranslationBounds(slot){
  };
  return {x:axis(w,FIELD_CM.width),y:axis(h,FIELD_CM.height)};
 }
+
+/**
+ * 2D transform gizmo geometry in centimetres, like local axes in a 3D editor.
+ * mode: free (any direction), x/y (constrained to rotated local axes),
+ * rotate (circular motion about rectangle centre).
+ */
+export function transformUserSlot(slot,mode,start,current){
+ if(!["free","x","y","rotate"].includes(mode))throw Error("Chế độ tịnh tiến/xoay không hợp lệ.");
+ const result={...slot},x0=start.x,y0=start.y,x1=current.x,y1=current.y;
+ if(![x0,y0,x1,y1].every(Number.isFinite))throw Error("Tọa độ trỏ chuột không hợp lệ.");
+ const rad=slot.rotation*Math.PI/180,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+ if(mode==="rotate"){
+  const a=Math.atan2((y0-slot.y)*FIELD_CM.height,(x0-slot.x)*FIELD_CM.width);
+  const b=Math.atan2((y1-slot.y)*FIELD_CM.height,(x1-slot.x)*FIELD_CM.width);
+  const change=Math.atan2(Math.sin(b-a),Math.cos(b-a))*180/Math.PI;
+  result.rotation=round(((slot.rotation+change)%360+360)%360,2)%360;
+ }else{
+  const dx=(x1-x0)*FIELD_CM.width/100,dy=(y1-y0)*FIELD_CM.height/100;
+  const limits=slotTranslationBounds(slot);
+  if(mode==="free"){
+   result.x=clamp(slot.x+dx/FIELD_CM.width*100,limits.x.min,limits.x.max);
+   result.y=clamp(slot.y+dy/FIELD_CM.height*100,limits.y.min,limits.y.max);
+  }else{
+   const axis=mode==="x"?[Math.cos(rad),Math.sin(rad)]:[-Math.sin(rad),Math.cos(rad)];
+   const projected=dx*axis[0]+dy*axis[1];
+   const coefficients={x:axis[0]/FIELD_CM.width*100,y:axis[1]/FIELD_CM.height*100};
+   let lo=-Infinity,hi=Infinity;
+   for(const key of ["x","y"]){
+    const factor=coefficients[key];
+    if(Math.abs(factor)<1e-12)continue;
+    const a=(limits[key].min-slot[key])/factor,b=(limits[key].max-slot[key])/factor;
+    lo=Math.max(lo,Math.min(a,b));
+    hi=Math.min(hi,Math.max(a,b));
+   }
+   const distance=clamp(projected,lo,hi);
+   result.x=slot.x+distance*coefficients.x;
+   result.y=slot.y+distance*coefficients.y;
+  }
+ }
+ // Round consistently with stored slot geometry and reject invalid rotation.
+ return normalizeUserSlots([result])[0];
+}
