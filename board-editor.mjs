@@ -1,5 +1,5 @@
 import {FIELD_CM} from "./route-safety.mjs";
-import {CUSTOM_SLOT_MODELS,normalizeUserSlots,nextUserSlotId,SLOT_TYPES,overlappingUserSlotPairs,transformUserSlot} from "./board-slots.mjs?v=20261103-gizmo-v6";
+import {CUSTOM_SLOT_MODELS,MAX_USER_SLOTS,normalizeUserSlots,nextUserSlotId,SLOT_TYPES,overlappingUserSlotPairs,transformUserSlot} from "./board-slots.mjs?v=20261103-gizmo-v6";
 const MAP_FALLBACK="https://d2ol7oe51mr4n9.cloudfront.net/user_3JNDYQ5PZuMnwdk0qFlQVt5Q5Hf/ed5dc29c-27c0-4906-8c95-36ab419c033d.jpg";
 const MODEL_LABELS={compass:"La bàn",paper:"Làm giấy",gun:"Thuốc súng",printing:"In chữ rời",seismo:"Địa chấn",pyramid:"Kim tự tháp",bonus:"Bonus"};
 const escape=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -17,7 +17,7 @@ const angleSlider=(key,title,value)=>{
 export function renderBoardEditor(slots=[],image=MAP_FALLBACK){
  return '<section id="slot-editor" class="panel board-editor-panel" aria-label="Trình chỉnh sửa vị trí sa bàn">'+
  '<h3>Vẽ và cấu hình ô đặt trên sa bàn</h3>'+
- '<p class="muted">Kéo trên ảnh để vẽ ô. Chọn ô để hiện bộ điều khiển như phần mềm 3D: tay nắm giữa di chuyển tự do, trục X và Y tịnh tiến theo hướng đã xoay của ô, nút tròn để xoay. Hai ô giao nhau thành dấu + vẫn được lưu, nhưng Random chỉ chọn tối đa một ô. Ô màu xanh dành cho nhiệm vụ; màu cam dành cho vật cản; màu tím dùng chung. Không vẽ trực tiếp lên ảnh gốc.</p>'+
+ '<p class="muted">Kéo trên ảnh để vẽ ô. Chọn ô để hiện bộ điều khiển như phần mềm 3D: tay nắm giữa di chuyển tự do, trục X và Y tịnh tiến theo hướng đã xoay của ô, nút tròn để xoay. Chọn một ô và bấm Nhân bản ô để tạo bản sao, kéo bản sao sang vị trí mới rồi Lưu ô. Hai ô giao nhau thành dấu + vẫn được lưu, nhưng Random chỉ chọn tối đa một ô. Ô màu xanh dành cho nhiệm vụ; màu cam dành cho vật cản; màu tím dùng chung. Không vẽ trực tiếp lên ảnh gốc.</p>'+
  '<p class="panel-note">Sa bàn '+FIELD_CM.width+' × '+FIELD_CM.height+' cm. Khi có ô tự vẽ, Random thay các ô trắng W01–W17 ước lượng bằng ô của bạn; vẫn giữ các vị trí nền A–J và O1–O9. Chỉ những đề tạo mới dùng cấu hình mới. Mỗi đề đã lưu giữ bản chụp vị trí của nó.</p>'+
  '<div class="board-editor-layout"><div class="board-editor-map-wrap">'+
  '<div class="board-editor-canvas" id="slot-editor-canvas" data-slot-canvas>'+
@@ -34,7 +34,7 @@ export function renderBoardEditor(slots=[],image=MAP_FALLBACK){
 export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selectedId=""}){
  const wrapper=root.querySelector("#slot-editor");
  if(!wrapper)return;
- let selected=selectedId||"",draft=null,drag=null;
+ let selected=selectedId||"",draft=null,drag=null,duplicateSource="";
  const q=s=>wrapper.querySelector(s);
  const announce=(message,isError=false)=>{const p=q("#slot-editor-feedback");if(p){p.textContent=message;p.classList.toggle("error",isError);}};
  const slots=()=>normalizeUserSlots(getSlots());
@@ -47,8 +47,12 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
    .filter(pair=>pair.includes(slot.id)).map(pair=>pair.find(id=>id!==slot.id));
   return '<div class="board-editor-form">'+
    '<div class="board-editor-form-top"><div class="board-editor-form-title"><strong>'+escape(slot.id)+'</strong>'+
-   '<small>'+(draft?'Ô mới · chưa lưu':'Đang chỉnh sửa')+'</small></div>'+
-   '<button type="button" class="btn board-editor-save-btn" data-slot-save>Lưu ô</button></div>'+
+   '<small>'+(draft?(duplicateSource?'Bản sao · chưa lưu':'Ô mới · chưa lưu'):'Đang chỉnh sửa')+'</small></div>'+
+   '<div class="board-editor-form-actions">'+
+   (draft?'':'<button type="button" class="btn btn-outline board-editor-copy-btn" data-slot-duplicate>Nhân bản ô</button>')+
+   '<button type="button" class="btn board-editor-save-btn" data-slot-save>Lưu ô</button></div></div>'+
+   (duplicateSource?'<p class="board-editor-copy-hint">Bản sao của '+escape(duplicateSource)+
+     ' đang ở vị trí gốc. Kéo tay nắm ✥, X hoặc Y để dịch chuyển rồi bấm Lưu ô.</p>':'')+
    (crossing.length?'<p class="board-editor-crossing-tip">Giao với '+escape(crossing.join(", "))+
     '. Random chỉ chọn tối đa một ô trong nhóm giao nhau.</p>':'')+
    '<label class="board-editor-field">Tên ô<input id="slot-name" type="text" maxlength="70" value="'+escape(slot.label)+'"></label>'+
@@ -241,7 +245,7 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
    draft=normalizeUserSlots([{id:nextUserSlotId(slots()),
     label:"Ô tự vẽ",x:(a.x+b.x)/2,y:(a.y+b.y)/2,widthCm:width,heightCm:height,
     type,rotation:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
-   selected="";paint();announce("Ô mới đang xem trước. Kéo tay nắm để tịnh tiến/xoay, sau đó bấm Lưu ô.");
+   duplicateSource="";selected="";paint();announce("Ô mới đang xem trước. Kéo tay nắm để tịnh tiến/xoay, sau đó bấm Lưu ô.");
   }catch(e){if(!drawing)paint();announce(e.message,true);}
   finally{closeDraw();if(draft&&(drawing||onDraft))previewForm();}
  });
@@ -252,10 +256,27 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
  wrapper.addEventListener("click",event=>{
   const target=event.target.closest("button");if(!target||readOnly)return;
   if(target.dataset.slotSelect){
-   selected=target.dataset.slotSelect;draft=null;paint();announce("Đang chỉnh sửa ô "+selected+".");return;
+   selected=target.dataset.slotSelect;draft=null;duplicateSource="";
+   paint();announce("Đang chỉnh sửa ô "+selected+".");return;
+  }
+  if(target.hasAttribute("data-slot-duplicate")){
+   try{
+    const existing=slots();
+    if(existing.length>=MAX_USER_SLOTS)throw Error("Đã đạt giới hạn "+MAX_USER_SLOTS+" ô tự vẽ. Hãy xóa bớt ô trước khi nhân bản.");
+    const source=gather();
+    const id=nextUserSlotId(existing);
+    draft=normalizeUserSlots([{
+     ...source,id,label:(source.label+" (bản sao)").slice(0,70),
+     allowedModels:[...source.allowedModels]
+    }])[0];
+    duplicateSource=source.id;selected="";
+    paint();previewForm();
+    announce("Đã tạo bản sao "+id+" từ "+source.id+" (chưa lưu). Kéo tay nắm ✥ hoặc X/Y để chuyển sang vị trí khác, sau đó bấm Lưu ô.");
+   }catch(error){announce("Không thể nhân bản ô: "+error.message,true);}
+   return;
   }
   if(target.hasAttribute("data-slot-add")){
-   try{draft=normalizeUserSlots([{id:nextUserSlotId(slots()),label:"Ô tự vẽ",type:q("#slot-draw-type")?.value||"task",
+   try{duplicateSource="";draft=normalizeUserSlots([{id:nextUserSlotId(slots()),label:"Ô tự vẽ",type:q("#slot-draw-type")?.value||"task",
      x:50,y:50,widthCm:12,heightCm:10,rotation:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
     selected="";paint();announce("Điều chỉnh ô mới rồi chọn Lưu ô.");}catch(e){announce(e.message,true);}return;
   }
@@ -274,17 +295,17 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
    if(action==="rotate-left"||action==="rotate-right")syncAngleControls(rotate);
    previewForm();return;
   }
-  if(target.hasAttribute("data-slot-cancel")){draft=null;selected="";paint();closeDraw();announce("Đã hủy chọn ô.");return;}
+  if(target.hasAttribute("data-slot-cancel")){draft=null;duplicateSource="";selected="";paint();closeDraw();announce("Đã hủy chọn ô.");return;}
   if(target.hasAttribute("data-slot-save")){
    try{const next=gather(),all=slots().filter(s=>s.id!==next.id);
     const updated=normalizeUserSlots([...all,next]);
-    onChange(updated,"");draft=null;selected="";closeDraw();paint();announce("Đã lưu ô "+next.id+". Bảng thông số đã đóng; kéo trên sa bàn để vẽ ô mới hoặc chọn ô cũ để chỉnh sửa.");
+    onChange(updated,"");draft=null;duplicateSource="";selected="";closeDraw();paint();announce("Đã lưu ô "+next.id+". Bảng thông số đã đóng; kéo trên sa bàn để vẽ ô mới hoặc chọn ô cũ để chỉnh sửa.");
    }catch(e){announce(e.message,true);}return;
   }
   if(target.hasAttribute("data-slot-delete")){
    const existing=slots().find(s=>s.id===selected);if(!existing)return;
    if(typeof window!=="undefined"&&typeof window.confirm==="function"&&!window.confirm("Xóa ô "+existing.id+"? Đề đã tạo trước vẫn được giữ nguyên."))return;
-   onChange(slots().filter(s=>s.id!==existing.id),"");draft=null;selected="";paint();announce("Đã xóa ô "+existing.id+".");return;
+   onChange(slots().filter(s=>s.id!==existing.id),"");draft=null;duplicateSource="";selected="";paint();announce("Đã xóa ô "+existing.id+".");return;
   }
  });
  paint();

@@ -334,3 +334,84 @@ test("After saving a drawn slot, the editor is immediately ready to draw another
  assert.equal(root.querySelector("[data-slot-save]"),null);
  dom.window.close();
 });
+
+test("Duplicate a saved slot, move cloned draft with gizmo and save independently",()=>{
+ const dom=new JSDOM('<main id="root"></main>',{url:"https://example.test"});
+ const root=dom.window.document.querySelector("#root");
+ let items=[normalizeUserSlots([one])[0]],selection="initial",changes=0;
+ const original={...items[0],allowedModels:[...items[0].allowedModels]};
+ root.innerHTML=renderBoardEditor(items);
+ mountBoardEditor(root,{getSlots:()=>items,selectedId:"U001",onChange:(next,id)=>{
+  items=next;selection=id;changes++;
+ }});
+ const canvas=root.querySelector("#slot-editor-canvas");
+ canvas.getBoundingClientRect=()=>({left:0,top:0,width:1000,height:600});
+ assert.ok(root.querySelector(".board-editor-form-top [data-slot-duplicate]"));
+ root.querySelector("[data-slot-duplicate]").click();
+ assert.equal(items.length,1,"Duplicating should not write until Save");
+ assert.equal(changes,0,"Duplicating should not trigger persistence");
+ assert.ok(root.querySelector("#slot-editor-form").textContent.includes("U002"));
+ assert.match(root.querySelector("#slot-editor-form").textContent,/Bản sao/);
+ assert.equal(root.querySelector("#slot-name").value,original.label+" (bản sao)");
+ assert.equal(root.querySelector("#slot-w").value,String(original.widthCm));
+ assert.equal(root.querySelector("#slot-h").value,String(original.heightCm));
+ assert.equal(root.querySelector("#slot-rotation").value,String(original.rotation));
+ assert.equal(root.querySelector("#slot-kind").value,original.type);
+ assert.deepEqual([...root.querySelectorAll("[data-slot-model]:checked")].map(x=>x.dataset.slotModel),original.allowedModels);
+ assert.equal(root.querySelector("[data-slot-duplicate]"),null,"Draft should not be duplicated again before saving");
+ assert.equal(root.querySelector(".board-editor-gizmo").dataset.gizmoFor,"U002");
+ const pointer=(element,type,x,y)=>{
+  const event=new dom.window.Event(type,{bubbles:true,cancelable:true});
+  Object.defineProperties(event,{pointerId:{value:21},button:{value:0},clientX:{value:x},clientY:{value:y}});
+  element.dispatchEvent(event);
+ };
+ pointer(root.querySelector('[data-gizmo="free"]'),"pointerdown",450,288);
+ pointer(canvas,"pointermove",550,360);
+ pointer(canvas,"pointerup",550,360);
+ assert.equal(items.length,1,"Moving a clone draft must not change the saved slots");
+ assert.equal(changes,0);
+ assert.equal(root.querySelector("#slot-x").value,"55");
+ assert.equal(root.querySelector("#slot-y").value,"60");
+ assert.deepEqual(items[0],original,"Original slot remains completely unchanged");
+ root.querySelector("[data-slot-save]").click();
+ assert.equal(items.length,2);
+ assert.equal(changes,1);
+ assert.equal(selection,"","Save must return to drawing mode");
+ assert.deepEqual(items.find(x=>x.id==="U001"),original);
+ const copy=items.find(x=>x.id==="U002");
+ assert.ok(copy);
+ assert.equal(copy.x,55);
+ assert.equal(copy.y,60);
+ assert.equal(copy.widthCm,original.widthCm);
+ assert.equal(copy.heightCm,original.heightCm);
+ assert.equal(copy.rotation,original.rotation);
+ assert.equal(copy.type,original.type);
+ assert.deepEqual(copy.allowedModels,original.allowedModels);
+ assert.equal(root.querySelector("[data-slot-save]"),null);
+ assert.equal(root.querySelector(".board-editor-gizmo"),null);
+ assert.ok(root.querySelector('[data-slot-select="U001"]'));
+ assert.ok(root.querySelector('[data-slot-select="U002"]'));
+ // A second clone gets a fresh ID. Cancelling never writes a phantom copy.
+ root.querySelector('[data-slot-select="U001"]').click();
+ root.querySelector("[data-slot-duplicate]").click();
+ assert.ok(root.querySelector("#slot-editor-form").textContent.includes("U003"));
+ root.querySelector("[data-slot-cancel]").click();
+ assert.equal(items.length,2);
+ assert.equal(changes,1);
+ assert.equal(root.querySelector(".board-editor-gizmo"),null);
+ dom.window.close();
+});
+
+test("Duplicate respects the 100-slot cap and never replaces an existing ID",()=>{
+ const dom=new JSDOM('<main id="root"></main>',{url:"https://example.test"});
+ const root=dom.window.document.querySelector("#root");
+ let items=Array.from({length:100},(_,i)=>({...one,id:"U"+String(i+1).padStart(3,"0")}));
+ root.innerHTML=renderBoardEditor(items);
+ mountBoardEditor(root,{getSlots:()=>items,selectedId:"U001",onChange:next=>{items=next;}});
+ root.querySelector("[data-slot-duplicate]").click();
+ assert.equal(items.length,100);
+ assert.match(root.querySelector("#slot-editor-feedback").textContent,/giới hạn 100 ô/);
+ assert.equal(root.querySelector("[data-slot-save]")!==null,true);
+ assert.equal(root.querySelector(".board-editor-gizmo").dataset.gizmoFor,"U001");
+ dom.window.close();
+});

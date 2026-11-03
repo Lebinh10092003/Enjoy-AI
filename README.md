@@ -282,3 +282,11 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 - Hướng chuẩn của ô là trục **+X** tại góc xoay đang đặt. **Không tự xác định hướng robot tiếp cận** từ hình học; trường `approach` không còn thuộc cấu hình ô tự vẽ mới. Đề lịch sử giữ thông tin cũ cho mục đích đối chiếu.
 - Kéo tay nắm trên ô đã lưu sẽ tự lưu vị trí hoặc góc mới khi thả; ô đang tạo mới chỉ ghi lại sau khi bấm **Lưu ô**. Các thay đổi bằng biểu mẫu hoặc thanh trượt góc chỉ được xem trước cho đến khi bấm Lưu.
 - Chuyển động dùng centimet, trục X/Y cục bộ sau xoay và giới hạn trong biên sa bàn 216 × 120 cm, tính cả kích thước góc quay của ô. Nút Lưu vẫn ở đầu form. Hai ô cắt nhau vẫn loại trừ lẫn nhau trong cùng đề Random và bộ lọc hành lang robot 30 cm tiếp tục có hiệu lực.
+
+
+### Trình chỉnh sửa ô V8 — Nhân bản và di chuyển ô (03/11/2026)
+- Chọn một ô đã lưu, bấm **Nhân bản ô** nằm cạnh **Lưu ô** ở đầu bảng thông số.
+- Một **bản sao chưa lưu** có ID mới (Uxxx), tên kèm “(bản sao)”, cùng loại, kích thước, góc xoay và danh sách mô hình cho phép như ô gốc. Ô gốc vẫn giữ nguyên.
+- Kéo gizmo **✥** để chuyển tự do, **X/Y** để dịch theo trục cục bộ của ô; có thể chỉnh các thông số trước khi lưu. Trong khi di chuyển bản sao, cấu hình đã lưu và đề Random không thay đổi.
+- Bấm **Lưu ô** sẽ thêm bản sao dưới ID mới rồi đóng bảng thông số, sẵn sàng vẽ ô khác. **Hủy chọn** bỏ bản sao chưa lưu. Giới hạn 100 ô tự vẽ vẫn được áp dụng.
+- Nếu bản sao giao với ô gốc hay ô khác, quy tắc Random V4 vẫn chỉ chọn tối đa một ô trong nhóm giao nhau. Các đề đã lưu trước đây không bị chỉnh sửa.
