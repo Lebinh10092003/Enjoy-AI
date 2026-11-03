@@ -136,3 +136,52 @@
  .board-editor-save-btn{min-height:48px;padding:10px 18px;}
  .board-editor-angle-slider{padding:11px;}
 }
+
+/* Local-axis move + rotate gizmo inspired by 3D transform controls.
+   X is the box's own "forward" direction; Y is perpendicular.
+   This is geometric orientation only, never a robot approach heading. */
+.board-editor-gizmo{
+ position:absolute;width:0;height:0;z-index:8;
+ pointer-events:none;overflow:visible;transform-origin:center center;
+}
+.board-gizmo-handle{
+ position:absolute;display:flex;align-items:center;justify-content:center;
+ border:2px solid #fff;box-shadow:0 2px 8px #1726367a;
+ font:800 13px/1 system-ui,sans-serif;user-select:none;touch-action:none;
+ padding:0;pointer-events:auto;cursor:grab;white-space:nowrap;
+}
+.board-gizmo-handle:active{cursor:grabbing;}
+.board-gizmo-handle:focus-visible{outline:3px solid #f9cc55;outline-offset:3px;}
+.board-gizmo-free{
+ left:-17px;top:-17px;width:34px;height:34px;border-radius:50%;
+ background:#294259;color:#fff;z-index:4;font-size:23px;
+}
+.board-gizmo-x{
+ left:27px;top:-12px;width:66px;height:24px;border-radius:4px 18px 18px 4px;
+ background:#c73d43;color:#fff;z-index:2;
+}
+.board-gizmo-y{
+ left:-12px;top:26px;width:24px;height:72px;border-radius:4px 4px 18px 18px;
+ writing-mode:vertical-rl;background:#248365;color:#fff;z-index:2;
+}
+.board-gizmo-rotate{
+ left:53px;top:-64px;width:33px;height:33px;border-radius:50%;
+ background:#d99a24;color:#25303b;font-size:24px;z-index:3;
+}
+.board-gizmo-forward{
+ position:absolute;left:30px;top:-31px;white-space:nowrap;
+ background:#fffef5;color:#8b3136;border:1px solid #c9b8a5;
+ border-radius:5px;padding:3px 6px;font-size:11px;font-weight:800;
+ pointer-events:none;box-shadow:0 1px 4px #26324130;
+}
+.board-editor-axis-hint{
+ margin:0;padding:11px 12px;background:#f0f4f6;color:#3c5464;
+ border:1px solid #cad6dc;border-radius:9px;font-size:13.5px;line-height:1.5;
+}
+@media(max-width:760px){
+ .board-gizmo-handle{box-shadow:0 1px 7px #17263665;}
+ .board-gizmo-free{width:36px;height:36px;left:-18px;top:-18px;}
+ .board-gizmo-x{left:28px;width:59px;height:27px;top:-13.5px;}
+ .board-gizmo-y{top:28px;height:61px;width:27px;left:-13.5px;}
+ .board-gizmo-rotate{left:51px;top:-61px;}
+}
