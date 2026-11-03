@@ -54,14 +54,14 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
    '<label class="board-editor-field">Tên ô<input id="slot-name" type="text" maxlength="70" value="'+escape(slot.label)+'"></label>'+
    '<label class="board-editor-field">Loại ô<select id="slot-kind">'+SLOT_TYPES.map(t=>
      '<option value="'+t+'"'+(slot.type===t?" selected":"")+'>'+kindLabel[t]+'</option>').join("")+'</select></label>'+
+   '<div class="board-editor-angle-sliders">'+
+   angleSlider("rotation","Kéo để xoay ô",slot.rotation)+
+   angleSlider("approach","Kéo để đổi hướng tiếp cận",slot.approach)+'</div>'+
    '<div class="board-editor-numeric">'+
    input("slot-x","Tâm X (%)",slot.x,0,100,.1)+input("slot-y","Tâm Y (%)",slot.y,0,100,.1)+
    input("slot-w","Rộng (cm)",slot.widthCm,2,216,.1)+input("slot-h","Cao (cm)",slot.heightCm,2,120,.1)+
    input("slot-rotation","Góc xoay ô (°)",slot.rotation,0,359.99,.01)+
    input("slot-approach","Hướng tiếp cận (°)",slot.approach,0,359.99,.01)+'</div>'+
-   '<div class="board-editor-angle-sliders">'+
-   angleSlider("rotation","Kéo để xoay ô",slot.rotation)+
-   angleSlider("approach","Kéo để đổi hướng tiếp cận",slot.approach)+'</div>'+
     '<div class="board-editor-quick-actions" role="group" aria-label="Điều chỉnh nhanh ô đang chọn">'+
     '<button type="button" class="btn btn-outline btn-small" data-slot-adjust="rotate-left">↶ Xoay −15°</button>'+
     '<button type="button" class="btn btn-outline btn-small" data-slot-adjust="rotate-right">↷ Xoay +15°</button>'+
