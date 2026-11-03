@@ -166,13 +166,20 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
  wrapper.addEventListener("pointerdown",event=>{
   if(readOnly||event.button!==0||!event.target.closest("[data-slot-canvas]"))return;
   const canvas=q("#slot-editor-canvas");
+  const handle=event.target.closest("[data-gizmo]");
   const clicked=event.target.closest(".board-editor-cell[data-slot-select]");
   try{
-   if(clicked){
+   if(handle){
+    const slot=gather();
+    if(handle.dataset.gizmoSlot!==slot.id)return;
+    drag={kind:"transform",mode:handle.dataset.gizmo,id:event.pointerId,
+     slot,preview:slot,start:at(event),moved:false,isDraft:Boolean(draft)};
+   }else if(clicked){
     const slot=slots().find(x=>x.id===clicked.dataset.slotSelect);
     if(!slot)return;
     selected=slot.id;draft=null;
-    drag={kind:"move",id:event.pointerId,start:at(event),slot,preview:slot,moved:false,cell:clicked};
+    drag={kind:"move",mode:"free",id:event.pointerId,
+     slot,preview:slot,start:at(event),moved:false,cell:clicked,isDraft:false};
    }else{
     drag={kind:"draw",start:at(event),id:event.pointerId};
     drawPreview(drag.start,drag.start);
@@ -186,36 +193,62 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
   try{
    const point=at(event);
    if(drag.kind==="draw"){drawPreview(drag.start,point);return;}
-   const dx=point.x-drag.start.x,dy=point.y-drag.start.y;
-   if(Math.hypot(dx,dy)<.2&&!drag.moved)return;
-   const candidate=normalizeUserSlots([{...drag.slot,x:drag.slot.x+dx,y:drag.slot.y+dy}])[0];
-   drag.preview=candidate;drag.moved=true;
-   drag.cell.style.left=candidate.x+"%";
-   drag.cell.style.top=candidate.y+"%";
-  }catch(e){announce("Không thể di chuyển ô ra ngoài biên sa bàn.",true);}
+   if(!drag.moved&&Math.hypot(point.x-drag.start.x,point.y-drag.start.y)<.15)return;
+   const candidate=transformUserSlot(drag.slot,drag.mode,drag.start,point);
+   drag.preview=candidate;
+   drag.moved=drag.moved||
+    candidate.x!==drag.slot.x||candidate.y!==drag.slot.y||
+    candidate.rotation!==drag.slot.rotation;
+   if(drag.kind==="transform"){
+    for(const [key,value] of [["slot-x",candidate.x],["slot-y",candidate.y],
+     ["slot-rotation",candidate.rotation]]){
+     const input=q("#"+key);if(input)input.value=String(value);
+    }
+    syncAngleControls(q("#slot-rotation"));
+    previewForm();
+   }else{
+    drag.cell.style.left=candidate.x+"%";
+    drag.cell.style.top=candidate.y+"%";
+   }
+  }catch(e){announce("Thao tác vượt biên sa bàn hoặc kích thước không hợp lệ: "+e.message,true);}
  });
  wrapper.addEventListener("pointerup",event=>{
   if(!drag||event.pointerId!==drag.id)return;
-  const moving=drag.kind==="move";
+  const drawing=drag.kind==="draw",transforming=drag.kind==="transform",onDraft=drag.isDraft;
   try{
-   if(moving){
+   if(!drawing){
     if(drag.moved){
      const changed=drag.preview;
-     onChange(normalizeUserSlots([...slots().filter(x=>x.id!==changed.id),changed]),changed.id);
-     announce("Đã di chuyển và lưu ô "+changed.id+". Vị trí mới dùng cho các đề Random tiếp theo.");
-    }else announce("Đã chọn ô "+drag.slot.id+". Chỉnh kích thước và hướng ở bảng bên phải.");
-    draft=null;selected=drag.slot.id;paint();return;
+     if(onDraft){
+      // The new box remains a draft until the user explicitly saves it.
+      draft=changed;selected="";
+      paint();announce("Đã xem trước vị trí/góc mới. Bấm Lưu ô để ghi lại.");
+     }else{
+      onChange(normalizeUserSlots([...slots().filter(x=>x.id!==changed.id),changed]),changed.id);
+      draft=null;selected=changed.id;paint();
+      announce(drag.mode==="rotate"?"Đã xoay và lưu ô "+changed.id+".":"Đã di chuyển và lưu ô "+changed.id+".");
+     }
+    }else{
+     selected=drag.slot.id;
+     if(!onDraft)draft=null;
+     paint();announce("Đã chọn ô "+drag.slot.id+". Dùng X/Y, tâm hoặc ↻ để chỉnh trực tiếp.");
+    }
+    return;
    }
    const a=drag.start,b=at(event),width=Math.abs(a.x-b.x)/100*FIELD_CM.width,height=Math.abs(a.y-b.y)/100*FIELD_CM.height;
    if(width<2||height<2){announce("Ô phải có chiều rộng và chiều cao tối thiểu 2 cm.",true);return;}
    const type=q("#slot-draw-type")?.value||"task";
    draft=normalizeUserSlots([{id:nextUserSlotId(slots()),
     label:"Ô tự vẽ",x:(a.x+b.x)/2,y:(a.y+b.y)/2,widthCm:width,heightCm:height,
-    type,rotation:0,approach:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
-   selected="";paint();announce("Ô mới đang ở chế độ xem trước. Chỉnh thông số rồi bấm Lưu ô.");
-  }catch(e){if(moving)paint();announce(e.message,true);}finally{closeDraw();if(!moving&&draft)previewForm();}
+    type,rotation:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
+   selected="";paint();announce("Ô mới đang xem trước. Kéo tay nắm để tịnh tiến/xoay, sau đó bấm Lưu ô.");
+  }catch(e){if(!drawing)paint();announce(e.message,true);}
+  finally{closeDraw();if(draft&&(drawing||onDraft))previewForm();}
  });
- wrapper.addEventListener("pointercancel",()=>{if(drag?.kind==="move")paint();closeDraw();});
+ wrapper.addEventListener("pointercancel",()=>{
+  if(drag?.kind!=="draw")paint();
+  closeDraw();if(draft)previewForm();
+ });
  wrapper.addEventListener("click",event=>{
   const target=event.target.closest("button");if(!target||readOnly)return;
   if(target.dataset.slotSelect){
@@ -223,7 +256,7 @@ export function mountBoardEditor(root,{getSlots,onChange,readOnly=false,selected
   }
   if(target.hasAttribute("data-slot-add")){
    try{draft=normalizeUserSlots([{id:nextUserSlotId(slots()),label:"Ô tự vẽ",type:q("#slot-draw-type")?.value||"task",
-     x:50,y:50,widthCm:12,heightCm:10,rotation:0,approach:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
+     x:50,y:50,widthCm:12,heightCm:10,rotation:0,allowedModels:[...CUSTOM_SLOT_MODELS]}])[0];
     selected="";paint();announce("Điều chỉnh ô mới rồi chọn Lưu ô.");}catch(e){announce(e.message,true);}return;
   }
   if(target.dataset.slotAdjust){
