@@ -268,7 +268,10 @@ test("GitHub Pages interface: navigation, team registration, scoring and backup"
  assert.equal(q(".clearance-route-overlay"),null);
  click('[data-slot-add]');
  assert.ok(q("#slot-editor-form #slot-rotation"));
- assert.ok(q("#slot-editor-form #slot-approach"));
+ assert.equal(q("#slot-editor-form #slot-approach"),null);
+ assert.ok(q("#slot-editor-form #slot-rotation-slider"));
+ assert.ok(q('[data-gizmo="free"]'));
+ assert.ok(q('[data-gizmo="rotate"]'));
  q("#slot-name").value="Ô tự vẽ UI test";
  click('[data-slot-save]');
  assert.equal(JSON.parse(localStorage.getItem("enjoy-ai-2026-competition-desk-v1")).boardSlots.length,1);

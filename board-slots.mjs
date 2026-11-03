@@ -32,7 +32,6 @@ export function normalizeUserSlots(input=[]){
   const x=numeric("x",0,100),y=numeric("y",0,100);
   const widthCm=numeric("widthCm",2,FIELD_CM.width),heightCm=numeric("heightCm",2,FIELD_CM.height);
   const rotation=numeric("rotation",0,359.99);
-  const approach=numeric("approach",0,359.99);
   const footprint=rotatedBounds(widthCm,heightCm,rotation);
   const px=x*FIELD_CM.width/100,py=y*FIELD_CM.height/100;
   if(px-footprint.w/2<0||px+footprint.w/2>FIELD_CM.width||
@@ -46,7 +45,7 @@ export function normalizeUserSlots(input=[]){
    throw Error("Ô nhiệm vụ "+id+" phải cho phép ít nhất một mô hình.");
   return {id,label,x:round(x,3),y:round(y,3),
    widthCm:round(widthCm),heightCm:round(heightCm),
-   rotation:round(rotation,2),approach:round(approach,2),
+   rotation:round(rotation,2),
    type,allowedModels:models};
  });
 }
@@ -106,4 +105,59 @@ export function overlappingUserSlotPairs(input=[]){
   if(userSlotsIntersect(slots[i],slots[j]))pairs.push([slots[i].id,slots[j].id]);
  }
  return pairs;
+}
+
+/** Slider limits in percentage: the full rotated rectangle remains on the mat. */
+export function slotTranslationBounds(slot){
+ const {w,h}=rotatedBounds(Number(slot.widthCm),Number(slot.heightCm),Number(slot.rotation));
+ if(!Number.isFinite(w)||!Number.isFinite(h)||w>FIELD_CM.width||h>FIELD_CM.height||w<=0||h<=0)
+  throw Error("Kích thước hoặc góc xoay không cho phép đặt ô trong sa bàn.");
+ const axis=(extent,total)=>{
+  const low=extent/(2*total)*100;
+  return {min:Number((Math.ceil((low-1e-8)*1000)/1000).toFixed(3)),
+   max:Number((Math.floor((100-low+1e-8)*1000)/1000).toFixed(3))};
+ };
+ return {x:axis(w,FIELD_CM.width),y:axis(h,FIELD_CM.height)};
+}
+
+/**
+ * 2D transform gizmo geometry in centimetres, like local axes in a 3D editor.
+ * mode: free (any direction), x/y (constrained to rotated local axes),
+ * rotate (circular motion about rectangle centre).
+ */
+export function transformUserSlot(slot,mode,start,current){
+ if(!["free","x","y","rotate"].includes(mode))throw Error("Chế độ tịnh tiến/xoay không hợp lệ.");
+ const result={...slot},x0=start.x,y0=start.y,x1=current.x,y1=current.y;
+ if(![x0,y0,x1,y1].every(Number.isFinite))throw Error("Tọa độ trỏ chuột không hợp lệ.");
+ const rad=slot.rotation*Math.PI/180,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+ if(mode==="rotate"){
+  const a=Math.atan2((y0-slot.y)*FIELD_CM.height,(x0-slot.x)*FIELD_CM.width);
+  const b=Math.atan2((y1-slot.y)*FIELD_CM.height,(x1-slot.x)*FIELD_CM.width);
+  const change=Math.atan2(Math.sin(b-a),Math.cos(b-a))*180/Math.PI;
+  result.rotation=round(((slot.rotation+change)%360+360)%360,2)%360;
+ }else{
+  const dx=(x1-x0)*FIELD_CM.width/100,dy=(y1-y0)*FIELD_CM.height/100;
+  const limits=slotTranslationBounds(slot);
+  if(mode==="free"){
+   result.x=clamp(slot.x+dx/FIELD_CM.width*100,limits.x.min,limits.x.max);
+   result.y=clamp(slot.y+dy/FIELD_CM.height*100,limits.y.min,limits.y.max);
+  }else{
+   const axis=mode==="x"?[Math.cos(rad),Math.sin(rad)]:[-Math.sin(rad),Math.cos(rad)];
+   const projected=dx*axis[0]+dy*axis[1];
+   const coefficients={x:axis[0]/FIELD_CM.width*100,y:axis[1]/FIELD_CM.height*100};
+   let lo=-Infinity,hi=Infinity;
+   for(const key of ["x","y"]){
+    const factor=coefficients[key];
+    if(Math.abs(factor)<1e-12)continue;
+    const a=(limits[key].min-slot[key])/factor,b=(limits[key].max-slot[key])/factor;
+    lo=Math.max(lo,Math.min(a,b));
+    hi=Math.min(hi,Math.max(a,b));
+   }
+   const distance=clamp(projected,lo,hi);
+   result.x=slot.x+distance*coefficients.x;
+   result.y=slot.y+distance*coefficients.y;
+  }
+ }
+ // Round consistently with stored slot geometry and reject invalid rotation.
+ return normalizeUserSlots([result])[0];
 }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {JSDOM} from "jsdom";
-import {normalizeUserSlots,nextUserSlotId,userTaskSlots,userObstacleSlots,rotatedBounds,slotConfigKey,userSlotsIntersect,overlappingUserSlotPairs} from "../board-slots.mjs";
+import {normalizeUserSlots,nextUserSlotId,userTaskSlots,userObstacleSlots,rotatedBounds,slotConfigKey,userSlotsIntersect,overlappingUserSlotPairs,slotTranslationBounds,transformUserSlot} from "../board-slots.mjs";
 import {renderBoardEditor,mountBoardEditor} from "../board-editor.mjs";
 import {generateLayout,initialData,normalizeData} from "../core.mjs";
 import {renderArena} from "../arena-ui.mjs";
@@ -10,10 +10,10 @@ import {assessLayoutSafety} from "../placement.mjs";
 const one={id:"U001",label:"Ô trắng do người dùng vẽ",x:45,y:48,
  widthCm:14,heightCm:12,rotation:20,approach:135,type:"both",
  allowedModels:["compass","printing","seismo","bonus"]};
-test("Manual slots preserve centimetre dimensions, independent rotation and approach",()=>{
+test("Manual slots preserve centimetre dimensions and ignore obsolete approach metadata",()=>{
  const [slot]=normalizeUserSlots([one]);
  assert.equal(slot.rotation,20);
- assert.equal(slot.approach,135);
+ assert.equal(slot.approach,undefined);
  assert.equal(slot.widthCm,14);
  assert.equal(userTaskSlots([one])[0].edge,"custom");
  assert.equal(userObstacleSlots([one])[0].w,14/216*100);
@@ -81,9 +81,8 @@ test("User-drawn slot editor supports mouse/touch drag, adjust, save and delete"
  assert.equal(items[0].rotation,30);
  assert.ok(root.querySelector('[data-slot-select="U001"]'));
  root.querySelector('[data-slot-select="U001"]').click();
- root.querySelector("#slot-approach").value="225";
- root.querySelector("[data-slot-save]").click();
- assert.equal(items[0].approach,225);
+ assert.equal(root.querySelector("#slot-approach"),null);
+ assert.equal(items[0].approach,undefined);
  // Editing the controls previews geometry, but only Save commits changes.
  const oldWidth=items[0].widthCm;
  root.querySelector("#slot-w").value="20";
@@ -156,7 +155,8 @@ test("Angle sliders sync both ways with exact numeric value and sticky top Save"
  assert.ok(root.querySelector(".board-editor-form-top [data-slot-save]"),"Save is near the top of the form");
  assert.equal(root.querySelectorAll("[data-slot-save]").length,1);
  assert.equal(q("slot-rotation-slider").type,"range");
- assert.equal(q("slot-approach-slider").type,"range");
+ assert.equal(q("slot-approach-slider"),null);
+ assert.equal(q("slot-approach"),null);
  assert.equal(q("slot-rotation-slider").min,"0");
  assert.equal(q("slot-rotation-slider").max,"359");
  q("slot-rotation-slider").value="225";
@@ -164,19 +164,12 @@ test("Angle sliders sync both ways with exact numeric value and sticky top Save"
  assert.equal(q("slot-rotation").value,"225");
  assert.equal(q("slot-rotation-readout").textContent,"225°");
  assert.equal(items[0].rotation,20,"Drag/slider preview never saves automatically");
- q("slot-approach-slider").value="150";
- q("slot-approach-slider").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
- assert.equal(q("slot-approach").value,"150");
- q("slot-approach").value="42.5";
- q("slot-approach").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
- assert.equal(q("slot-approach-slider").value,"43");
- assert.equal(q("slot-approach-readout").textContent,"42.5°");
  root.querySelector('[data-slot-adjust="rotate-right"]').click();
  assert.equal(q("slot-rotation").value,"240");
  assert.equal(q("slot-rotation-slider").value,"240");
  root.querySelector("[data-slot-save]").click();
  assert.equal(items[0].rotation,240);
- assert.equal(items[0].approach,42.5);
+ assert.equal(items[0].approach,undefined);
  dom.window.close();
 });
 
@@ -226,4 +219,73 @@ test("Random V4 never places two intersecting user-defined slots simultaneously"
   }
  }
  assert.ok(accepted>0,"Crossed slots must not prevent all otherwise safe arrangements");
+});
+
+test("Local-axis gizmo geometry is rotation-aware, free and bounded",()=>{
+ const slot=normalizeUserSlots([{...one,rotation:45}])[0];
+ const start={x:slot.x,y:slot.y};
+ const x=transformUserSlot(slot,"x",start,{x:start.x+5,y:start.y});
+ const movedX=(x.x-slot.x)*216/100,movedY=(x.y-slot.y)*120/100;
+ assert.ok(movedX>0&&movedY>0);
+ assert.ok(Math.abs(movedX-movedY)<.01,"X axis follows the 45 degree local heading");
+ const y=transformUserSlot(slot,"y",start,{x:start.x+5,y:start.y});
+ const dx=(y.x-slot.x)*216/100,dy=(y.y-slot.y)*120/100;
+ assert.ok(Math.abs(dx+dy)<.01,"Y axis is perpendicular to the heading");
+ const free=transformUserSlot(slot,"free",start,{x:start.x+4,y:start.y+6});
+ assert.equal(free.x,slot.x+4);
+ assert.equal(free.y,slot.y+6);
+ const spin=transformUserSlot({...slot,rotation:0},"rotate",
+   {x:slot.x+5,y:slot.y},{x:slot.x,y:slot.y+5});
+ assert.ok(Math.abs(spin.rotation-90)<.01,"Rotate handle changes local heading");
+ const edge=transformUserSlot(slot,"free",start,{x:150,y:150});
+ const bounds=slotTranslationBounds(slot);
+ assert.ok(edge.x<=bounds.x.max&&edge.y<=bounds.y.max);
+ assert.equal(normalizeUserSlots([edge])[0].id,slot.id);
+ assert.throws(()=>transformUserSlot(slot,"unknown",start,start),/không hợp lệ/);
+});
+
+test("Move/rotate gizmo handles are visible, interactive and preserve 30cm placement semantics",()=>{
+ const dom=new JSDOM('<main id="root"></main>',{url:"https://example.test"});
+ const root=dom.window.document.querySelector("#root");
+ let items=[normalizeUserSlots([one])[0]];
+ root.innerHTML=renderBoardEditor(items);
+ mountBoardEditor(root,{getSlots:()=>items,onChange:next=>{items=next;},selectedId:"U001"});
+ const canvas=root.querySelector("#slot-editor-canvas");
+ canvas.getBoundingClientRect=()=>({left:0,top:0,width:1000,height:600});
+ const pointer=(node,name,x,y,id=10)=>{
+  const e=new dom.window.Event(name,{bubbles:true,cancelable:true});
+  Object.defineProperties(e,{pointerId:{value:id},button:{value:0},clientX:{value:x},clientY:{value:y}});
+  node.dispatchEvent(e);
+ };
+ for(const handle of ["free","x","y","rotate"])
+  assert.ok(root.querySelector('[data-gizmo="'+handle+'"]'),"Missing "+handle+" handle");
+ assert.equal(root.querySelector("#slot-approach"),null);
+ const baseline=items[0];
+ pointer(root.querySelector('[data-gizmo="x"]'),"pointerdown",450,288);
+ pointer(canvas,"pointermove",500,288);
+ pointer(canvas,"pointerup",500,288);
+ assert.ok(items[0].x>baseline.x&&items[0].y>baseline.y,"X drag translates along the rotated box heading");
+ const rotated=items[0];
+ pointer(root.querySelector('[data-gizmo="rotate"]'),"pointerdown",(rotated.x+5)*10,rotated.y*6);
+ pointer(canvas,"pointermove",rotated.x*10,(rotated.y+5)*6);
+ pointer(canvas,"pointerup",rotated.x*10,(rotated.y+5)*6);
+ assert.ok(Math.abs(items[0].rotation-(rotated.rotation+90))<.02);
+ assert.equal(items[0].approach,undefined);
+ assert.ok(root.querySelector(".board-editor-gizmo").style.transform.includes("rotate("));
+ dom.window.close();
+});
+
+test("Custom slot generation uses no inferred approach heading",()=>{
+ const custom={...one,id:"U001",type:"task",rotation:25};
+ let used=false;
+ for(let i=0;i<50;i++){
+  const layout=generateLayout({level:"expert",seed:"NO-ROBOT-HEADING-"+i,customSlots:[custom],allowWhiteSlots:true});
+  const assigned=layout.tasks.find(t=>t.slot==="U001");
+  if(assigned){
+   assert.equal(assigned.angle,null);
+   assert.ok(!renderArena(layout).includes("Hướng tiếp cận"));
+   used=true;break;
+  }
+ }
+ assert.ok(used,"At least one valid random layout should exercise a custom slot");
 });
