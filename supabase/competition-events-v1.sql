@@ -116,12 +116,12 @@ begin
 
   if p_initial_data is null
      or jsonb_typeof(p_initial_data) <> 'object'
-     or p_initial_data->>'version' <> '1'
-     or jsonb_typeof(p_initial_data->'teams') <> 'array'
-     or jsonb_typeof(p_initial_data->'invention') <> 'array'
-     or jsonb_typeof(p_initial_data->'battles') <> 'array'
-     or jsonb_typeof(p_initial_data->'layouts') <> 'array'
-     or jsonb_typeof(p_initial_data->'rounds') <> 'number' then
+     or p_initial_data->>'version' is distinct from '1'
+     or jsonb_typeof(p_initial_data->'teams') is distinct from 'array'
+     or jsonb_typeof(p_initial_data->'invention') is distinct from 'array'
+     or jsonb_typeof(p_initial_data->'battles') is distinct from 'array'
+     or jsonb_typeof(p_initial_data->'layouts') is distinct from 'array'
+     or jsonb_typeof(p_initial_data->'rounds') is distinct from 'number' then
     raise exception 'Invalid Enjoy AI initial data format';
   end if;
   if (p_initial_data->>'rounds')::numeric not between 1 and 20 then
