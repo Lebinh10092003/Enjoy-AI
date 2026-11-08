@@ -33,6 +33,7 @@ test("Local event manager migrates the old workspace and isolates new event data
   assert.ok(q("#event-toolbar"),"The event toolbar should be visible");
   const originalId=q("#event-select").value;
   assert.equal(originalId,"local-main");
+  click('[data-page="teams-invention"]');
   assert.match(q("#content").textContent,/Legacy Team/,"The old single-workspace data must be migrated intact");
 
   click("#create-event");
@@ -46,9 +47,8 @@ test("Local event manager migrates the old workspace and isolates new event data
   const newId=q("#event-select").value;
   assert.notEqual(newId,originalId);
   assert.equal(q("#event-select").options.length,2);
-  assert.match(q("#content").textContent,/Chưa có đội Invention/,"A new event must start with empty scoring data");
+  assert.match(q("#content").textContent,/Chưa có đội thi/,"A new event must start with an empty roster");
 
-  click('[data-page="teams-invention"]');
   click("[data-open-team-form]");
   q("#team-name").value="New Event Team";
   q("#team-member1").value="Student 1";
