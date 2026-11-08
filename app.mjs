@@ -73,6 +73,7 @@ function saveLocal(){
    if(activeEventId==="main")sessionStorage.setItem(KEY+"-cloud-cache",snapshot);
   }else{
    localStorage.setItem(localEventStorageKey(activeEventId),snapshot);
+   if(activeEventId==="local-main")localStorage.setItem(KEY,snapshot); // Keep the legacy key as a compatibility mirror.
    localStorage.setItem(EVENTS_KEY,JSON.stringify(localEvents));
    localStorage.setItem(ACTIVE_LOCAL_EVENT_KEY,activeEventId);
   }
