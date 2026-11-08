@@ -74,6 +74,41 @@ export class CloudSync {
     this.storeSession({...body,expires_at:Date.now()+Number(body.expires_in||3600)*1000});
     return this.load();
   }
+  async listEvents(){
+    if(!this.ready)throw Error("Chưa kết nối Cloud.");
+    const rows=await this.request("/rest/v1/competition_events?select=id,name,season,event_date,venue,status,created_at&order=created_at.desc");
+    if(!Array.isArray(rows))throw Error("Danh sách đợt thi Cloud không hợp lệ.");
+    return rows;
+  }
+  async createEvent(event,snapshot){
+    if(!this.ready||this.role!=="admin")throw Error("Chỉ tài khoản Admin mới được tạo đợt thi trên Cloud.");
+    if(this.pending||this.inFlight)throw Error("Đợt thi hiện tại còn dữ liệu chưa đồng bộ. Hãy chờ lưu xong trước khi tạo đợt mới.");
+    const body=await this.request("/rest/v1/rpc/create_competition_event",{
+      method:"POST",
+      headers:{Prefer:"return=representation"},
+      body:JSON.stringify({
+        p_id:event.id,
+        p_name:event.name,
+        p_season:event.season,
+        p_event_date:event.eventDate||null,
+        p_venue:event.venue||"",
+        p_initial_data:snapshot
+      })
+    });
+    const row=Array.isArray(body)?body[0]:body;
+    if(!row?.id)throw Error("Máy chủ chưa xác nhận tạo đợt thi. Hãy tải lại danh sách trước khi thử lại.");
+    return row;
+  }
+  async switchWorkspace(workspace){
+    const id=String(workspace||"");
+    if(!/^[a-z0-9_-]{1,64}$/i.test(id))throw Error("Mã đợt thi Cloud không hợp lệ.");
+    if(this.pending||this.inFlight)throw Error("Còn dữ liệu chưa đồng bộ. Hãy chờ lưu xong trước khi chuyển đợt thi.");
+    this.workspace=id;
+    this.ready=false;
+    this.revision=null;
+    this.blocked=false;
+    return this.load();
+  }
   async load(){
     if(!this.session)throw Error("Chưa đăng nhập Cloud.");
     const memberships=await this.request("/rest/v1/competition_members?select=role&user_id=eq."+encodeURIComponent(this.session.user.id)+"&limit=1");

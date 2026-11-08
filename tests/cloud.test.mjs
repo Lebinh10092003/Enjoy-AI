@@ -108,3 +108,85 @@ test("Cloud provides useful error for invalid credentials and unconfirmed email"
   assert.equal(sync.session,null);
  }
 });
+
+
+function makeEventBackend(role="admin"){
+  const events=[{id:"main",name:"Đợt thi hiện tại",season:"2026",event_date:null,venue:"",status:"active"}];
+  const states=new Map([["main",{revision:0,data:structuredClone(state)}]]);
+  const requests=[];
+  const fetchImpl=async(url,options={})=>{
+    requests.push({url,method:options.method||"GET",body:options.body});
+    if(url.includes("/auth/v1/token?grant_type=password"))
+      return {ok:true,json:async()=>({access_token:"JWT",refresh_token:"REFRESH",expires_in:3600,
+        user:{id:"00000000-0000-4000-8000-000000000001",email:"admin@example.org"}})};
+    if(url.includes("/rest/v1/competition_members"))
+      return {ok:true,json:async()=>[{role}]};
+    if(url.includes("/rest/v1/competition_events"))
+      return {ok:true,json:async()=>structuredClone(events)};
+    if(url.includes("/rest/v1/rpc/create_competition_event")){
+      const body=JSON.parse(options.body);
+      const event={id:body.p_id,name:body.p_name,season:body.p_season,event_date:body.p_event_date,
+        venue:body.p_venue,status:"active"};
+      events.unshift(event);
+      states.set(event.id,{revision:0,data:structuredClone(body.p_initial_data)});
+      return {ok:true,json:async()=>[structuredClone(event)]};
+    }
+    if(url.includes("/rest/v1/competition_state")){
+      const id=decodeURIComponent(url.match(/[?&]id=eq\.([^&]+)/)?.[1]||"main");
+      const current=states.get(id);
+      if((options.method||"GET")==="GET")
+        return {ok:true,json:async()=>current?[{revision:current.revision,data:structuredClone(current.data)}]:[]};
+      if(options.method==="PATCH"){
+        if(!current)return {ok:true,json:async()=>[]};
+        const expected=Number(url.match(/revision=eq\.(\d+)/)?.[1]);
+        if(expected!==current.revision)return {ok:true,json:async()=>[]};
+        const body=JSON.parse(options.body);
+        if(body.revision!==current.revision+1)throw Error("Unexpected event revision in test.");
+        current.data=structuredClone(body.data);current.revision++;
+        return {ok:true,json:async()=>[{revision:current.revision}]};
+      }
+    }
+    throw Error("Unexpected event backend URL: "+url);
+  };
+  return {fetchImpl,requests,events,states,getState:id=>states.get(id)};
+}
+
+test("Cloud lists events, creates an isolated event and switches independent revisions",async()=>{
+  const fake=makeEventBackend("admin");
+  const storageMap=new Map();
+  const storage={getItem:key=>storageMap.get(key)||null,setItem:(key,value)=>storageMap.set(key,value),removeItem:key=>storageMap.delete(key)};
+  const sync=new CloudSync(config,{fetchImpl:fake.fetchImpl,storage});
+  assert.deepEqual(await sync.login("admin@example.org","secret"),state);
+  assert.equal((await sync.listEvents()).length,1);
+
+  const created=await sync.createEvent({
+    id:"event-2027",name:"ENJOY AI 2027",season:"2027",eventDate:"2027-03-20",venue:"V+ STEAM LAB"
+  },state);
+  assert.equal(created.id,"event-2027");
+  assert.equal(fake.states.get("event-2027").revision,0);
+
+  const loaded=await sync.switchWorkspace("event-2027");
+  assert.deepEqual(loaded,state);
+  const changed={...state,teams:[{id:"event-team"}]};
+  sync.queue(changed);
+  assert.equal(await sync.flush(),true);
+  assert.deepEqual(fake.getState("event-2027").data,changed);
+  assert.deepEqual(fake.getState("main").data,state);
+  assert.equal(fake.getState("event-2027").revision,1);
+
+  assert.deepEqual(await sync.switchWorkspace("main"),state);
+  sync.signOut();
+});
+
+test("Cloud blocks event creation for referee accounts",async()=>{
+  const fake=makeEventBackend("referee");
+  const storage={getItem:()=>null,setItem:()=>{},removeItem:()=>{}};
+  const sync=new CloudSync(config,{fetchImpl:fake.fetchImpl,storage});
+  await sync.login("referee@example.org","secret");
+  await assert.rejects(
+    sync.createEvent({id:"event-blocked",name:"Not allowed",season:"2027"},state),
+    /Chỉ tài khoản Admin/
+  );
+  assert.equal(fake.requests.some(request=>request.url.includes("rpc/create_competition_event")),false);
+  sync.signOut();
+});

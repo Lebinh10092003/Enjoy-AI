@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="./vplus-scoreboard.css?v=20261012-leaderboard-v3">
 <link rel="stylesheet" href="./readable-2026.css?v=20261102-typography-v1">
 <link rel="stylesheet" href="./board-editor.css?v=20261103-gizmo-v6">
+<link rel="stylesheet" href="./event-manager.css?v=20261108-events-v1">
 </head>
 <body>
 <div class="shell">
@@ -36,13 +37,13 @@
     <div class="sidebar-bottom"><div class="sidebar-status"><span class="save-dot"></span><span>Đang lưu trên thiết bị</span></div><small>V+ STEAM LAB · Competition Desk</small></div>
   </aside>
   <main class="main">
-    <header class="topbar"><div class="topbar-context"><div class="breadcrumbs"><span>V+ STEAM LAB</span><span class="crumb-divider">/</span><span>Competition Desk</span></div><h1 id="page-title">Tổng quan giải đấu</h1></div><div class="top-actions"><span class="workspace-pill"><span></span> Dữ liệu cục bộ</span><button id="export-top" class="btn btn-outline" type="button"><svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg> <span>Sao lưu dữ liệu</span></button></div></header>
+    <header class="topbar"><div class="topbar-context"><div class="breadcrumbs"><span>V+ STEAM LAB</span><span class="crumb-divider">/</span><span>Competition Desk</span></div><h1 id="page-title">Tổng quan giải đấu</h1></div><div class="top-actions"><div id="event-toolbar" class="event-toolbar" aria-label="Quản lý đợt thi"></div><span class="workspace-pill"><span></span> Dữ liệu cục bộ</span><button id="export-top" class="btn btn-outline" type="button"><svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg> <span>Sao lưu dữ liệu</span></button></div></header>
     <div id="alert" role="status" aria-live="polite"></div>
     <section id="content" aria-label="Nội dung"></section>
     <footer class="footer">Công cụ random đề luyện tập và chấm điểm ENJOY AI 2026 của <a href="https://www.stemrobotics.io.vn/" target="_blank" rel="noopener">V+ STEAM LAB</a>. Không phải cổng chính thức của Ban tổ chức. <a href="https://www.enjoyaiglobal.org/resources" target="_blank" rel="noopener">ENJOY AI 2026</a></footer>
   </main>
 </div>
 <div id="modal" class="modal-backdrop hidden"></div>
-<script type="module" src="./app.mjs?v=20261103-duplicate-v8"></script>
+<script type="module" src="./app.mjs?v=20261108-events-v1"></script>
 </body>
 </html>

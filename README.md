@@ -7,6 +7,7 @@ Website chấm điểm và tạo đề luyện tập **Inventions Trail** + **Ba
 
 ## Tính năng
 
+- Quản lý nhiều **đợt thi độc lập**: tạo đợt mới theo tên, mùa giải, ngày và địa điểm; chuyển đổi giữa các đợt mà không trộn đội, điểm số, trận Battle, đề Random hoặc bảng xếp hạng. Có lưu nhiều đợt trên thiết bị; khi kết nối Cloud, dữ liệu được tách theo từng đợt trong Supabase.
 - Quản lý đội thi Invention (4 bảng theo tài liệu luật **tiếng Việt do người dùng cung cấp**) và Battle (Tiểu học / THCS theo luật Battle).
 - **Invention**: 1–20 lượt (mặc định 2), 7 nhóm nhiệm vụ; In chữ rời ENJ/YAI mỗi khối +40; Bonus +100 chỉ khi bật sau thông báo BTC; thưởng theo 0/1/2/3/4+ retry; mặc định tích điều kiện robot trơn tru/liên tục cho lượt mới (+40 khi 0 retry), trọng tài có thể bỏ tích khi không đạt; mỗi retry trừ 10 điểm, tối thiểu 0.
 - Nhiệm vụ **không tích** = **0 điểm**, retry bỏ trống = 0. Thời gian **bắt buộc để hoàn tất**; 1–150 giây/lượt. Lưu nháp / Đã chấm / Hủy kết quả / Bỏ cuộc.
@@ -15,7 +16,7 @@ Website chấm điểm và tạo đề luyện tập **Inventions Trail** + **Ba
 - **Battle vòng bảng**: 3–1–0; so điểm trong trận, sau đó hoàn thành Tower khi hòa. Thống kê thắng thua, tính thắng đối đầu, điểm nhiệm vụ, số lần Tower, tổng retry. Nút tạo lịch vòng tròn tránh trùng cặp.
 - **Battle loại trực tiếp**: trận có thắng ngay được xử lý ưu tiên; nếu chưa có thắng ngay sẽ phân định lần lượt điểm trận → điểm Full Firepower → Tower → retry; nếu vẫn hòa yêu cầu trận phân định.
 - **Random Invention**: mỗi đề luôn có 7 mô hình nhiệm vụ chính và 3 vật cản; tùy chọn Bonus chỉ khi BTC công bố. Mô hình đặt tại khung A–J không trùng nhau; vật cản đặt riêng tại 3/9 ô chữ nhật nhỏ O1–O9, theo dấu trên ảnh sa bàn do người dùng cung cấp. Mũi tên chỉ hướng tiếp cận theo đường dẫn; seed tái lập kết quả; lưu đề / sao chép / xuất JSON / in.
-- Tự động lưu localStorage; có tùy chọn đồng bộ **Supabase PostgreSQL** (đăng nhập, RLS, chống ghi đè bằng revision và audit metadata); nhập/xuất JSON; xuất CSV; giao diện responsive. Xem `supabase/SETUP.md` để cấu hình Cloud.
+- Tự động lưu localStorage theo từng đợt; có tùy chọn đồng bộ **Supabase PostgreSQL** (đăng nhập, RLS, Admin tạo đợt, Admin/Referee ghi điểm, Viewer chỉ xem, revision chống ghi đè và audit metadata); nhập/xuất JSON theo đợt đang chọn; xuất CSV; giao diện responsive. Xem `supabase/SETUP.md` để cấu hình Cloud.
 
 ## Quy tắc quan trọng
 
@@ -232,9 +233,9 @@ Tham khảo các giải pháp trình bày bảng đấu/leaderboard và hướng
 
 Để kiểm tra: `node --test tests/*.test.mjs`; tập trung thử mở/đóng popup bằng bàn phím, nhập đội không trùng, lọc bảng/nhóm và bảng xếp hạng trên màn hình nhỏ.
 
-## Tích hợp Cloud (02/11/2026)
+## Tích hợp Cloud và quản lý nhiều đợt thi (08/11/2026)
 
-Đã bổ sung `cloud-sync.mjs`, `cloud-config.mjs`, migration `supabase/schema.sql` và hướng dẫn `supabase/SETUP.md`. Đã tạo database tại project Enjoy-AI (Singapore) và cấu hình publishable key; cần cấp tài khoản tại Supabase Auth trước khi đăng nhập; không đưa secret/service-role key lên GitHub Pages. Chức năng lưu localStorage vẫn dùng được khi chưa cấu hình Cloud.
+`cloud-sync.mjs` kết nối Supabase bằng publishable key và tài khoản Auth. Mỗi đợt thi có một dòng `competition_events` và một snapshot `competition_state` riêng, revision độc lập. RPC `create_competition_event` tạo metadata + snapshot trong cùng transaction; chỉ Admin được tạo. Admin/Referee được ghi điểm vào đợt đang hoạt động; Viewer chỉ đọc. Dữ liệu local cũng được tách theo từng đợt. Migration đã triển khai trên project Enjoy-AI; xem `supabase/SETUP.md`. Không đưa secret/service-role key lên GitHub Pages.
 
 ## Nâng cấp bộ sinh đề ngẫu nhiên (02/11/2026)
 
