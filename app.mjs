@@ -12,9 +12,40 @@ import {renderArena,modelPicture,modelPopup} from "./arena-ui.mjs?v=20261103-giz
 import {INV_DIVISIONS,BATTLE_DIVISIONS,TASKS,LAYOUT_NAMES,SLOTS,LEVELS,initialData,newInventionAttempt,newBattleSide,normInt,invScore,invRank,battleSideScore,battleEligible,validateBattleSide,battleOutcome,battleRanking,generateLayout,escapeHtml,normalizeData} from "./core.mjs?v=20261103-gizmo-v6";
 
 const KEY="enjoy-ai-2026-competition-desk-v1";
+const EVENTS_KEY=KEY+"-events-v1";
+const ACTIVE_LOCAL_EVENT_KEY=KEY+"-active-local-event-v1";
+const ACTIVE_CLOUD_EVENT_KEY=KEY+"-active-cloud-event-v1";
 const V=escapeHtml;
 const CLOUD_BACKUP_KEY=KEY+"-precloud-migration";
-let data=readData();
+function localEventStorageKey(id){return KEY+"-event-"+id;}
+function normalizeEventMeta(event){
+ return {id:String(event.id||""),name:String(event.name||"Đợt thi chưa đặt tên"),
+  season:String(event.season||"2026"),eventDate:String(event.event_date||event.eventDate||""),
+  venue:String(event.venue||""),status:String(event.status||"active"),
+  createdAt:String(event.created_at||event.createdAt||"")};
+}
+function readLocalEvents(){
+ try{
+  const raw=localStorage.getItem(EVENTS_KEY);
+  if(raw){
+   const parsed=JSON.parse(raw);
+   if(Array.isArray(parsed)&&parsed.length)return parsed.filter(x=>x&&x.id).map(normalizeEventMeta);
+  }
+ }catch(error){console.warn("Cannot load local event registry",error);}
+ const id="local-main";
+ try{
+  const legacy=localStorage.getItem(KEY);
+  if(legacy&&!localStorage.getItem(localEventStorageKey(id)))localStorage.setItem(localEventStorageKey(id),legacy);
+ }catch{}
+ const events=[normalizeEventMeta({id,name:"Đợt thi hiện tại",season:"2026",status:"active",createdAt:new Date().toISOString()})];
+ try{localStorage.setItem(EVENTS_KEY,JSON.stringify(events));localStorage.setItem(ACTIVE_LOCAL_EVENT_KEY,id);}catch{}
+ return events;
+}
+let localEvents=readLocalEvents();
+let competitionEvents=localEvents;
+let activeEventId=localStorage.getItem(ACTIVE_LOCAL_EVENT_KEY)||localEvents[0]?.id||"local-main";
+if(!localEvents.some(event=>event.id===activeEventId))activeEventId=localEvents[0]?.id||"local-main";
+let data=readData(activeEventId);
 let cloudMessage="";
 const cloud=new CloudSync(CLOUD_CONFIG,{onStatus:updateCloudStatus});
 let page="overview";
@@ -24,11 +55,13 @@ const names={overview:"Tổng quan giải đấu",teams:"Đội Invention","team
 const $=s=>document.querySelector(s);
 const all=s=>Array.from(document.querySelectorAll(s));
 const el=$('#content');
-function readData(){
+function readData(eventId=activeEventId){
  try{
   const cloudSession=typeof sessionStorage!=="undefined"&&sessionStorage.getItem("enjoy-ai-cloud-session-v1");
-  const cloudCache=cloudSession?sessionStorage.getItem(KEY+"-cloud-cache"):null;
-  const saved=cloudCache||localStorage.getItem(KEY);
+  const cloudCache=cloudSession&&typeof sessionStorage!=="undefined"?
+   (sessionStorage.getItem(KEY+"-cloud-cache-"+eventId)||(eventId==="main"?sessionStorage.getItem(KEY+"-cloud-cache"):null)):null;
+  const localSaved=localStorage.getItem(localEventStorageKey(eventId))||(eventId==="local-main"?localStorage.getItem(KEY):null);
+  const saved=cloudCache||localSaved;
   return saved?normalizeData(JSON.parse(saved)):initialData();
  }catch(e){console.warn("Cannot load stored data",e);return initialData();}
 }
@@ -36,9 +69,13 @@ function saveLocal(){
  try{
   const snapshot=JSON.stringify(data);
   if(cloud.ready){
-   sessionStorage.setItem(KEY+"-cloud-cache",snapshot);
-   localStorage.removeItem(KEY); // Dữ liệu học sinh trên Cloud không tồn tại ở cache dài hạn sau khi đóng phiên.
-  }else localStorage.setItem(KEY,snapshot);
+   sessionStorage.setItem(KEY+"-cloud-cache-"+activeEventId,snapshot);
+   if(activeEventId==="main")sessionStorage.setItem(KEY+"-cloud-cache",snapshot);
+  }else{
+   localStorage.setItem(localEventStorageKey(activeEventId),snapshot);
+   localStorage.setItem(EVENTS_KEY,JSON.stringify(localEvents));
+   localStorage.setItem(ACTIVE_LOCAL_EVENT_KEY,activeEventId);
+  }
  }catch(e){notify("Không thể lưu bản dự phòng trên trình duyệt. Hãy xuất JSON và kiểm tra bộ nhớ.",true);}
 }
 function persist(){saveLocal();cloud.queue(data);}
@@ -51,6 +88,112 @@ function updateCloudStatus(event){
   const message=document.querySelector("#cloud-status");
   if(message)message.textContent=cloudMessage||"Trạng thái: "+event.status;
 }
+function renderEventToolbar(){
+ const host=$("#event-toolbar");if(!host)return;
+ const options=competitionEvents.map(event=>{
+  const date=event.eventDate?" · "+event.eventDate:"";
+  const archived=event.status==="archived"?" · Đã lưu trữ":"";
+  return '<option value="'+V(event.id)+'"'+(event.id===activeEventId?" selected":"")+'>'+
+   V(event.name+" · "+event.season+date+archived)+'</option>';
+ }).join("");
+ const canCreate=!cloud.ready||cloud.role==="admin";
+ host.innerHTML='<div class="event-switcher"><label for="event-select">ĐỢT THI</label>'+
+  '<select id="event-select" aria-label="Chọn đợt thi">'+options+'</select></div>'+
+  '<button id="create-event" class="btn btn-event-create" type="button"'+
+  (canCreate?"":" disabled title=\"Chỉ Admin mới được tạo đợt thi trên Cloud\"")+'>+ Đợt thi mới</button>';
+}
+async function flushCloudWrites(){
+ for(let attempt=0;attempt<4;attempt++){
+  if(cloud.blocked)throw Error("Cloud đang có xung đột dữ liệu. Hãy xử lý xung đột trước khi chuyển hoặc tạo đợt thi.");
+  if(cloud.inFlight){const ok=await cloud.inFlight;if(!ok)throw Error(cloudMessage||"Không thể hoàn tất đồng bộ Cloud.");}
+  if(!cloud.pending)return;
+  const ok=await cloud.flush();
+  if(!ok)throw Error(cloudMessage||"Không thể lưu dữ liệu đợt thi hiện tại.");
+ }
+ if(cloud.pending||cloud.inFlight)throw Error("Dữ liệu vẫn đang đồng bộ. Vui lòng chờ rồi thử lại.");
+}
+async function switchCompetitionEvent(id){
+ if(id===activeEventId)return;
+ const selected=competitionEvents.find(event=>event.id===id);
+ if(!selected)throw Error("Không tìm thấy đợt thi được chọn.");
+ if(cloud.ready){
+  await flushCloudWrites();
+  const previous=cloud.workspace;
+  let snapshot;
+  try{snapshot=await cloud.switchWorkspace(id);}
+  catch(error){if(previous&&previous!==id)await cloud.switchWorkspace(previous).catch(()=>{});throw error;}
+  activeEventId=id;data=normalizeData(snapshot);
+  try{sessionStorage.setItem(ACTIVE_CLOUD_EVENT_KEY,id);}catch{}
+  saveLocal();
+ }else{
+  saveLocal();activeEventId=id;
+  localStorage.setItem(ACTIVE_LOCAL_EVENT_KEY,id);
+  data=readData(id);
+ }
+ render();
+ notify("Đã chuyển sang "+selected.name+". Dữ liệu của các đợt thi khác được giữ riêng.");
+}
+async function createCompetitionEvent(meta){
+ const name=String(meta.name||"").trim();
+ const season=String(meta.season||"2026").trim();
+ const eventDate=String(meta.eventDate||"").trim();
+ const venue=String(meta.venue||"").trim();
+ if(name.length<2||name.length>120)throw Error("Tên đợt thi phải từ 2 đến 120 ký tự.");
+ if(!season||season.length>32)throw Error("Vui lòng nhập mùa giải/năm hợp lệ.");
+ if(venue.length>160)throw Error("Địa điểm không được vượt quá 160 ký tự.");
+ if(competitionEvents.some(event=>event.name.toLocaleLowerCase("vi")===name.toLocaleLowerCase("vi")&&event.season===season))
+  throw Error("Đã có đợt thi cùng tên trong mùa giải này. Hãy đổi tên hoặc mùa giải.");
+ const id=uid("event").toLowerCase();
+ const initial=initialData();
+ if(cloud.ready){
+  if(cloud.role!=="admin")throw Error("Chỉ tài khoản Admin mới được tạo đợt thi trên Cloud.");
+  await flushCloudWrites();
+  const created=await cloud.createEvent({id,name,season,eventDate,venue},initial);
+  const snapshot=await cloud.switchWorkspace(id);
+  activeEventId=id;data=normalizeData(snapshot);
+  try{competitionEvents=(await cloud.listEvents()).map(normalizeEventMeta);}
+  catch{competitionEvents=[normalizeEventMeta(created),...competitionEvents];}
+  try{sessionStorage.setItem(ACTIVE_CLOUD_EVENT_KEY,id);}catch{}
+  saveLocal();
+ }else{
+  const event=normalizeEventMeta({id:"local-"+id,name,season,eventDate,venue,status:"active",createdAt:new Date().toISOString()});
+  localEvents.unshift(event);competitionEvents=localEvents;activeEventId=event.id;data=initial;
+  localStorage.setItem(EVENTS_KEY,JSON.stringify(localEvents));
+  localStorage.setItem(ACTIVE_LOCAL_EVENT_KEY,activeEventId);
+  saveLocal();
+ }
+ render();
+ return {id:activeEventId,name};
+}
+function openCreateEventModal(){
+ const modal=$("#modal");if(!modal)return;
+ modal.classList.remove("hidden");
+ modal.innerHTML='<form id="create-event-form" class="modal-box event-create-box" role="dialog" aria-modal="true">'+
+  '<h3>Tạo đợt thi mới</h3><p class="muted">Mỗi đợt thi có dữ liệu đội, điểm Invention, trận Battle và bảng xếp hạng độc lập.</p>'+
+  '<div class="field"><label for="event-name">Tên đợt thi *</label><input id="event-name" maxlength="120" required placeholder="Ví dụ: ENJOY AI V+ 2027"></div>'+
+  '<div class="form-grid"><div class="field"><label for="event-season">Mùa giải / Năm *</label><input id="event-season" maxlength="32" required value="2026"></div>'+
+  '<div class="field"><label for="event-date">Ngày tổ chức</label><input id="event-date" type="date"></div></div>'+
+  '<div class="field"><label for="event-venue">Địa điểm</label><input id="event-venue" maxlength="160" placeholder="Địa điểm tổ chức (không bắt buộc)"></div>'+
+  '<p id="event-create-error" class="event-create-error" role="alert"></p>'+
+  '<div class="modal-actions"><button class="btn btn-outline" id="event-create-cancel" type="button">Hủy</button>'+
+  '<button class="btn" type="submit">Tạo đợt thi</button></div></form>';
+ $("#event-create-cancel").onclick=()=>{modal.classList.add("hidden");modal.innerHTML="";};
+ $("#create-event-form").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const form=event.currentTarget;
+  const submit=form.querySelector('button[type="submit"]');
+  const errorBox=$("#event-create-error");
+  submit.disabled=true;if(errorBox)errorBox.textContent="";
+  try{
+   const created=await createCompetitionEvent({name:$("#event-name").value,season:$("#event-season").value,
+    eventDate:$("#event-date").value,venue:$("#event-venue").value});
+   modal.classList.add("hidden");modal.innerHTML="";
+   notify("Đã tạo "+created.name+". Có thể bắt đầu thêm đội và chấm điểm.");
+  }catch(error){if(errorBox)errorBox.textContent=error.message;}
+  finally{if(submit.isConnected)submit.disabled=false;}
+ });
+ $("#event-name").focus();
+}
 function applyCloudSnapshot(snapshot){
   const imported=normalizeData(snapshot);
   const local=JSON.stringify(data);
@@ -62,8 +205,15 @@ function applyCloudSnapshot(snapshot){
 }
 async function restoreCloudSession(){
   if(!cloud.configured||!cloud.session)return;
-  try{const snapshot=await cloud.load();applyCloudSnapshot(snapshot);render();}
-  catch(error){cloud.signOut();updateCloudStatus({status:"error",message:error.message});}
+  try{
+    let snapshot=await cloud.load();
+    const rows=(await cloud.listEvents()).map(normalizeEventMeta);
+    const desired=typeof sessionStorage!=="undefined"?sessionStorage.getItem(ACTIVE_CLOUD_EVENT_KEY):null;
+    if(desired&&rows.some(event=>event.id===desired)&&desired!==cloud.workspace)
+      snapshot=await cloud.switchWorkspace(desired);
+    competitionEvents=rows;activeEventId=cloud.workspace;
+    applyCloudSnapshot(snapshot);render();
+  }catch(error){cloud.signOut();competitionEvents=localEvents;activeEventId=localStorage.getItem(ACTIVE_LOCAL_EVENT_KEY)||localEvents[0].id;data=readData(activeEventId);updateCloudStatus({status:"error",message:error.message});render();}
 }
 function notify(message,error=false){$('#alert').innerHTML='<div class="toast'+(error?' error':'')+'">'+V(message)+'</div>';window.scrollTo({top:0,behavior:"smooth"});}
 function field(id,label,value,kind="text",attrs=""){return '<div class="field"><label for="'+V(id)+'">'+V(label)+'</label><input id="'+V(id)+'" type="'+V(kind)+'" value="'+V(value??"")+'" '+attrs+'></div>';}
@@ -85,6 +235,7 @@ function render(){
   const views={overview:renderOverview,teams:()=>renderTeams("invention"),"teams-invention":()=>renderTeams("invention"),"teams-battle":()=>renderTeams("battle"),invention:renderInvention,ranking:renderRanking,random:renderRandom,battle:renderBattle,"battle-ranking":renderBattleRanking,settings:renderSettings};
   el.innerHTML=(views[page]||renderOverview)();
   bindDynamic();
+  renderEventToolbar();
   if(page==="settings"&&ui.settingsView==="board"){
     mountBoardEditor(el,{getSlots:()=>data.boardSlots||[],selectedId:ui.boardSelectedId,
      readOnly:cloud.ready&&cloud.role==="viewer",
@@ -258,7 +409,7 @@ function cloudPanel(){
     '<div class="field"><label>Cấp quyền an toàn</label><button class="btn btn-outline" type="button" data-cloud-copy-sql>Sao chép SQL cấp quyền cho email trên</button></div></div>'+
     '<div class="action-row"><button type="button" class="btn" data-cloud-login>Đăng nhập & tải dữ liệu Cloud</button></div>'+
     '<p class="muted">Website không tự tạo tài khoản hoặc gửi email. Bạn quản lý việc tạo tài khoản và lời mời trực tiếp trên Supabase. SQL được sao chép để tự kiểm tra rồi chạy.</p>';
-  else body+='<p class="muted">Tài khoản: <strong>'+V(cloud.session?.user?.email||"")+'</strong> · Quyền: <strong>'+V(cloud.role||"")+'</strong> · Phiên bản dữ liệu: <strong>'+cloud.revision+'</strong>. Dữ liệu được ghi lên máy chủ và không âm thầm ghi đè khi phiên bản thay đổi.</p><div class="action-row"><button type="button" class="btn btn-outline" data-cloud-retry>Đồng bộ lại khi lỗi</button><button type="button" class="btn btn-outline" data-cloud-refresh>Tải lại Cloud</button><button type="button" class="btn btn-outline" data-cloud-logout>Đăng xuất</button></div>';
+  else body+='<p class="muted">Tài khoản: <strong>'+V(cloud.session?.user?.email||"")+'</strong> · Quyền: <strong>'+V(cloud.role||"")+'</strong> · Phiên bản dữ liệu: <strong>'+cloud.revision+'</strong>. Mỗi đợt thi được lưu riêng; dữ liệu không bị trộn. Hệ thống dùng revision để phát hiện ghi đè đồng thời.</p><div class="action-row"><button type="button" class="btn btn-outline" data-cloud-retry>Đồng bộ lại khi lỗi</button><button type="button" class="btn btn-outline" data-cloud-refresh>Tải lại Cloud</button><button type="button" class="btn btn-outline" data-cloud-logout>Đăng xuất</button></div>';
   body+='<p id="cloud-status" class="panel-note" role="status" aria-live="polite">'+V(cloudMessage||"Lưu cục bộ đang hoạt động.")+'</p>';
   if(localStorage.getItem(CLOUD_BACKUP_KEY))body+='<div class="action-row"><button class="btn btn-outline" type="button" data-cloud-backup>↓ Tải bản dữ liệu cục bộ trước khi kết nối Cloud</button></div>';
   return body+'</div>';
@@ -271,7 +422,7 @@ function renderSettings(){
    return title("Cấu hình vị trí sa bàn","Tự vẽ và quản lý ô đặt nhiệm vụ, vật cản; kích thước và hướng do bạn quyết định.")+
     tabs+renderBoardEditor(data.boardSlots||[],data.mapImage||undefined);
   }
-  return title("Dữ liệu & quy định","Hỗ trợ localStorage và Cloud Supabase có tài khoản, phân quyền, chống ghi đè.")+tabs+cloudPanel()+
+  return title("Dữ liệu & quy định","Hỗ trợ nhiều đợt thi độc lập; mỗi đợt có dữ liệu riêng trên thiết bị hoặc Cloud Supabase.")+tabs+cloudPanel()+
    '<div class="grid-equal"><div class="panel"><h3>Sao lưu và khôi phục</h3><p class="muted">Lưu cục bộ sau mỗi thay đổi; khi đăng nhập Cloud, hệ thống đồng bộ lên database. Hãy sao lưu JSON định kỳ, kể cả khi bật Cloud.</p><div class="action-row"><button class="btn" data-backup>↓ Xuất dữ liệu JSON</button><label class="btn btn-outline" style="cursor:pointer">↑ Nhập JSON<input type="file" id="import-json" accept=".json,application/json" style="display:none"></label></div><div class="panel-note warning">Khi chưa bật Cloud, tuyệt đối không dùng nhiều máy chấm chung. Khi bật Cloud, xung đột phải đối soát thủ công. Nhập JSON có thể ghi đè dữ liệu Cloud nên phải có xác nhận.</div></div>'+
    '<div class="panel"><h3>Nhiệm vụ thưởng Invention</h3><label class="check-pill"><input id="bonus-enabled" type="checkbox" '+(data.bonusEnabled?"checked":"")+'><span><strong>BTC đã công bố nhiệm vụ thưởng</strong><small>100 điểm nếu hoàn thành, không bật mặc định.</small></span></label><div class="field" style="margin-top:12px"><label for="bonus-description">Nội dung / điều kiện nhiệm vụ Bonus</label><textarea id="bonus-description" placeholder="Chỉ ghi quy định BTC đã công bố">'+V(data.bonusDescription||"")+'</textarea></div></div></div>'+
    '<div class="panel"><h3>Cơ sở tính điểm</h3><div class="table-wrap"><table class="table"><thead><tr><th>Invention</th><th class="num">Điểm</th><th>Battle</th><th>Điều kiện</th></tr></thead><tbody>'+
@@ -619,7 +770,12 @@ el.addEventListener("click",e=>{
    if(!email||!password){const status=$('#cloud-status');if(status)status.textContent="Vui lòng nhập email và mật khẩu.";return;}
    t.disabled=true;
    void cloud.login(email,password)
-     .then(snapshot=>{applyCloudSnapshot(snapshot);go("settings");notify("Đã kết nối Cloud. Kiểm tra trạng thái đồng bộ trước khi chấm.");})
+     .then(async snapshot=>{
+     competitionEvents=(await cloud.listEvents()).map(normalizeEventMeta);
+     activeEventId=cloud.workspace;
+     try{sessionStorage.setItem(ACTIVE_CLOUD_EVENT_KEY,activeEventId);}catch{}
+     applyCloudSnapshot(snapshot);go("settings");notify("Đã kết nối Cloud. Chọn đợt thi trên thanh đầu trang trước khi chấm.");
+   })
      .catch(error=>{
        cloud.signOut();
        const display=$('#cloud-status');
@@ -629,7 +785,9 @@ el.addEventListener("click",e=>{
  }
  if(t.hasAttribute("data-cloud-logout")){
    if(cloud.pending||cloud.inFlight)return notify("Còn dữ liệu chưa đồng bộ. Hãy sao lưu JSON trước khi đăng xuất.",true);
-   cloud.signOut();sessionStorage.removeItem(KEY+"-cloud-cache");data=initialData();ui.invTeam="";ui.battleId="";ui.layoutId="";render();return;
+   cloud.signOut();competitionEvents=localEvents;
+   activeEventId=localStorage.getItem(ACTIVE_LOCAL_EVENT_KEY)||localEvents[0]?.id||"local-main";
+   data=readData(activeEventId);ui.invTeam="";ui.battleId="";ui.layoutId="";render();return;
  }
  if(t.hasAttribute("data-cloud-backup")){const saved=localStorage.getItem(CLOUD_BACKUP_KEY);if(saved)download("enjoy-ai-precloud-backup.json",saved,"application/json");return;}
  if(t.hasAttribute("data-cloud-retry")){void cloud.retry().then(ok=>{if(ok)notify("Đã kiểm tra đồng bộ Cloud.");else notify("Chưa đồng bộ được. "+cloudMessage,true);}).catch(error=>notify(error.message,true));return;}
@@ -710,6 +868,14 @@ el.addEventListener("click",e=>{
  if(t.hasAttribute("data-backup"))return exportJson();
 });
 $('#navigation').addEventListener("click",e=>{const t=e.target.closest("[data-page]");if(t)go(t.dataset.page);});
+$('#event-toolbar').addEventListener("change",e=>{
+ if(e.target.id!=="event-select")return;
+ const selected=e.target.value;
+ void switchCompetitionEvent(selected).catch(error=>{renderEventToolbar();notify(error.message,true);});
+});
+$('#event-toolbar').addEventListener("click",e=>{
+ if(e.target.closest("#create-event"))openCreateEventModal();
+});
 $('#export-top').addEventListener("click",exportJson);
 render();
 updateCloudStatus({status:"local",message:cloud.configured?"Chưa đăng nhập Cloud. Đang lưu cục bộ.":"Đang lưu cục bộ."});
