@@ -11,6 +11,9 @@ create table public.competition_events (
   created_at timestamptz not null default now()
 );
 
+create index competition_events_created_by_idx on public.competition_events(created_by) where created_by is not null;
+create index competition_events_created_at_idx on public.competition_events(created_at desc);
+
 alter table public.competition_events enable row level security;
 revoke all on public.competition_events from public, anon, authenticated;
 grant select, insert on public.competition_events to authenticated;
