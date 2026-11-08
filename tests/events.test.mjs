@@ -63,14 +63,14 @@ test("Local event manager migrates the old workspace and isolates new event data
   q("#event-select").value=originalId;
   q("#event-select").dispatchEvent(new dom.window.Event("change",{bubbles:true}));
   assert.equal(q("#event-select").value,originalId);
-  assert.match(q("#content").textContent,/Legacy Team/);
-  assert.doesNotMatch(q("#content").textContent,/New Event Team/);
+  assert.match(q("#content tbody").textContent,/Legacy Team/);
+  assert.doesNotMatch(q("#content tbody").textContent,/New Event Team/);
 
   q("#event-select").value=newId;
   q("#event-select").dispatchEvent(new dom.window.Event("change",{bubbles:true}));
   assert.equal(q("#event-select").value,newId);
-  assert.match(q("#content").textContent,/New Event Team/);
-  assert.doesNotMatch(q("#content").textContent,/Legacy Team/);
+  assert.match(q("#content tbody").textContent,/New Event Team/);
+  assert.doesNotMatch(q("#content tbody").textContent,/Legacy Team/);
 
   dom.window.close();
 });
