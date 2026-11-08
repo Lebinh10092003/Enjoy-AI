@@ -1,6 +1,6 @@
--- Enjoy AI Competition Desk — initial Supabase PostgreSQL schema (deployed 2026-11-02).
--- Already applied to Supabase project oooiaqnzqcvodjuwnagh as migration enjoy_ai_competition_cloud_v1.
--- Run only against a NEW/EMPTY project; do not rerun on an existing project.
+-- Enjoy AI Competition Desk — complete Supabase schema for a NEW/EMPTY project.
+-- The live Enjoy-AI project was upgraded separately with the event-management migrations.
+-- Never run this full schema against an existing project.
 create schema if not exists app_private;
 revoke all on schema app_private from public, anon, authenticated;
 
@@ -14,7 +14,7 @@ create table public.competition_events (
   name text not null check (length(btrim(name)) between 2 and 120),
   season text not null default '2026' check (length(btrim(season)) between 1 and 32),
   event_date date,
-  venue text not null default '',
+  venue text not null default '' check (length(venue) <= 160),
   status text not null default 'active' check (status in ('active','archived')),
   created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
