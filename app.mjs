@@ -1,5 +1,5 @@
 import {renderDashboard} from "./dashboard-ui.mjs";
-import {CloudSync} from "./cloud-sync.mjs";
+import {CloudSync} from "./cloud-sync.mjs?v=20261108-events-v1";
 import {CLOUD_CONFIG} from "./cloud-config.mjs";
 import {parseSeconds,displaySeconds} from "./time-utils.mjs";
 import {teamImportTemplate,validateTeamImport} from "./team-import.mjs";
